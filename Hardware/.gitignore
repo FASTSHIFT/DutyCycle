@@ -1,0 +1,7 @@
+# KiCAD
+gerber
+*.zip
+*.kicad_pcb.lck
+*.bak
+*.kicad_prl
+fp-info-cache
