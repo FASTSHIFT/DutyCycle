@@ -1,0 +1,11 @@
+# Keil project
+Listings
+Objects
+*.uvoptx
+*.uvguix.*
+JLink*
+*.log
+*.scvd
+
+# Others
+.vscode
