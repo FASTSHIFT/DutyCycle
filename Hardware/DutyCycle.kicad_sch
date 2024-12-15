@@ -7088,12 +7088,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+2.8V"
-			(at 193.04 143.51 0)
+		(property "Value" "VDD"
+			(at 195.58 147.3199 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
 		(property "Footprint" ""
@@ -7539,12 +7540,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+2.8V"
-			(at 73.66 140.97 0)
+		(property "Value" "VDD"
+			(at 76.2 144.7799 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Footprint" ""
@@ -8874,12 +8876,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+2.8V"
-			(at 128.27 118.11 0)
+		(property "Value" "VDD"
+			(at 130.81 121.9199 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Footprint" ""
@@ -9147,12 +9150,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+2.8V"
-			(at 195.58 223.52 0)
+		(property "Value" "VDD"
+			(at 198.12 227.3299 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify right)
 			)
 		)
 		(property "Footprint" ""
@@ -9288,7 +9292,6 @@
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "aec5c240-a007-4e8c-86a3-0aaaf7c615ef")
 		(property "Reference" "#PWR026"
 			(at 342.9 57.15 0)
@@ -9299,12 +9302,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+2.8V"
-			(at 342.9 48.26 0)
+		(property "Value" "VDD"
+			(at 344.424 49.276 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Footprint" ""
@@ -10542,12 +10546,13 @@
 				(hide yes)
 			)
 		)
-		(property "Value" "+2.8V"
-			(at 128.27 203.2 0)
+		(property "Value" "VDD"
+			(at 130.81 207.0099 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Footprint" ""
