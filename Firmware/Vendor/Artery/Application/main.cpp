@@ -55,23 +55,6 @@ static void update_rtc_config()
     RTC_SetTime(year, month_int, day, hour, minute, second);
 }
 
-static void setup()
-{
-    Serial.begin(115200);
-    pinMode(CONFIG_PWR_PIN, OUTPUT);
-    digitalWrite(CONFIG_PWR_PIN, HIGH);
-
-    pinMode(CONFIG_MOT_OUT1_PIN, PWM);
-    pinMode(CONFIG_MOT_OUT2_PIN, PWM);
-    pinMode(CONFIG_KEY_DET_PIN, INPUT_PULLUP);
-
-    pinMode(CONFIG_BUZZ_PIN, OUTPUT);
-    tone(CONFIG_BUZZ_PIN, 500, 100);
-
-    RTC_Init();
-//    update_rtc_config();
-}
-
 static void motorWrite(int value)
 {
     Serial.println(value);
@@ -107,11 +90,15 @@ static int32_t timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, int
     int32_t min_in = getTimestamp(hour_start, 0, 0);
     int32_t max_in = getTimestamp(hour_end, 0, 0);
 
-    if(max_in >= min_in && x >= max_in) return max_out;
-    if(max_in >= min_in && x <= min_in) return min_out;
+    if (max_in >= min_in && x >= max_in)
+        return max_out;
+    if (max_in >= min_in && x <= min_in)
+        return min_out;
 
-    if(max_in <= min_in && x <= max_in) return max_out;
-    if(max_in <= min_in && x >= min_in) return min_out;
+    if (max_in <= min_in && x <= max_in)
+        return max_out;
+    if (max_in <= min_in && x >= min_in)
+        return min_out;
 
     /**
      * The equation should be:
@@ -166,39 +153,72 @@ static void adjustMotor()
 #define MOTOR_VALUE_1AM -540
 #define MOTOR_VALUE_5PM_DOWN -710
 
+static void onTimerIrq()
+{
+    RTC_Calendar_TypeDef calendar;
+    RTC_GetCalendar(&calendar);
+
+    uint32_t curTimestamp = getTimestamp(calendar.hour, calendar.min, calendar.sec);
+    Serial.printf("Current times: %04d-%02d-%02d %02d:%02d:%02d, timestamp: %d\r\n",
+        calendar.year, calendar.month, calendar.day, calendar.hour, calendar.min, calendar.sec, curTimestamp);
+    
+//    static int timeIndex = 0;
+//    static const int timeTable[] = { 5, 7, 9, 12, 21, 0, 1, 4 };
+//    if (timeIndex++ >= sizeof(timeTable) / sizeof(timeTable[0])) {
+//        timeIndex = 0;
+//    }
+//    curTimestamp = getTimestamp(timeTable[timeIndex], 0, 0);
+
+    static int motorValue = 0;
+
+    if (curTimestamp >= getTimestamp(5, 0, 0) && curTimestamp < getTimestamp(7, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
+    } else if (curTimestamp >= getTimestamp(7, 0, 0) && curTimestamp < getTimestamp(9, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 7, 9, MOTOR_VALUE_7AM, MOTOR_VALUE_9AM);
+    } else if (curTimestamp >= getTimestamp(9, 0, 0) && curTimestamp < getTimestamp(12, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 9, 12, MOTOR_VALUE_9AM, MOTOR_VALUE_12AM);
+    } else if (curTimestamp >= getTimestamp(12, 0, 0) && curTimestamp < getTimestamp(21, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 12, 21, MOTOR_VALUE_12AM, MOTOR_VALUE_9PM);
+    } else if (curTimestamp >= getTimestamp(21, 0, 0) && curTimestamp < getTimestamp(24, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 21, 24, MOTOR_VALUE_9PM, MOTOR_VALUE_12PM);
+    } else if (curTimestamp >= getTimestamp(0, 0, 0) && curTimestamp < getTimestamp(1, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 0, 1, MOTOR_VALUE_12PM, MOTOR_VALUE_1AM);
+    } else if (curTimestamp >= getTimestamp(1, 0, 0) && curTimestamp < getTimestamp(5, 0, 0)) {
+        motorValue = timestampMap(curTimestamp, 1, 5, MOTOR_VALUE_1AM, MOTOR_VALUE_5PM_DOWN);
+    }
+
+    motorWrite(motorValue);
+}
+
+static void setup()
+{
+    Serial.begin(115200);
+    pinMode(CONFIG_PWR_PIN, OUTPUT);
+    digitalWrite(CONFIG_PWR_PIN, HIGH);
+
+    pinMode(CONFIG_MOT_OUT1_PIN, PWM);
+    pinMode(CONFIG_MOT_OUT2_PIN, PWM);
+    pinMode(CONFIG_KEY_DET_PIN, INPUT_PULLUP);
+
+    pinMode(CONFIG_BUZZ_PIN, OUTPUT);
+    tone(CONFIG_BUZZ_PIN, 500, 100);
+
+    RTC_Init();
+    update_rtc_config();
+
+    Timer_SetInterrupt(TIM3, 2 * 1000 * 1000, onTimerIrq);
+    Timer_SetEnable(TIM3, true);
+
+    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
+    nvic_irq_disable(SysTick_IRQn);
+}
+
 static void loop()
 {
     (void)sweep_test;
     (void)key_test;
     (void)adjustMotor;
-
-    RTC_Calendar_TypeDef calendar;
-    RTC_GetCalendar(&calendar);
-
-    uint32_t curTimestamp = getTimestamp(calendar.hour, calendar.min, calendar.sec);
-    Serial.printf("Current times: %04d-%02d-%02d %02d:%02d:%02d, timestamp: %d\r\n", 
-        calendar.year, calendar.month, calendar.day, calendar.hour, calendar.min, calendar.sec, curTimestamp);
-
-    static int motorValue = 0;
-
-    if(curTimestamp >= getTimestamp(5, 0, 0) && curTimestamp < getTimestamp(7, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
-    } else if(curTimestamp >= getTimestamp(7, 0, 0) && curTimestamp < getTimestamp(9, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 7, 9, MOTOR_VALUE_7AM, MOTOR_VALUE_9AM);
-    } else if(curTimestamp >= getTimestamp(9, 0, 0) && curTimestamp < getTimestamp(12, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 9, 12, MOTOR_VALUE_9AM, MOTOR_VALUE_12AM);
-    } else if(curTimestamp >= getTimestamp(12, 0, 0) && curTimestamp < getTimestamp(21, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 12, 21, MOTOR_VALUE_12AM, MOTOR_VALUE_9PM);
-    } else if(curTimestamp >= getTimestamp(21, 0, 0) && curTimestamp < getTimestamp(24, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 21, 24, MOTOR_VALUE_9PM, MOTOR_VALUE_12PM);
-    } else if(curTimestamp >= getTimestamp(0, 0, 0) && curTimestamp < getTimestamp(1, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 0, 1, MOTOR_VALUE_12PM, MOTOR_VALUE_1AM);
-    } else if(curTimestamp >= getTimestamp(1, 0, 0) && curTimestamp < getTimestamp(5, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 1, 5, MOTOR_VALUE_1AM, MOTOR_VALUE_5PM_DOWN);
-    }
-
-    motorWrite(motorValue);
-    delay(1000);
+    __WFI();
 }
 
 /**
