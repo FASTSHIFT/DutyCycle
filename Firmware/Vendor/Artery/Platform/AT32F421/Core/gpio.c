@@ -31,12 +31,12 @@ const PinInfo_TypeDef PIN_MAP[PIN_MAX] =
       * uint8_t TimerChannel;    定时器通道
       * uint8_t ADC_CHANNEL;     ADC通道
       */
-    {GPIOA, NULL, ADC1, GPIO_Pin_0, 1, ADC_CHANNEL_0},  /* PA0 */
-    {GPIOA, NULL, ADC1, GPIO_Pin_1, 2, ADC_CHANNEL_1},  /* PA1 */
-    {GPIOA, NULL, ADC1, GPIO_Pin_2, 3, ADC_CHANNEL_2},  /* PA2 */
-    {GPIOA, NULL, ADC1, GPIO_Pin_3, 4, ADC_CHANNEL_3},  /* PA3 */
-    {GPIOA, NULL, ADC1, GPIO_Pin_4, 0, ADC_CHANNEL_4},  /* PA4 */
-    {GPIOA, NULL, ADC1, GPIO_Pin_5, 1, ADC_CHANNEL_5},  /* PA5 */
+    {GPIOA, NULL, ADC1, GPIO_Pin_0, 0, ADC_CHANNEL_0},  /* PA0 */
+    {GPIOA, NULL, ADC1, GPIO_Pin_1, 0, ADC_CHANNEL_1},  /* PA1 */
+    {GPIOA, TIM15,ADC1, GPIO_Pin_2, 1, ADC_CHANNEL_2},  /* PA2 */
+    {GPIOA, TIM15,ADC1, GPIO_Pin_3, 2, ADC_CHANNEL_3},  /* PA3 */
+    {GPIOA, TIM14,ADC1, GPIO_Pin_4, 1, ADC_CHANNEL_4},  /* PA4 */
+    {GPIOA, NULL, ADC1, GPIO_Pin_5, 0, ADC_CHANNEL_5},  /* PA5 */
     {GPIOA, TIM3, ADC1, GPIO_Pin_6, 1, ADC_CHANNEL_6},  /* PA6 */
     {GPIOA, TIM3, ADC1, GPIO_Pin_7, 2, ADC_CHANNEL_7},  /* PA7 */
     {GPIOA, TIM1, NULL, GPIO_Pin_8, 1, ADC_CHANNEL_X},  /* PA8 */

@@ -23,8 +23,8 @@
 #include "rtc.h"
 
 /* select the ertc clock source */
-#define ERTC_CLOCK_SOURCE_LEXT           /* select lext as the ertc clock */
-//#define ERTC_CLOCK_SOURCE_LICK         /* select lick as the ertc clock */
+//#define ERTC_CLOCK_SOURCE_LEXT           /* select lext as the ertc clock */
+#define ERTC_CLOCK_SOURCE_LICK         /* select lick as the ertc clock */
 
 static volatile uint16_t ertc_clk_div_a = 0;
 static volatile uint16_t ertc_clk_div_b = 0;

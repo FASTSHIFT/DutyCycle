@@ -43,12 +43,12 @@ static void TIMx_OCxInit(tmr_type* TIMx, uint32_t arr, uint16_t psc, uint8_t Tim
 
     tmr_output_default_para_init(&tmr_output_struct);
     tmr_output_struct.oc_mode = TMR_OUTPUT_CONTROL_PWM_MODE_B;
+    tmr_output_struct.oc_output_state = TRUE;
     tmr_output_struct.oc_polarity = TMR_OUTPUT_ACTIVE_LOW;
     tmr_output_struct.oc_idle_state = TRUE;
+    tmr_output_struct.occ_output_state = TRUE;
     tmr_output_struct.occ_polarity = TMR_OUTPUT_ACTIVE_HIGH;
     tmr_output_struct.occ_idle_state = FALSE;
-    tmr_output_struct.oc_output_state = TRUE;
-    tmr_output_struct.occ_output_state = TRUE;
 
     switch(TimerChannel)
     {
