@@ -5,3 +5,4 @@ gerber
 *.bak
 *.kicad_prl
 fp-info-cache
+/bom
