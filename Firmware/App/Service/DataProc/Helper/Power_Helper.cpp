@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "Power_Helper.h"
+#include "../Def/Power.h"
+#include "Frameworks/DataBroker/DataBroker.h"
 
-#include "mcu_type.h"
+using namespace DataProc;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
-
-#ifdef __cplusplus
+Power_Helper::Power_Helper(DataNode* node)
+    : _node(node)
+{
+    _nodePower = node->subscribe("Power");
 }
-#endif
 
-#endif
+int Power_Helper::kickWakeup()
+{
+    Power_Info info;
+    info.cmd = POWER_CMD::KICK_WAKUP;
+    return _node->notify(_nodePower, &info, sizeof(info));
+}

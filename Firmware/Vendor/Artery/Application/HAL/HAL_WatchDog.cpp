@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
+#include "wdg.h"
 
-#include "mcu_type.h"
+namespace HAL {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class WatchDog : private DeviceObject {
+public:
+    WatchDog(const char* name)
+        : DeviceObject(name)
+    {
+        _instance = this;
+    }
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+private:
+    static WatchDog* _instance;
 
-#ifdef __cplusplus
+private:
+    virtual int onInit();
+    virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
+};
+
+WatchDog* WatchDog::_instance = nullptr;
+
+int WatchDog::onInit()
+{
+    return DeviceObject::RES_OK;
 }
-#endif
 
-#endif
+int WatchDog::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+{
+    int retval = DeviceObject::RES_OK;
+    switch(cmd.full)
+    {
+    case WATCHDOG_IOCMD_SET_TIMEOUT:
+        retval = WDG_SetTimeout(*(int*)data);
+        break;
+    case WATCHDOG_IOCMD_ENABLE:
+        WDG_SetEnable();
+        break;
+    case WATCHDOG_IOCMD_KEEP_ALIVE:
+        WDG_ReloadCounter();
+        break;
+    default:
+        return DeviceObject::RES_PARAM_ERROR;
+    }
+    return retval;
+}
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(WatchDog);

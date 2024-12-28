@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef APP_H
+#define APP_H
 
-#include "mcu_type.h"
+#include <stdint.h>
+
+typedef struct AppContext AppContext_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+/**
+ * @brief Create app context
+ *
+ * @param argc Number of arguments
+ * @param argv Arguments
+ * @return AppContext_t* 
+ */
+AppContext_t* App_CreateContext(int argc, const char* argv[]);
+
+/**
+ * @brief Run app loop
+ *
+ * @param context
+ */
+void App_RunLoopExecute(AppContext_t* context);
+
+/**
+ * @brief Timer handler
+ *
+ * @param context
+ * @return uint32_t Time till next timer event
+ */
+uint32_t App_HandleTimer(AppContext_t* context);
+
+/**
+ * @brief Destroy app context
+ *
+ * @param context 
+ */
+void App_DestroyContext(AppContext_t* context);
 
 #ifdef __cplusplus
-}
+} /*extern "C"*/
 #endif
 
-#endif
+#endif /*CTRL_H*/

@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,56 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
+#include "Service/HAL/HAL_Assert.h"
+#include "Version.h"
+#include <stdarg.h>
+#include <stdio.h>
 
-#include "mcu_type.h"
+namespace HAL {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class FaultHandle : private DeviceObject {
+public:
+    FaultHandle(const char* name)
+        : DeviceObject(name)
+    {
+    }
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+private:
+    virtual int onInit();
+};
 
-#ifdef __cplusplus
+int FaultHandle::onInit()
+{
+    return DeviceObject::RES_OK;
 }
-#endif
 
-#endif
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(FaultHandle);
+
+extern "C" {
+
+void cmb_printf(const char* __restrict __format, ...)
+{
+    char printf_buff[256];
+
+    va_list args;
+    va_start(args, __format);
+    vsnprintf(printf_buff, sizeof(printf_buff), __format, args);
+    va_end(args);
+
+    HAL_Log_PrintString(printf_buff);
+}
+
+void HAL_Assert(const char* file, int line, const char* func, const char* expr)
+{
+    HAL_LOG_ERROR("Assert: %s:%d %s %s", file, line, func, expr);
+    HAL_Panic();
+}
+
+void HAL_Panic(void)
+{
+}
+
+} /* extern "C" */

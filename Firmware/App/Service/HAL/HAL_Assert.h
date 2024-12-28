@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
 
-#include "mcu_type.h"
+#ifndef __HAL_PANIC_H
+#define __HAL_PANIC_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+#define HAL_ASSERT(expr)                                     \
+    do {                                                     \
+        if (!(expr))                                         \
+            HAL_Assert(__FILE__, __LINE__, __func__, #expr); \
+    } while (0)
+
+void HAL_Assert(const char* file, int line, const char* func, const char* expr);
+void HAL_Panic(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+#endif /* __HAL_PANIC_H */

@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,61 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
+#include <Arduino.h>
 
-#include "mcu_type.h"
+namespace HAL {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class Power : private DeviceObject {
+public:
+    Power(const char* name)
+        : DeviceObject(name)
+    {
+    }
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+private:
+    virtual int onInit();
+    virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
+    void setEnable(bool enable);
+};
 
-#ifdef __cplusplus
+int Power::onInit()
+{
+    pinMode(CONFIG_PWR_EN_PIN, OUTPUT);
+
+    setEnable(true);
+    return DeviceObject::RES_OK;
 }
-#endif
 
-#endif
+int Power::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+{
+    switch (cmd.full) {
+    case POWER_IOCMD_RUN:
+        /* Wait for interrupt */
+        __WFI();
+        break;
+
+    case POWER_IOCMD_POWER_OFF:
+        HAL_LOG_WARN("Power off!");
+        setEnable(false);
+        break;
+
+    case POWER_IOCMD_REBOOT:
+        HAL_LOG_WARN("Rebooting...");
+        NVIC_SystemReset();
+        break;
+
+    default:
+        return DeviceObject::RES_UNSUPPORT;
+    }
+    return DeviceObject::RES_OK;
+}
+
+void Power::setEnable(bool enable)
+{
+    digitalWrite(CONFIG_PWR_EN_PIN, enable);
+}
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(Power);

@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
 
-#include "mcu_type.h"
+/* Import Device */
+#define HAL_DEF(name) extern DeviceObject DevObj_##name;
+#include "HAL_DeviceTree.inc"
+#undef HAL_DEF
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+DeviceManager* HAL::Manager()
+{
+    /* Device Array */
+    static DeviceObject* devObjArr[] = {
+#define HAL_DEF(name) &(DevObj_##name),
+#include "HAL_DeviceTree.inc"
+#undef HAL_DEF
+    };
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
-
-#ifdef __cplusplus
+    static DeviceManager manager(devObjArr, CM_ARRAY_SIZE(devObjArr));
+    return &manager;
 }
-#endif
 
-#endif
+void HAL::Init()
+{
+    HAL_Log_Init();
+    HAL_LOG_INFO("begin");
+
+    Manager()->init([](DeviceManager* manager, DeviceObject* dev, int retval) {
+        if (retval < 0) {
+            HAL_LOG_ERROR("[%s] init fail: %d", dev->getName(), retval);
+        } else {
+            HAL_LOG_INFO("[%s] init success", dev->getName());
+        }
+    });
+
+    HAL_LOG_INFO("end");
+}

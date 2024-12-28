@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,49 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __MEDIAN_QUEUE_FILTER_H
+#define __MEDIAN_QUEUE_FILTER_H
 
-#include "mcu_type.h"
+#include "MedianFilter.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Filter
+{
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+template <typename T, size_t bufferSize> class MedianQueue : public Median<T, bufferSize>
+{
+public:
+    MedianQueue() : Median<T, bufferSize>()
+    {
+    }
 
-#ifdef __cplusplus
+    virtual T GetNext(T value)
+    {
+        if (this->isFirst)
+        {
+            this->isFirst = !this->FillBuffer(value);
+            this->lastValue = value;
+        }
+        else
+        {
+            this->dataIndex %= bufferSize;
+            this->buffer[this->dataIndex] = value;
+            this->dataIndex++;
+
+            for (size_t i = 0; i < bufferSize; i++)
+            {
+                this->bufferSort[i] = this->buffer[i];
+            }
+            std::sort(this->bufferSort, this->bufferSort + bufferSize);
+            this->lastValue = this->bufferSort[bufferSize / 2];
+        }
+
+        return this->lastValue;
+    }
+
+protected:
+    T bufferSort[bufferSize];
+};
+
 }
-#endif
 
 #endif

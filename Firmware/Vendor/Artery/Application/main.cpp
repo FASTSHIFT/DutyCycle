@@ -161,13 +161,13 @@ static void onTimerIrq()
     uint32_t curTimestamp = getTimestamp(calendar.hour, calendar.min, calendar.sec);
     Serial.printf("Current times: %04d-%02d-%02d %02d:%02d:%02d, timestamp: %d\r\n",
         calendar.year, calendar.month, calendar.day, calendar.hour, calendar.min, calendar.sec, curTimestamp);
-    
-//    static int timeIndex = 0;
-//    static const int timeTable[] = { 5, 7, 9, 12, 21, 0, 1, 4 };
-//    if (timeIndex++ >= sizeof(timeTable) / sizeof(timeTable[0])) {
-//        timeIndex = 0;
-//    }
-//    curTimestamp = getTimestamp(timeTable[timeIndex], 0, 0);
+
+    //    static int timeIndex = 0;
+    //    static const int timeTable[] = { 5, 7, 9, 12, 21, 0, 1, 4 };
+    //    if (timeIndex++ >= sizeof(timeTable) / sizeof(timeTable[0])) {
+    //        timeIndex = 0;
+    //    }
+    //    curTimestamp = getTimestamp(timeTable[timeIndex], 0, 0);
 
     static int motorValue = 0;
 
@@ -209,8 +209,7 @@ static void setup()
     Timer_SetInterrupt(TIM3, 2 * 1000 * 1000, onTimerIrq);
     Timer_SetEnable(TIM3, true);
 
-    SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-    nvic_irq_disable(SysTick_IRQn);
+    Delay_Deinit();
 }
 
 static void loop()

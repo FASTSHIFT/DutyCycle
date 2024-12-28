@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 - 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __CONFIG_H
+#define __CONFIG_H
 
-#include "mcu_type.h"
+/* clang-format off */
 
-#ifdef __cplusplus
-extern "C" {
+/*=========================
+  Application configuration
+ *=========================*/
+
+/* Watchdog timeout (seconds) */
+#ifndef CONFIG_WATCHDOG_TIMEOUT
+#define CONFIG_WATCHDOG_TIMEOUT               10
 #endif
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+/* clang-format on */
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif /* __CONFIG_H */

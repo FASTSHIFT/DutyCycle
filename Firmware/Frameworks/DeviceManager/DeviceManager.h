@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2022 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
 
-#include "mcu_type.h"
+#ifndef __DEVICE_MANAGER_H
+#define __DEVICE_MANAGER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stddef.h>
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+class DeviceObject;
 
-#ifdef __cplusplus
-}
-#endif
+class DeviceManager {
+public:
+    typedef void (*InitFinishCallback_t)(DeviceManager* manager, DeviceObject* dev, int retval);
 
-#endif
+public:
+    DeviceManager(DeviceObject** devArray, size_t len);
+    ~DeviceManager();
+
+    void init(InitFinishCallback_t callback = nullptr);
+    DeviceObject* getDevice(const char* name);
+
+private:
+    DeviceObject** _devArray;
+    size_t _devArrayLen;
+};
+
+#endif // !__DEVICE_MANAGER

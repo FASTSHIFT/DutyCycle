@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "DataProc.h"
 
-#include "mcu_type.h"
+using namespace DataProc;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class DP_Template {
+public:
+    DP_Template(DataNode* node);
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+private:
+    DataNode* _node;
+    int _value;
 
-#ifdef __cplusplus
+private:
+    int onEvent(DataNode::EventParam_t* param);
+};
+
+DP_Template::DP_Template(DataNode* node)
+    : _node(node)
+    , _value(0)
+{
+    _node->setEventCallback(
+        [](DataNode* n, DataNode::EventParam_t* param) -> int {
+            auto ctx = (DP_Template*)n->getUserData();
+            return ctx->onEvent(param);
+        },
+        DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY);
 }
-#endif
 
-#endif
+int DP_Template::onEvent(DataNode::EventParam_t* param)
+{
+    if (param->size != sizeof(_value)) {
+        return DataNode::RES_SIZE_MISMATCH;
+    }
+
+    switch (param->event) {
+    case DataNode::EVENT_PULL:
+        memcpy(param->data_p, &_value, sizeof(_value));
+        break;
+
+    case DataNode::EVENT_NOTIFY:
+        memcpy(&_value, param->data_p, sizeof(_value));
+        break;
+
+    default:
+        break;
+    }
+
+    return DataNode::RES_OK;
+}
+
+DATA_PROC_DESCRIPTOR_DEF(Template)

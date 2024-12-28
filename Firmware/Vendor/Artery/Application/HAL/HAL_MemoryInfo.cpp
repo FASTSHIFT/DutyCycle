@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,58 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
 
-#include "mcu_type.h"
+#if CONFIG_MEMORY_STACK_INFO
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "StackInfo/StackInfo.h"
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
-
-#ifdef __cplusplus
+static void Memory_DumpStackInfo()
+{
+    HAL_LOG_INFO(
+        "Stack: %d%% used (total: %d, free: %d)",
+        (int)(StackInfo_GetMaxUtilization() * 100),
+        StackInfo_GetTotalSize(),
+        StackInfo_GetMinFreeSize());
 }
 #endif
 
+#if CONFIG_MEMORY_HEAP_INFO
+
+#include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+static int Memory_HeapPrint(void* param, char const* format, ...)
+{
+    static char printf_buff[64];
+
+    va_list args;
+    va_start(args, format);
+
+    int ret_status = vsnprintf(printf_buff, sizeof(printf_buff), format, args);
+
+    va_end(args);
+
+    HAL_LOG_INFO("Heap: %s", printf_buff);
+
+    return ret_status;
+}
+
+static void Memory_DumpHeapInfo()
+{
+    int size = 0;
+    __heapstats((__heapprt)Memory_HeapPrint, &size);
+}
 #endif
+
+void HAL_MemoryDumpInfo()
+{
+#if CONFIG_MEMORY_STACK_INFO
+    Memory_DumpStackInfo();
+#endif
+
+#if CONFIG_MEMORY_HEAP_INFO
+    Memory_DumpHeapInfo();
+#endif
+}

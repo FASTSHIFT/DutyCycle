@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,46 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
 
-#include "mcu_type.h"
+namespace HAL {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+class Button : private DeviceObject {
+public:
+    Button(const char* name)
+        : DeviceObject(name)
+    {
+    }
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+private:
+    virtual int onInit();
+    virtual int onRead(void* buffer, size_t size);
+    void getInfo(HAL::Button_Info_t* info);
+};
 
-#ifdef __cplusplus
+int Button::onInit()
+{
+    pinMode(CONFIG_BUTTON_SEL_PIN, INPUT_PULLUP);
+    return DeviceObject::RES_OK;
 }
-#endif
 
-#endif
+int Button::onRead(void* buffer, size_t size)
+{
+    if (size != sizeof(HAL::Button_Info_t)) {
+        return DeviceObject::RES_PARAM_ERROR;
+    }
+
+    getInfo((HAL::Button_Info_t*)buffer);
+    return sizeof(HAL::Button_Info_t);
+}
+
+void Button::getInfo(HAL::Button_Info_t* info)
+{
+    info->value = 0;
+
+    info->key.ok = !digitalRead(CONFIG_BUTTON_SEL_PIN);
+}
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(Button);

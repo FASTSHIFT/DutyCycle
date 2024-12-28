@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,56 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
+#include <Arduino.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdio.h>
 
-#include "mcu_type.h"
+#define LOG_SERIAL CONFIG_LOG_SERIAL
 
-#ifdef __cplusplus
 extern "C" {
-#endif
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
-
-#ifdef __cplusplus
+void HAL_Log_Init()
+{
+    LOG_SERIAL.begin(115200);
+    LOG_SERIAL.setTimeout(20);
 }
-#endif
 
-#endif
+void HAL_Log_PrintString(const char* str)
+{
+    LOG_SERIAL.print(str);
+}
+
+void HAL_Log(uint8_t level, const char* func, const char* fmt, ...)
+{
+    if (level >= _HAL_LOG_LEVEL_LAST) {
+        return;
+    }
+
+    static const char* prompt[_HAL_LOG_LEVEL_LAST] = {
+        "INFO", "WARN", "ERROR"
+    };
+
+    char buffer[256];
+
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, ap);
+    va_end(ap);
+
+    HAL_Log_Printf("[%" PRIu32 "][%s] %s: %s\r\n", millis(), prompt[level], func, buffer);
+}
+
+void HAL_Log_Printf(const char* fmt, ...)
+{
+    char buffer[256];
+
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buffer, sizeof(buffer), fmt, ap);
+    va_end(ap);
+
+    LOG_SERIAL.printf("%s", buffer);
+}
+} /* extern "C" */

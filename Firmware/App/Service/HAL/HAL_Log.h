@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __HAL_LOG_H
+#define __HAL_LOG_H
 
-#include "mcu_type.h"
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+#define HAL_LOG_LEVEL_OFF -1
+#define HAL_LOG_LEVEL_INFO 0
+#define HAL_LOG_LEVEL_WARN 1
+#define HAL_LOG_LEVEL_ERROR 2
+#define _HAL_LOG_LEVEL_LAST 3
+
+#ifndef HAL_LOG_LEVEL
+#define HAL_LOG_LEVEL HAL_LOG_LEVEL_INFO
+#endif
+
+#if HAL_LOG_LEVEL > HAL_LOG_LEVEL_OFF
+
+#if HAL_LOG_LEVEL <= HAL_LOG_LEVEL_INFO
+#define HAL_LOG_INFO(...) HAL_Log(HAL_LOG_LEVEL_INFO, __func__, __VA_ARGS__)
+#else
+#define HAL_LOG_INFO(...)
+#endif
+
+#if HAL_LOG_LEVEL <= HAL_LOG_LEVEL_WARN
+#define HAL_LOG_WARN(...) HAL_Log(HAL_LOG_LEVEL_WARN, __func__, __VA_ARGS__)
+#else
+#define HAL_LOG_WARN(...)
+#endif
+
+#if HAL_LOG_LEVEL <= HAL_LOG_LEVEL_ERROR
+#define HAL_LOG_ERROR(...) HAL_Log(HAL_LOG_LEVEL_ERROR, __func__, __VA_ARGS__)
+#else
+#define HAL_LOG_ERROR(...)
+#endif
+
+#else
+#define HAL_LOG_INFO(...)
+#define HAL_LOG_WARN(...)
+#define HAL_LOG_ERROR(...)
+#endif
+
+void HAL_Log_Init(void);
+void HAL_Log_PrintString(const char* str);
+void HAL_Log(uint8_t level, const char* func, const char* fmt, ...);
+void HAL_Log_Printf(const char* fmt, ...);
 
 #ifdef __cplusplus
-}
+} /* extern "C" */
 #endif
 
 #endif

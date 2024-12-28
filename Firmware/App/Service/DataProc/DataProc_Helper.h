@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __DATA_PROC_HELPER_H
+#define __DATA_PROC_HELPER_H
 
-#include "mcu_type.h"
+#include "Helper/Global_Helper.h"
+#include "Helper/Power_Helper.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif // __DATA_PROC_HELPER_H

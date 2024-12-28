@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __FILTERS_H
+#define __FILTERS_H
 
-#include "mcu_type.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
-
-#ifdef __cplusplus
-}
-#endif
+#include "HysteresisFilter.h"
+#include "LowpassFilter.h"
+#include "MedianFilter.h"
+#include "MedianQueueFilter.h"
+#include "SlidingFilter.h"
 
 #endif

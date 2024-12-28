@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 - 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "DataProc.h"
+#include "Service/HAL/HAL.h"
 
-#include "mcu_type.h"
+static DataBroker* DataProcBroker = nullptr;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void DataProc_Init(DataBroker* broker)
+{
+    DataProcBroker = broker;
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+    broker->initTimerManager(HAL::GetTick);
 
-#ifdef __cplusplus
+/* Create DataNode */
+#define DP_DEF(NAME) \
+    DataNode* node##NAME = new DataNode(#NAME, broker);
+#include "DataProc_NodeList.inc"
+#undef DP_DEF
+
+/* Init DataNode */
+#define DP_DEF(NAME)                           \
+    do {                                       \
+        void DP_##NAME##_Init(DataNode* node); \
+        DP_##NAME##_Init(node##NAME);          \
+    } while (0)
+#include "DataProc_NodeList.inc"
+#undef DP_DEF
 }
-#endif
 
-#endif
+DataBroker* DataProc::broker()
+{
+    return DataProcBroker;
+}

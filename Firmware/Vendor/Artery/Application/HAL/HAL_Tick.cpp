@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,52 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#include "HAL.h"
+#include <Arduino.h>
 
-#include "mcu_type.h"
-
-#ifdef __cplusplus
-extern "C" {
+#ifndef UINT32_MAX
+#define UINT32_MAX 0xFFFFFFFF
 #endif
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+namespace HAL {
 
-#ifdef __cplusplus
+class Tick : private DeviceObject {
+public:
+    Tick(const char* name)
+        : DeviceObject(name)
+    {
+    }
+
+private:
+    virtual int onInit();
+};
+
+int Tick::onInit()
+{
+    return DeviceObject::RES_OK;
 }
-#endif
 
-#endif
+
+} // namespace HAL
+
+uint32_t HAL::GetTick()
+{
+    return millis();
+}
+
+uint32_t HAL::GetTickElaps(uint32_t prevTick)
+{
+    uint32_t actTick = GetTick();
+
+    /*If there is no overflow in sys_time simple subtract*/
+    if (actTick >= prevTick) {
+        prevTick = actTick - prevTick;
+    } else {
+        prevTick = UINT32_MAX - prevTick + 1;
+        prevTick += actTick;
+    }
+
+    return prevTick;
+}
+
+DEVICE_OBJECT_MAKE(Tick);

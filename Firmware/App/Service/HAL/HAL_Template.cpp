@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#if 0
 
-#include "mcu_type.h"
+#include "HAL.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace HAL {
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+class Template : private DeviceObject {
+public:
+    Template(const char* name)
+        : DeviceObject(name)
+    {
+    }
 
-#ifdef __cplusplus
+private:
+    virtual int onInit();
+    virtual int onRead(void* buffer, size_t size);
+    virtual int onWrite(const void* buffer, size_t size);
+    virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
+};
+
+int Template::onInit()
+{
+    return DeviceObject::RES_OK;
 }
-#endif
+
+int Template::onRead(void* buffer, size_t size)
+{
+    return DeviceObject::RES_UNSUPPORT;
+}
+
+int Template::onWrite(const void* buffer, size_t size)
+{
+    return DeviceObject::RES_UNSUPPORT;
+}
+
+int Template::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+{
+    switch (cmd.full) {
+    case 0:
+        break;
+    default:
+        return DeviceObject::RES_UNSUPPORT;
+    }
+    return DeviceObject::RES_OK;
+}
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(Template);
 
 #endif

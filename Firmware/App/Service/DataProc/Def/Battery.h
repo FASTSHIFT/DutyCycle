@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __DATA_PROC_BATTERY_DEF_H
+#define __DATA_PROC_BATTERY_DEF_H
 
-#include "mcu_type.h"
+#include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace DataProc {
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+enum class BATTERY_CMD {
+    NONE,
+    SET_MONITOR,
+};
 
-#ifdef __cplusplus
-}
-#endif
+typedef struct Battery_Info {
+    Battery_Info()
+        : cmd(BATTERY_CMD::NONE)
+        , monitor(false)
+    {
+    }
+    BATTERY_CMD cmd;
+    bool monitor;
+} Battery_Info_t;
 
-#endif
+} // namespace DataProc
+
+#endif // __DATA_PROC_BATTERY_DEF_H

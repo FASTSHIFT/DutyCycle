@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __HYSTERESIS_FILTER_H
+#define __HYSTERESIS_FILTER_H
 
-#include "mcu_type.h"
+#include "FilterBase.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Filter
+{
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+template <typename T> class Hysteresis : public Base<T>
+{
+public:
+    Hysteresis(T hysVal)
+    {
+        this->Reset();
+        this->hysValue = hysVal;
+    }
 
-#ifdef __cplusplus
+    virtual T GetNext(T value)
+    {
+        if (FILTER_ABS(value - this->lastValue) > this->hysValue)
+        {
+            this->lastValue = value;
+        }
+        return this->lastValue;
+    }
+
+private:
+    T hysValue;
+};
+
 }
-#endif
 
 #endif

@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __FILTER_BASE_H
+#define __FILTER_BASE_H
 
-#include "mcu_type.h"
+#include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define FILTER_ABS(x)  (((x)>0)?(x):-(x))
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+namespace Filter
+{
 
-#ifdef __cplusplus
+template <class T> class Base
+{
+public:
+    virtual void Reset()
+    {
+        isFirst = true;
+    }
+
+    virtual bool CheckFirst()
+    {
+        bool retval = isFirst;
+        isFirst = false;
+        return retval;
+    }
+
+    virtual T GetNext(T value)
+    {
+        lastValue = value;
+        return lastValue;
+    }
+
+protected:
+    T lastValue;
+    bool isFirst;
+};
+
 }
-#endif
 
-#endif
+#endif // ! __FILTER_BASE_H

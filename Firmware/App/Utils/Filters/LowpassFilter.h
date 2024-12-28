@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2021 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,54 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __LOWPASS_FILTER_H
+#define __LOWPASS_FILTER_H
 
-#include "mcu_type.h"
+#include "FilterBase.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Filter
+{
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+template <typename T> class Lowpass : public Base<T>
+{
+public:
+    Lowpass(float dt, float cutoff)
+    {
+        this->SetConfig(dt, cutoff);
+    }
 
-#ifdef __cplusplus
+    void SetConfig(float dt, float cutoff)
+    {
+        this->Reset();
+
+        if (cutoff > 0.001f)
+        {
+            float RC = 1 / (2 * 3.141592653f * cutoff);
+            this->rc = dt / (RC + dt);
+        }
+        else
+        {
+            this->rc = 1;
+        }
+    }
+
+    virtual T GetNext(T value)
+    {
+        if (this->CheckFirst())
+        {
+            return this->lastValue = value;
+        }
+        else
+        {
+            this->lastValue = (this->lastValue + (value - this->lastValue) * this->rc);
+            return this->lastValue;
+        }
+    }
+
+private:
+    float rc;
+};
+
 }
-#endif
 
 #endif

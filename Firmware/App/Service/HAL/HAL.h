@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __WDT_H
-#define __WDT_H
+#ifndef __HAL_COMMON_H
+#define __HAL_COMMON_H
 
-#include "mcu_type.h"
+#include "HAL_Def.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "Frameworks/DeviceManager/DeviceManager.h"
+#include "Frameworks/DeviceManager/DeviceObject.h"
 
-uint32_t WDG_SetTimeout(uint32_t timeout);
-void WDG_SetEnable(void);
-void WDG_ReloadCounter(void);
+#define DEVICE_OBJECT_MAKE(name) HAL::name DevObj_##name(#name)
 
-#ifdef __cplusplus
+namespace HAL {
+
+void Init();
+DeviceManager* Manager();
+uint32_t GetTick();
+uint32_t GetTickElaps(uint32_t prevTick);
+
 }
-#endif
-
 #endif
