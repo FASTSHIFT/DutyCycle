@@ -63,7 +63,7 @@ DP_Button::DP_Button(DataNode* node)
             return ctx->onEvent(param);
         },
         DataNode::EVENT_TIMER | DataNode::EVENT_PULL);
-    node->startTimer(20);
+//    node->startTimer(20);
 }
 
 int DP_Button::onEvent(DataNode::EventParam_t* param)

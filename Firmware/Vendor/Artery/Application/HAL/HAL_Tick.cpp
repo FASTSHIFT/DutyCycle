@@ -27,6 +27,8 @@
 #define UINT32_MAX 0xFFFFFFFF
 #endif
 
+#define TICK_TIMER TIM3
+
 namespace HAL {
 
 class Tick : private DeviceObject {
@@ -38,20 +40,54 @@ public:
 
 private:
     virtual int onInit();
+    virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
+    void start(uint32_t ms);
+    static void stop();
 };
 
 int Tick::onInit()
 {
+    Delay_Deinit();
+
+    Timer_SetInterrupt(TICK_TIMER, 1, []() {
+        stop();
+    });
+
     return DeviceObject::RES_OK;
 }
 
+int Tick::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+{
+    switch (cmd.full) {
+    case TICK_IOCMD_START:
+        start(*(uint32_t*)data);
+        break;
+
+    case TICK_IOCMD_STOP:
+        stop();
+        break;
+
+    default:
+        return DeviceObject::RES_UNSUPPORT;
+    }
+
+    return DeviceObject::RES_OK;
+}
+
+void Tick::start(uint32_t ms)
+{
+    Timer_SetInterruptTimeUpdate(TICK_TIMER, ms * 1000);
+    tmr_counter_value_set(TICK_TIMER, 0);
+    tmr_repetition_counter_set(TICK_TIMER, 1);
+    Timer_SetEnable(TICK_TIMER, true);
+}
+
+void Tick::stop()
+{
+    Timer_SetEnable(TICK_TIMER, false);
+}
 
 } // namespace HAL
-
-uint32_t HAL::GetTick()
-{
-    return millis();
-}
 
 uint32_t HAL::GetTickElaps(uint32_t prevTick)
 {

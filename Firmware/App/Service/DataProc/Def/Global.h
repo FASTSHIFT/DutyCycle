@@ -31,8 +31,9 @@ enum class GLOBAL_EVENT {
     NONE,
     DATA_PROC_INIT_FINISHED,
     APP_STARTED,
-    APP_RUN_LOOP_EXECUTE,
     APP_STOPPED,
+    APP_RUN_LOOP_BEGIN,
+    APP_RUN_LOOP_END,
 };
 
 typedef struct Global_Info {

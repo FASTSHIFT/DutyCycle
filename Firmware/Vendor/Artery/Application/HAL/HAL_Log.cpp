@@ -58,7 +58,7 @@ void HAL_Log(uint8_t level, const char* func, const char* fmt, ...)
     vsnprintf(buffer, sizeof(buffer), fmt, ap);
     va_end(ap);
 
-    HAL_Log_Printf("[%" PRIu32 "][%s] %s: %s\r\n", millis(), prompt[level], func, buffer);
+    HAL_Log_Printf("[%" PRIu32 "][%s] %s: %s\r\n", HAL::GetTick(), prompt[level], func, buffer);
 }
 
 void HAL_Log_Printf(const char* fmt, ...)

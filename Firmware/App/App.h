@@ -42,18 +42,10 @@ AppContext_t* App_CreateContext(int argc, const char* argv[]);
 
 /**
  * @brief Run app loop
- *
  * @param context
+ * @return Time till next timer event
  */
-void App_RunLoopExecute(AppContext_t* context);
-
-/**
- * @brief Timer handler
- *
- * @param context
- * @return uint32_t Time till next timer event
- */
-uint32_t App_HandleTimer(AppContext_t* context);
+uint32_t App_RunLoopExecute(AppContext_t* context);
 
 /**
  * @brief Destroy app context

@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "App/App.h"
-#include "Service/HAL/HAL.h"
-#include <Arduino.h>
+#include "HAL.h"
 
-/**
- * @brief  Main Function
- * @param  None
- * @retval None
- */
-int main(void)
+namespace HAL {
+
+class Motor : private DeviceObject {
+public:
+    Motor(const char* name)
+        : DeviceObject(name)
+    {
+    }
+
+private:
+    virtual int onInit();
+    virtual int onWrite(const void* buffer, size_t size);
+    void motorWrite(int value);
+    void sweepTest();
+};
+
+int Motor::onInit()
 {
-    Core_Init();
-    auto ctx = App_CreateContext(0, nullptr);
+    pinMode(CONFIG_MOTOR_OUT1_PIN, PWM);
+    pinMode(CONFIG_MOTOR_OUT2_PIN, PWM);
+    return DeviceObject::RES_OK;
+}
 
-    while (1) {
-        App_RunLoopExecute(ctx);
+int Motor::onWrite(const void* buffer, size_t size)
+{
+    if (size != sizeof(int)) {
+        return DeviceObject::RES_PARAM_ERROR;
+    }
+
+    motorWrite(*((int*)buffer));
+    return sizeof(int);
+}
+
+void Motor::motorWrite(int value)
+{
+    analogWrite(CONFIG_MOTOR_OUT1_PIN, value > 0 ? value : 0);
+    analogWrite(CONFIG_MOTOR_OUT2_PIN, value < 0 ? (uint16_t)-value : 0);
+}
+
+void Motor::sweepTest()
+{
+    for (int i = -1000; i < 1000; i++) {
+        motorWrite(i);
+        delay(10);
+    }
+
+    for (int i = 1000; i > -1000; i--) {
+        motorWrite(i);
+        delay(10);
     }
 }
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(Motor);

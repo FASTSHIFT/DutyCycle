@@ -25,7 +25,10 @@
 
 HAL_DEF(Tick)
 HAL_DEF(FaultHandle)
+HAL_DEF(Clock)
 HAL_DEF(Power)
 HAL_DEF(Battery)
 HAL_DEF(WatchDog)
 HAL_DEF(Button)
+HAL_DEF(Motor)
+HAL_DEF(Buzzer)

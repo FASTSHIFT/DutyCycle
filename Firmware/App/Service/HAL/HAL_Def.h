@@ -73,7 +73,7 @@ typedef struct
  *      Power
  *********************/
 
-#define POWER_IOCMD_RUN         DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 0, 0)
+#define POWER_IOCMD_WFI         DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 0, 0)
 #define POWER_IOCMD_POWER_OFF   DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
 #define POWER_IOCMD_REBOOT      DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 2, 0)
 
@@ -105,6 +105,31 @@ typedef struct
         } key;
     };
 } Button_Info_t;
+
+/*********************
+ *      Clock
+ *********************/
+
+typedef struct
+{
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t week;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint16_t millisecond;
+} Clock_Info_t;
+
+#define CLOCK_IOCMD_CALIBRATE   DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Clock_Info_t), 0, 0)
+
+/*********************
+ *      Tick
+ *********************/
+
+#define TICK_IOCMD_START    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(uint32_t), 0, 0)
+#define TICK_IOCMD_STOP     DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
 
 /* clang-format on */
 

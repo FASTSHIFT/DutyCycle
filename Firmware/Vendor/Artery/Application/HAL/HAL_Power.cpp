@@ -49,8 +49,7 @@ int Power::onInit()
 int Power::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
 {
     switch (cmd.full) {
-    case POWER_IOCMD_RUN:
-        /* Wait for interrupt */
+    case POWER_IOCMD_WFI:
         __WFI();
         break;
 

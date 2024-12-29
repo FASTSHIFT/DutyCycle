@@ -36,6 +36,7 @@ private:
     const DataNode* _nodeButton;
     DeviceObject* _devPower;
     DeviceObject* _devBattery;
+    DeviceObject* _devTick;
 
     Power_Info_t _info;
     uint32_t _lastTick;
@@ -66,6 +67,12 @@ DP_Power::DP_Power(DataNode* node)
         return;
     }
 
+    _devTick = HAL::Manager()->getDevice("Tick");
+    if (!_devTick) {
+        HAL_LOG_ERROR("Failed to get Tick device");
+        return;
+    }
+
     _nodeGlobal = _node->subscribe("Global");
     _nodeButton = _node->subscribe("Button");
 
@@ -75,12 +82,12 @@ DP_Power::DP_Power(DataNode* node)
             return ctx->onEvent(param);
         });
 
-    _node->startTimer(1000);
+//    _node->startTimer(1000);
 
     _lastTick = HAL::GetTick();
     _wakeUpTick = HAL::GetTick();
 
-    _info.autoShutdownTime = 3 * 60;
+    _info.autoShutdownTime = 0;
 }
 
 int DP_Power::onEvent(DataNode::EventParam_t* param)
@@ -135,8 +142,19 @@ int DP_Power::onEvent(DataNode::EventParam_t* param)
 
 int DP_Power::onGlobalEvent(const Global_Info_t* info)
 {
-    if (info->event == GLOBAL_EVENT::APP_RUN_LOOP_EXECUTE) {
-        _devPower->ioctl(POWER_IOCMD_RUN);
+    switch (info->event) {
+    case GLOBAL_EVENT::APP_RUN_LOOP_BEGIN:
+        _devTick->ioctl(TICK_IOCMD_STOP);
+        break;
+
+    case GLOBAL_EVENT::APP_RUN_LOOP_END: {
+        _devTick->ioctl(TICK_IOCMD_START, info->param, sizeof(uint32_t));
+        _devPower->ioctl(POWER_IOCMD_WFI);
+    }
+    break;
+
+    default:
+        break;
     }
 
     return DataNode::RES_OK;

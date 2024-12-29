@@ -47,7 +47,7 @@ void Delay_Init(void)
 void Delay_Deinit(void)
 {
     SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
-    nvic_irq_disable(SysTick_IRQn);
+    NVIC_DisableIRQ(SysTick_IRQn);
 }
 
 /**

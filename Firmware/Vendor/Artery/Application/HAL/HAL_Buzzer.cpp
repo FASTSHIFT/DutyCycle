@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2017 - 2022 _VIFEXTech
+ * Copyright (c) 2023 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,51 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "App/App.h"
-#include "Service/HAL/HAL.h"
-#include <Arduino.h>
+#include "HAL.h"
 
-/**
- * @brief  Main Function
- * @param  None
- * @retval None
- */
-int main(void)
-{
-    Core_Init();
-    auto ctx = App_CreateContext(0, nullptr);
+namespace HAL {
 
-    while (1) {
-        App_RunLoopExecute(ctx);
+class Buzzer : private DeviceObject {
+public:
+    Buzzer(const char* name)
+        : DeviceObject(name)
+    {
     }
+
+private:
+    virtual int onInit();
+    virtual int onRead(void* buffer, size_t size);
+    virtual int onWrite(const void* buffer, size_t size);
+    virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
+};
+
+int Buzzer::onInit()
+{
+    pinMode(CONFIG_BUZZ_PIN, OUTPUT);
+    return DeviceObject::RES_OK;
 }
+
+int Buzzer::onRead(void* buffer, size_t size)
+{
+    return DeviceObject::RES_UNSUPPORT;
+}
+
+int Buzzer::onWrite(const void* buffer, size_t size)
+{
+    return DeviceObject::RES_UNSUPPORT;
+}
+
+int Buzzer::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+{
+    switch (cmd.full) {
+    case 0:
+        break;
+    default:
+        return DeviceObject::RES_UNSUPPORT;
+    }
+    return DeviceObject::RES_OK;
+}
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(Buzzer);

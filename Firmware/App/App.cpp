@@ -52,14 +52,12 @@ AppContext_t* App_CreateContext(int argc, const char* argv[])
     return context;
 }
 
-void App_RunLoopExecute(AppContext_t* context)
+uint32_t App_RunLoopExecute(AppContext_t* context)
 {
-    context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_EXECUTE);
-}
-
-uint32_t App_HandleTimer(AppContext_t* context)
-{
-    return context->broker->handleTimer();
+    context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_BEGIN);
+    uint32_t timeTillNext = context->broker->handleTimer();
+    context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_END, &timeTillNext);
+    return timeTillNext;
 }
 
 void App_DestroyContext(AppContext_t* context)

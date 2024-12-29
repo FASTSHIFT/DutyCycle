@@ -28,29 +28,19 @@
 /* Logger Serial */
 #define CONFIG_LOG_SERIAL         Serial
 
-/* Radar */
-#define CONFIG_RADAR_PWR_EN_PIN   PB8
-#define CONFIG_RADAR_SERIAL       Serial2
-#define CONFIG_RADAR_OUT_PIN      PA1
+/* Motor */
+#define CONFIG_MOTOR_OUT1_PIN     PA2
+#define CONFIG_MOTOR_OUT2_PIN     PA3
+
+/* Buzzer */
+#define CONFIG_BUZZ_PIN           PB2
 
 /* Battery */
-#define CONFIG_BATT_DET_PIN       PA0
-#define CONFIG_PWR_EN_PIN         PA15
+#define CONFIG_BATT_DET_PIN       PB1
+#define CONFIG_PWR_EN_PIN         PA7
 
 /* Button */
-#define CONFIG_BUTTON_SEL_PIN     PB3
-
-/* IMU */
-#define CONFIG_IMU_INT1_PIN       PA4
-#define CONFIG_IMU_INT2_PIN       PB1
-#define CONFIG_IMU_CS_PIN         PB0
-#define CONFIG_IMU_SCK_PIN        PA5
-#define CONFIG_IMU_MISO_PIN       PA6
-#define CONFIG_IMU_MOSI_PIN       PA7
-#define CONFIG_IMU_SPI            0
-
-/* LED */
-#define CONFIG_LED_CTRL_PIN       PA8
+#define CONFIG_BUTTON_SEL_PIN     PB0
 
 /* Memory */
 #define CONFIG_MEMORY_STACK_INFO  1 /* Reuqire MPU Disabled */
