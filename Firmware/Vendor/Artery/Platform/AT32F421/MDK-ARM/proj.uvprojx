@@ -605,6 +605,16 @@
               <FileType>8</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Clock.cpp</FilePath>
             </File>
+            <File>
+              <FileName>DP_TimeMonitor.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\DP_TimeMonitor.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>DP_Audio.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Audio.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -743,6 +753,16 @@
               <FileName>Power_Helper.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Power_Helper.h</FilePath>
+            </File>
+            <File>
+              <FileName>Audio_Helper.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Audio_Helper.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>Audio_Helper.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Audio_Helper.h</FilePath>
             </File>
           </Files>
         </Group>

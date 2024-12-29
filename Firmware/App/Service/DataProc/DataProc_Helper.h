@@ -23,6 +23,7 @@
 #ifndef __DATA_PROC_HELPER_H
 #define __DATA_PROC_HELPER_H
 
+#include "Helper/Audio_Helper.h"
 #include "Helper/Global_Helper.h"
 #include "Helper/Power_Helper.h"
 

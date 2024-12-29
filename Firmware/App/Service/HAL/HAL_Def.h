@@ -131,6 +131,16 @@ typedef struct
 #define TICK_IOCMD_START    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(uint32_t), 0, 0)
 #define TICK_IOCMD_STOP     DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
 
+/*********************
+ *      Buzzer
+ *********************/
+
+typedef struct
+{
+    uint32_t freq;
+    uint32_t duration;
+} Buzzer_Info_t;
+
 /* clang-format on */
 
 } /* namespace HAL */

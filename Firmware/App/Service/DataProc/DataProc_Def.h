@@ -23,10 +23,11 @@
 #ifndef __DATA_PROC_DEF_H
 #define __DATA_PROC_DEF_H
 
+#include "Def/Audio.h"
 #include "Def/Battery.h"
+#include "Def/Button.h"
 #include "Def/Global.h"
 #include "Def/Power.h"
 #include "Def/Version.h"
-#include "Def/Button.h"
 
 #endif // __DATA_PROC_DEF_H

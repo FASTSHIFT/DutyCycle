@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2023 - 2024 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,39 +20,29 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "HAL.h"
+#include "Audio_Helper.h"
+#include "Frameworks/DataBroker/DataBroker.h"
 
-namespace HAL {
+using namespace DataProc;
 
-class Buzzer : private DeviceObject {
-public:
-    Buzzer(const char* name)
-        : DeviceObject(name)
-    {
-    }
-
-private:
-    virtual int onInit();
-    virtual int onWrite(const void* buffer, size_t size);
-};
-
-int Buzzer::onInit()
+Audio_Helper::Audio_Helper(DataNode* node)
+    : _node(node)
 {
-    pinMode(CONFIG_BUZZ_PIN, OUTPUT);
-    return DeviceObject::RES_OK;
+    _nodeAudio = node->subscribe("Audio");
 }
 
-int Buzzer::onWrite(const void* buffer, size_t size)
+int Audio_Helper::play(const Audio_Squence_t* squence, uint32_t length)
 {
-    if (size != sizeof(Buzzer_Info_t)) {
-        return DeviceObject::RES_PARAM_ERROR;
-    }
-
-    const Buzzer_Info_t* info = (const Buzzer_Info_t*)buffer;
-    tone(CONFIG_BUZZ_PIN, info->freq, info->duration);
-    return sizeof(Buzzer_Info_t);
+    Audio_Info_t info;
+    info.squence = squence;
+    info.length = length;
+    return _node->notify(_nodeAudio, &info, sizeof(info));
 }
 
-} /* namespace HAL */
-
-DEVICE_OBJECT_MAKE(Buzzer);
+int Audio_Helper::stop()
+{
+    Audio_Info_t info;
+    info.squence = nullptr;
+    info.length = 0;
+    return _node->notify(_nodeAudio, &info, sizeof(info));
+}

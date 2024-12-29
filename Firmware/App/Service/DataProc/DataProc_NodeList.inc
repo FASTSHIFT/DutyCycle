@@ -8,3 +8,5 @@ DP_DEF(WatchDog);
 DP_DEF(Button);
 DP_DEF(Clock);
 DP_DEF(Ctrl);
+DP_DEF(TimeMonitor);
+DP_DEF(Audio);
