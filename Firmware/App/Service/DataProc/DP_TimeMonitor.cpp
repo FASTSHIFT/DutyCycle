@@ -80,9 +80,9 @@ int DP_TimeMonitor::onEvent(DataNode::EventParam_t* param)
 void DP_TimeMonitor::onClockEvent(const HAL::Clock_Info_t* info)
 {
 
-//    static int h = 0;
-//    h = (h + 1) % 24;
-//    onHourChanged(h);
+    //    static int h = 0;
+    //    h = (h + 1) % 24;
+    //    onHourChanged(h);
 
     if (_lastHour == info->hour) {
         return;
@@ -95,7 +95,7 @@ void DP_TimeMonitor::onClockEvent(const HAL::Clock_Info_t* info)
 
 void DP_TimeMonitor::onHourChanged(int hour)
 {
-    if (hour > 23) {
+    if (hour > 0 && hour < 10) {
         return;
     }
 
