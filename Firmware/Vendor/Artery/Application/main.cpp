@@ -22,6 +22,7 @@
  */
 #include "rtc.h"
 #include <Arduino.h>
+#include <stdio.h>
 
 #define CONFIG_MOT_OUT1_PIN PA2
 #define CONFIG_MOT_OUT2_PIN PA3
@@ -200,11 +201,11 @@ static void setup()
     pinMode(CONFIG_MOT_OUT2_PIN, PWM);
     pinMode(CONFIG_KEY_DET_PIN, INPUT_PULLUP);
 
-    pinMode(CONFIG_BUZZ_PIN, OUTPUT);
-    tone(CONFIG_BUZZ_PIN, 500, 100);
-
     RTC_Init();
     update_rtc_config();
+
+    pinMode(CONFIG_BUZZ_PIN, OUTPUT);
+    tone(CONFIG_BUZZ_PIN, 500, 100);
 
     Timer_SetInterrupt(TIM3, 2 * 1000 * 1000, onTimerIrq);
     Timer_SetEnable(TIM3, true);
