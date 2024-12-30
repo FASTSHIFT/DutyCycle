@@ -104,6 +104,7 @@ typedef struct
             uint32_t down : 1;
         } key;
     };
+    uint32_t lastActiveTick;
 } Button_Info_t;
 
 /*********************

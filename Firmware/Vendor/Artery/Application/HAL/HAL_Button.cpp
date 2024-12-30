@@ -32,14 +32,27 @@ public:
     }
 
 private:
+    static volatile uint32_t _lastActiveTick;
+
+private:
     virtual int onInit();
     virtual int onRead(void* buffer, size_t size);
     void getInfo(HAL::Button_Info_t* info);
 };
 
+volatile uint32_t Button::_lastActiveTick = 0;
+
 int Button::onInit()
 {
     pinMode(CONFIG_BUTTON_SEL_PIN, INPUT_PULLUP);
+
+    attachInterrupt(
+        CONFIG_BUTTON_SEL_PIN,
+        []() {
+            Button::_lastActiveTick = HAL::GetTick();
+        },
+        FALLING);
+
     return DeviceObject::RES_OK;
 }
 
@@ -55,6 +68,7 @@ int Button::onRead(void* buffer, size_t size)
 
 void Button::getInfo(HAL::Button_Info_t* info)
 {
+    info->lastActiveTick = _lastActiveTick;
     info->value = 0;
 
     info->key.ok = !digitalRead(CONFIG_BUTTON_SEL_PIN);

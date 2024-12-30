@@ -164,7 +164,7 @@ int DP_Power::onButtonEvent(const Button_Info_t* info)
 {
     switch (info->event) {
     case BUTTON_EVENT::LONG_PRESSED:
-        onShutdown();
+        // onShutdown();
         break;
 
     default:
