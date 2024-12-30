@@ -20,15 +20,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __DATA_PROC_DEF_H
-#define __DATA_PROC_DEF_H
+#ifndef __DATA_PROC_SHELL_DEF_H
+#define __DATA_PROC_SHELL_DEF_H
 
-#include "Def/Audio.h"
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Global.h"
-#include "Def/Power.h"
-#include "Def/Shell.h"
-#include "Def/Version.h"
+#include <stdint.h>
 
-#endif // __DATA_PROC_DEF_H
+namespace DataProc {
+
+typedef struct Shell_Info {
+    Shell_Info()
+        : argc(0)
+        , argv(nullptr)
+    {
+    }
+    int argc;
+    char** argv;
+} Shell_Info_t;
+
+} // namespace DataProc
+
+#endif // __DATA_PROC_SHELL_DEF_H

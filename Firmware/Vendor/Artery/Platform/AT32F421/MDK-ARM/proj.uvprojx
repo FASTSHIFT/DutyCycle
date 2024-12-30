@@ -615,6 +615,11 @@
               <FileType>8</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Audio.cpp</FilePath>
             </File>
+            <File>
+              <FileName>DP_Shell.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Shell.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -813,6 +818,11 @@
               <FileName>Filters.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\..\App\Utils\Filters\Filters.h</FilePath>
+            </File>
+            <File>
+              <FileName>Shell.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\App\Utils\Shell\Shell.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1160,6 +1170,11 @@
               <FileName>HAL_Motor.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\..\Application\HAL\HAL_Motor.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>HAL_SerialIO.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\Application\HAL\HAL_SerialIO.cpp</FilePath>
             </File>
           </Files>
         </Group>

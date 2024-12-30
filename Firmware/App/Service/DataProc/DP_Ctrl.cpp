@@ -93,8 +93,8 @@ int DP_Ctrl::onEvent(DataNode::EventParam_t* param)
 void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 {
     uint32_t curTimestamp = getTimestamp(info->hour, info->minute, info->second);
-    HAL_LOG_INFO("Current times: %04d-%02d-%02d %02d:%02d:%02d.%03d, timestamp: %d",
-        info->year, info->month, info->day, info->hour, info->minute, info->second, info->millisecond, curTimestamp);
+//    HAL_LOG_INFO("Current times: %04d-%02d-%02d %02d:%02d:%02d.%03d, timestamp: %d",
+//        info->year, info->month, info->day, info->hour, info->minute, info->second, info->millisecond, curTimestamp);
 
     //    static int timeIndex = 0;
     //    static const int timeTable[] = { 5, 7, 9, 12, 21, 0, 1, 4 };

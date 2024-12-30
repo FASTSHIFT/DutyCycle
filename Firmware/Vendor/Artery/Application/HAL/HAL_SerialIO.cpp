@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2021 - 2024 _VIFEXTech
+ * Copyright (c) 2023 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,15 +20,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __DATA_PROC_DEF_H
-#define __DATA_PROC_DEF_H
+#include "HAL.h"
 
-#include "Def/Audio.h"
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Global.h"
-#include "Def/Power.h"
-#include "Def/Shell.h"
-#include "Def/Version.h"
+namespace HAL {
 
-#endif // __DATA_PROC_DEF_H
+class SerialIO : private DeviceObject {
+public:
+    SerialIO(const char* name)
+        : DeviceObject(name)
+    {
+    }
+
+private:
+    virtual int onInit();
+    virtual int onRead(void* buffer, size_t size);
+    virtual int onWrite(const void* buffer, size_t size);
+};
+
+int SerialIO::onInit()
+{
+    return DeviceObject::RES_OK;
+}
+
+int SerialIO::onRead(void* buffer, size_t size)
+{
+    uint8_t* data = (uint8_t*)buffer;
+    int readCnt = 0;
+    while (size--) {
+        if (!CONFIG_LOG_SERIAL.available()) {
+            break;
+        }
+
+        *data++ = CONFIG_LOG_SERIAL.read();
+        readCnt++;
+    }
+
+    return readCnt;
+}
+
+int SerialIO::onWrite(const void* buffer, size_t size)
+{
+    CONFIG_LOG_SERIAL.write((const uint8_t*)buffer, size);
+    return size;
+}
+
+} /* namespace HAL */
+
+DEVICE_OBJECT_MAKE(SerialIO);
