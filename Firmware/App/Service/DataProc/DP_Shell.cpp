@@ -42,6 +42,7 @@ private:
     static void shellWriter(char data);
     static uint32_t shellTickGet();
     static int cmdPublich(int argc, char** argv);
+    static int cmdHelp(int argc, char** argv);
 };
 
 DataNode* DP_Shell::_node = nullptr;
@@ -69,6 +70,7 @@ DP_Shell::DP_Shell(DataNode* node)
 
     shell_init(shellReader, shellWriter, shellTickGet, nullptr, nullptr);
     shell_register(cmdPublich, "publish");
+    shell_register(cmdHelp, "help");
 }
 
 int DP_Shell::onEvent(DataNode::EventParam_t* param)
@@ -111,11 +113,25 @@ uint32_t DP_Shell::shellTickGet()
 
 int DP_Shell::cmdPublich(int argc, char** argv)
 {
+    if (argc < 2) {
+        shell_print_error(E_SHELL_ERR_ARGCOUNT, argv[0]);
+        shell_println("Usage: publish <topic> [data]");
+        return SHELL_RET_FAILURE;
+    }
+
     Shell_Info_t info;
     info.argc = argc;
     info.argv = argv;
     const int retval = DP_Shell::_node->publish(&info, sizeof(info));
+    shell_printf("publish finished: %d\r\n", retval);
+
     return retval == DataNode::RES_OK ? SHELL_RET_SUCCESS : SHELL_RET_FAILURE;
+}
+
+int DP_Shell::cmdHelp(int argc, char** argv)
+{
+    shell_print_commands();
+    return SHELL_RET_SUCCESS;
 }
 
 DATA_PROC_DESCRIPTOR_DEF(Shell)
