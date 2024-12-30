@@ -35,6 +35,7 @@ DataTimer::DataTimer(DataTimerManager* manager, TimerFunction_t timerFunc, uint3
     , _isPause(false)
 {
     _manager->add(this);
+    reset();
 }
 
 DataTimer::~DataTimer()
