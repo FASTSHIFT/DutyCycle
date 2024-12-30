@@ -42,7 +42,7 @@ static IRQn_Type EXTI_GetIRQn(uint8_t Pin)
     {
         EXINTx_IRQn = EXINT1_0_IRQn;
     }
-    else if(Pinx >= 3 && Pinx <= 2)
+    else if(Pinx >= 2 && Pinx <= 3)
     {
         EXINTx_IRQn = EXINT3_2_IRQn;
     }
