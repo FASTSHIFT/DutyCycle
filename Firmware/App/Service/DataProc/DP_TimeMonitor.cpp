@@ -80,9 +80,9 @@ int DP_TimeMonitor::onEvent(DataNode::EventParam_t* param)
 void DP_TimeMonitor::onClockEvent(const HAL::Clock_Info_t* info)
 {
 
-    //    static int h = 0;
-    //    h = (h + 1) % 24;
-    //    onHourChanged(h);
+//    static int h = 0;
+//    h = (h + 1) % 24;
+//    onHourChanged(h);
 
     if (_lastHour == info->hour) {
         return;
@@ -100,32 +100,34 @@ void DP_TimeMonitor::onHourChanged(int hour)
     }
 
     static const uint16_t hourMap[] = {
+        L1,
+        L2,
+        L3,
+        L4,
+        L5,
+        L6,
+        L7,
         M1,
-        M1h,
         M2,
-        M2h,
         M3,
         M4,
-        M4h,
         M5,
-        M5h,
         M6,
-        M6h,
         M7,
     };
 
-    _seq[0].frequency = hourMap[hour / 12];
+    _seq[0].frequency = hourMap[hour / 8];
     _seq[0].duration = 100;
-    _seq[0].duration = 50;
-    _seq[1].frequency = hourMap[hour % 12];
+    _seq[0].duration = 100;
+    _seq[1].frequency = hourMap[hour % 8];
     _seq[1].duration = 100;
-    _seq[1].duration = 50;
-    _seq[2].frequency = hourMap[hour / 12];
+    _seq[1].duration = 100;
+    _seq[2].frequency = hourMap[hour / 8];
     _seq[2].duration = 100;
-    _seq[2].duration = 50;
-    _seq[3].frequency = hourMap[hour % 12];
+    _seq[2].duration = 100;
+    _seq[3].frequency = hourMap[hour % 8];
     _seq[3].duration = 100;
-    _seq[3].duration = 50;
+    _seq[3].duration = 100;
     _audio.play(AUDIO_HELPER_SEQ_DEF(_seq));
 }
 
