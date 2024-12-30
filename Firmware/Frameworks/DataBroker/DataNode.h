@@ -208,6 +208,12 @@ public:
     void stopTimer();
 
     /**
+     * @brief  Check if timer is running
+     * @retval true if timer is running
+     */
+    bool isTimerRunning();
+
+    /**
      * @brief  Set user-defined data
      * @param  userData: Point to the address of user-defined data
      */

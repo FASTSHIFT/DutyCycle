@@ -292,6 +292,15 @@ void DataNode::stopTimer()
     DN_LOG_INFO("DataNode[%s] timer stop", _ID);
 }
 
+bool DataNode::isTimerRunning()
+{
+    if (!_timer) {
+        return false;
+    }
+
+    return !_timer->isPause();
+}
+
 size_t DataNode::getPublishersNumber()
 {
     return _publishers.size();
