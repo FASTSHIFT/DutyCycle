@@ -57,6 +57,7 @@ uint32_t App_RunLoopExecute(AppContext_t* context)
     context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_BEGIN);
     uint32_t timeTillNext = context->broker->handleTimer();
     context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_END, &timeTillNext);
+//    HAL_LOG_INFO("timeTillNext = %d", timeTillNext);
     return timeTillNext;
 }
 
