@@ -82,7 +82,7 @@ DP_Power::DP_Power(DataNode* node)
             return ctx->onEvent(param);
         });
 
-//    _node->startTimer(1000);
+    //    _node->startTimer(1000);
 
     _lastTick = HAL::GetTick();
     _wakeUpTick = HAL::GetTick();
@@ -144,14 +144,19 @@ int DP_Power::onGlobalEvent(const Global_Info_t* info)
 {
     switch (info->event) {
     case GLOBAL_EVENT::APP_RUN_LOOP_BEGIN:
+        /* stop sleep timer */
         _devTick->ioctl(TICK_IOCMD_STOP);
         break;
 
     case GLOBAL_EVENT::APP_RUN_LOOP_END: {
-        _devTick->ioctl(TICK_IOCMD_START, info->param, sizeof(uint32_t));
-        _devPower->ioctl(POWER_IOCMD_WFI);
-    }
-    break;
+        uint32_t timeTillNext = *(const uint32_t*)info->param;
+
+        /* When timeTillNext is 0, no need sleep */
+        if (timeTillNext > 0) {
+            _devTick->ioctl(TICK_IOCMD_START, &timeTillNext, sizeof(timeTillNext));
+            _devPower->ioctl(POWER_IOCMD_WFI);
+        }
+    } break;
 
     default:
         break;
