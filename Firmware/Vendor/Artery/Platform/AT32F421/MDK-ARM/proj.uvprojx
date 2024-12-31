@@ -789,6 +789,16 @@
               <FileType>5</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Audio_Helper.h</FilePath>
             </File>
+            <File>
+              <FileName>KVDB_Helper.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\KVDB_Helper.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>KVDB_Helper.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\KVDB_Helper.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
