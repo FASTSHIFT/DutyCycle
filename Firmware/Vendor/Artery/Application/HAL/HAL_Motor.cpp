@@ -34,8 +34,10 @@ public:
 private:
     virtual int onInit();
     virtual int onWrite(const void* buffer, size_t size);
+    virtual int onRead(void* buffer, size_t size);
     void motorWrite(int value);
-    void sweepTest();
+    int motorRead();
+    int readPWM(uint8_t pin);
 };
 
 int Motor::onInit()
@@ -55,23 +57,36 @@ int Motor::onWrite(const void* buffer, size_t size)
     return sizeof(int);
 }
 
+int Motor::onRead(void* buffer, size_t size)
+{
+    if (size != sizeof(int)) {
+        return DeviceObject::RES_PARAM_ERROR;
+    }
+
+    *((int*)buffer) = motorRead();
+    return sizeof(int);
+}
+
 void Motor::motorWrite(int value)
 {
     analogWrite(CONFIG_MOTOR_OUT1_PIN, value > 0 ? value : 0);
     analogWrite(CONFIG_MOTOR_OUT2_PIN, value < 0 ? (uint16_t)-value : 0);
 }
 
-void Motor::sweepTest()
+int Motor::motorRead()
 {
-    for (int i = -1000; i < 1000; i++) {
-        motorWrite(i);
-        delay(10);
+    int value = readPWM(CONFIG_MOTOR_OUT1_PIN);
+    if (value > 0) {
+        return value;
     }
 
-    for (int i = 1000; i > -1000; i--) {
-        motorWrite(i);
-        delay(10);
-    }
+    value = readPWM(CONFIG_MOTOR_OUT2_PIN);
+    return -value;
+}
+
+int Motor::readPWM(uint8_t pin)
+{
+    return Timer_GetCompare(PIN_MAP[pin].TIMx, PIN_MAP[pin].TimerChannel);
 }
 
 } /* namespace HAL */
