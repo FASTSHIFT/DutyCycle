@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 #include "DataProc.h"
+#include "External/argparse/argparse.h"
 #include "Service/HAL/HAL.h"
 #include "Utils/Shell/Shell.h"
 
@@ -41,8 +42,9 @@ private:
     static int shellReader(char* data);
     static void shellWriter(char data);
     static uint32_t shellTickGet();
-    static int cmdPublich(int argc, char** argv);
-    static int cmdHelp(int argc, char** argv);
+    static int cmdHelp(int argc, const char** argv);
+    static int cmdPublich(int argc, const char** argv);
+    static int cmdClock(int argc, const char** argv);
 };
 
 DataNode* DP_Shell::_node = nullptr;
@@ -71,6 +73,7 @@ DP_Shell::DP_Shell(DataNode* node)
     shell_init(shellReader, shellWriter, shellTickGet, nullptr, nullptr);
     shell_register(cmdPublich, "publish");
     shell_register(cmdHelp, "help");
+    shell_register(cmdClock, "clock");
 }
 
 int DP_Shell::onEvent(DataNode::EventParam_t* param)
@@ -111,7 +114,13 @@ uint32_t DP_Shell::shellTickGet()
     return HAL::GetTick();
 }
 
-int DP_Shell::cmdPublich(int argc, char** argv)
+int DP_Shell::cmdHelp(int argc, const char** argv)
+{
+    shell_print_commands();
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdPublich(int argc, const char** argv)
 {
     if (argc < 2) {
         shell_print_error(E_SHELL_ERR_ARGCOUNT, argv[0]);
@@ -122,15 +131,77 @@ int DP_Shell::cmdPublich(int argc, char** argv)
     Shell_Info_t info;
     info.argc = argc;
     info.argv = argv;
-    const int retval = DP_Shell::_node->publish(&info, sizeof(info));
+    const int retval = _node->publish(&info, sizeof(info));
     shell_printf("publish finished: %d\r\n", retval);
 
     return retval == DataNode::RES_OK ? SHELL_RET_SUCCESS : SHELL_RET_FAILURE;
 }
 
-int DP_Shell::cmdHelp(int argc, char** argv)
+int DP_Shell::cmdClock(int argc, const char** argv)
 {
-    shell_print_commands();
+    auto nodeClock = _node->subscribe("Clock");
+    if (!nodeClock) {
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
+    HAL::Clock_Info_t info;
+    if (_node->pull(nodeClock, &info, sizeof(info)) != DataNode::RES_OK) {
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
+    static const char* week_str[] = { "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT" };
+
+    shell_printf(
+        "Current time: %04d-%02d-%02d %s %02d:%02d:%02d.%d\r\n",
+        info.year,
+        info.month,
+        info.day,
+        week_str[info.week % 7],
+        info.hour,
+        info.minute,
+        info.second,
+        info.millisecond);
+
+    int year = info.year;
+    int month = info.month;
+    int day = info.day;
+    int hour = info.hour;
+    int minute = info.minute;
+    int second = info.second;
+
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_INTEGER('y', "year", &year, "year", nullptr, 0, 0),
+        OPT_INTEGER('m', "month", &month, "month", nullptr, 0, 0),
+        OPT_INTEGER('d', "day", &day, "day", nullptr, 0, 0),
+        OPT_INTEGER('H', "hour", &hour, "hour", nullptr, 0, 0),
+        OPT_INTEGER('M', "minute", &minute, "minute", nullptr, 0, 0),
+        OPT_INTEGER('S', "second", &second, "second", nullptr, 0, 0),
+        OPT_END(),
+    };
+
+    struct argparse argparse;
+    argparse_init(&argparse, options, nullptr, ARGPARSE_IGNORE_UNKNOWN_ARGS);
+    auto parse_ret = argparse_parse(&argparse, argc, argv);
+
+    if (parse_ret <= 0) {
+        return SHELL_RET_SUCCESS;
+    }
+
+    info.year = year;
+    info.month = month;
+    info.day = day;
+    info.hour = hour;
+    info.minute = minute;
+    info.second = second;
+
+    if (_node->notify(nodeClock, &info, sizeof(info)) != DataNode::RES_OK) {
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
     return SHELL_RET_SUCCESS;
 }
 

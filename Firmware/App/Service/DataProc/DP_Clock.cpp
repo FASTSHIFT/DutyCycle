@@ -60,7 +60,7 @@ DP_Clock::DP_Clock(DataNode* node)
             auto ctx = (DP_Clock*)n->getUserData();
             return ctx->onEvent(param);
         },
-        DataNode::EVENT_PULL | DataNode::EVENT_TIMER);
+        DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY | DataNode::EVENT_TIMER);
 
     node->startTimer(2000);
 }
@@ -72,6 +72,11 @@ int DP_Clock::onEvent(DataNode::EventParam_t* param)
         /* Clock info pull request */
         int ret = _dev->read(param->data_p, param->size);
         return ret == sizeof(HAL::Clock_Info_t) ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+    }
+
+    case DataNode::EVENT_NOTIFY: {
+        int ret = _dev->ioctl(CLOCK_IOCMD_CALIBRATE, param->data_p, param->size);
+        return ret == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
     }
 
     case DataNode::EVENT_TIMER: {
