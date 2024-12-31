@@ -51,7 +51,7 @@ extern struct fal_flash_dev dev_onchip_flash;
 /* partition table */
 #define FAL_PART_TABLE                                                               \
     {                                                                                \
-        { FAL_PART_MAGIC_WORD, FDB_KVDB_PART_NAME, "onchip", (64 - 1) * 1024, 1024, 0 }, \
+        { FAL_PART_MAGIC_WORD, FDB_KVDB_PART_NAME, "onchip", (64 - 2) * 1024, 2 * 1024, 0 }, \
     }
 #endif /* FAL_PART_HAS_TABLE_CFG */
 
