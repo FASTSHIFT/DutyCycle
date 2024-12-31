@@ -330,7 +330,7 @@ int shell_task(void)
                 if (!strcmp(argv_list[0], list[i].shell_command_string))
                 {
                     // Run the appropriate function
-                    retval = list[i].shell_program(argc, argv_list);
+                    retval = list[i].shell_program(argc, (const char**)argv_list);
                     cc = false;
                 }
             }
