@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2024 _VIFEXTech
+ * Copyright (c) 2021 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __DATA_PROC_HELPER_H
-#define __DATA_PROC_HELPER_H
+#ifndef __DATA_PROC_CTRL_DEF_H
+#define __DATA_PROC_CTRL_DEF_H
 
-#include "Helper/Audio_Helper.h"
-#include "Helper/Global_Helper.h"
-#include "Helper/KVDB_Helper.h"
-#include "Helper/Power_Helper.h"
+#include <stdint.h>
 
-#endif // __DATA_PROC_HELPER_H
+namespace DataProc {
+
+enum class CTRL_CMD {
+    NONE,
+    SWEEP_TEST,
+    ENABLE_PRINT,
+    DISABLE_PRINT,
+    ENABLE_CLOCK_MAP,
+    SET_MOTOR_VALUE,
+    SET_CLOCK_MAP,
+};
+
+typedef struct Ctrl_Info {
+    Ctrl_Info()
+        : cmd(CTRL_CMD::NONE)
+    {
+    }
+    CTRL_CMD cmd;
+    int hour;
+    int motorValue;
+} Ctrl_Info_t;
+
+} // namespace DataProc
+
+#endif // __DATA_PROC_CTRL_DEF_H

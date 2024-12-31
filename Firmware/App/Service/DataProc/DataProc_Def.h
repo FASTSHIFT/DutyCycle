@@ -26,6 +26,7 @@
 #include "Def/Audio.h"
 #include "Def/Battery.h"
 #include "Def/Button.h"
+#include "Def/Ctrl.h"
 #include "Def/Global.h"
 #include "Def/KVDB.h"
 #include "Def/Power.h"
