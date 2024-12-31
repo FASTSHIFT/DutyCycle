@@ -45,6 +45,7 @@ private:
     static int cmdHelp(int argc, const char** argv);
     static int cmdPublich(int argc, const char** argv);
     static int cmdClock(int argc, const char** argv);
+    static int cmdPower(int argc, const char** argv);
 };
 
 DataNode* DP_Shell::_node = nullptr;
@@ -74,6 +75,7 @@ DP_Shell::DP_Shell(DataNode* node)
     shell_register(cmdPublich, "publish");
     shell_register(cmdHelp, "help");
     shell_register(cmdClock, "clock");
+    shell_register(cmdPower, "power");
 }
 
 int DP_Shell::onEvent(DataNode::EventParam_t* param)
@@ -198,6 +200,60 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     info.second = second;
 
     if (_node->notify(nodeClock, &info, sizeof(info)) != DataNode::RES_OK) {
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdPower(int argc, const char** argv)
+{
+    auto nodePower = _node->subscribe("Power");
+    if (!nodePower) {
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
+    const char* cmd = nullptr;
+
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_STRING('c', "cmd", &cmd, "send power command", nullptr, 0, 0),
+        OPT_END(),
+    };
+
+    struct argparse argparse;
+    argparse_init(&argparse, options, nullptr, ARGPARSE_IGNORE_UNKNOWN_ARGS);
+    argparse_parse(&argparse, argc, argv);
+
+    if (!cmd) {
+        argparse_usage(&argparse);
+        return SHELL_RET_FAILURE;
+    }
+
+#define CMD_MAP_DEF(cmd) { POWER_CMD::cmd, #cmd }
+    typedef struct
+    {
+        POWER_CMD cmd;
+        const char* name;
+    } cmd_map_t;
+    static const cmd_map_t cmd_map[] = {
+        CMD_MAP_DEF(SHUTDOWN),
+        CMD_MAP_DEF(REBOOT),
+    };
+#undef CMD_MAP_DEF
+
+    Power_Info_t info;
+
+    for (int i = 0; i < sizeof(cmd_map) / sizeof(cmd_map_t); i++) {
+        if (strcmp(cmd, cmd_map[i].name) == 0) {
+            info.cmd = cmd_map[i].cmd;
+            break;
+        }
+    }
+
+    if (_node->notify(nodePower, &info, sizeof(info)) != DataNode::RES_OK) {
         shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
         return SHELL_RET_FAILURE;
     }
