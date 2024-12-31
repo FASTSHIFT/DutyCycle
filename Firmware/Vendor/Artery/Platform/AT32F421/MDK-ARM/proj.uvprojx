@@ -802,6 +802,56 @@
           </Files>
         </Group>
         <Group>
+          <GroupName>Service/HAL/Def</GroupName>
+          <Files>
+            <File>
+              <FileName>_Template.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\_Template.h</FilePath>
+            </File>
+            <File>
+              <FileName>Battery.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Battery.h</FilePath>
+            </File>
+            <File>
+              <FileName>Button.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Button.h</FilePath>
+            </File>
+            <File>
+              <FileName>Buzzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Buzzer.h</FilePath>
+            </File>
+            <File>
+              <FileName>Clock.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Clock.h</FilePath>
+            </File>
+            <File>
+              <FileName>Flash.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Flash.h</FilePath>
+            </File>
+            <File>
+              <FileName>Power.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Power.h</FilePath>
+            </File>
+            <File>
+              <FileName>Tick.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\Tick.h</FilePath>
+            </File>
+            <File>
+              <FileName>WatchDog.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\WatchDog.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
           <GroupName>Utils</GroupName>
           <Files>
             <File>

@@ -20,16 +20,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_DEF_H
-#define __HAL_DEF_H
+#ifndef __HAL_BUZZER_DEF_H
+#define __HAL_BUZZER_DEF_H
 
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Buzzer.h"
-#include "Def/Clock.h"
-#include "Def/Flash.h"
-#include "Def/Power.h"
-#include "Def/Tick.h"
-#include "Def/WatchDog.h"
+#include <stdint.h>
 
-#endif
+namespace HAL {
+
+/* clang-format off */
+
+/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
+
+typedef struct
+{
+    uint32_t freq;
+    uint32_t duration;
+} Buzzer_Info_t;
+
+} // namespace HAL
+
+#endif // __HAL_BUZZER_DEF_H

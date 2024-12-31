@@ -20,16 +20,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_DEF_H
-#define __HAL_DEF_H
+#ifndef __HAL_TEMPLATE_DEF_H
+#define __HAL_TEMPLATE_DEF_H
 
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Buzzer.h"
-#include "Def/Clock.h"
-#include "Def/Flash.h"
-#include "Def/Power.h"
-#include "Def/Tick.h"
-#include "Def/WatchDog.h"
+#include <stdint.h>
+#include <stddef.h>
 
-#endif
+namespace HAL {
+
+/* clang-format off */
+
+/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
+
+typedef struct
+{
+    uint8_t* addr;
+    size_t len;
+    size_t blk_size;
+} Flash_Info_t;
+
+#define FLASH_IOCMD_LOCK        DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 0, 0)
+#define FLASH_IOCMD_UNLOCK      DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
+#define FLASH_IOCMD_ERASE       DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(size_t), 2, 0)
+#define FLASH_IOCMD_GET_INFO    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Flash_Info_t), 3, 0)
+#define FLASH_IOCMD_SET_OFFSET  DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(long), 4, 0)
+#define FLASH_IOCMD_SAVE        DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 5, 0)
+
+/* clang-format on */
+
+} // namespace HAL
+
+#endif // __HAL_TEMPLATE_DEF_H

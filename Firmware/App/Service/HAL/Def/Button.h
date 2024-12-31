@@ -20,16 +20,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_DEF_H
-#define __HAL_DEF_H
+#ifndef __HAL_BUTTON_DEF_H
+#define __HAL_BUTTON_DEF_H
 
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Buzzer.h"
-#include "Def/Clock.h"
-#include "Def/Flash.h"
-#include "Def/Power.h"
-#include "Def/Tick.h"
-#include "Def/WatchDog.h"
+#include <stdint.h>
 
-#endif
+namespace HAL {
+
+/* clang-format off */
+
+/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
+
+typedef struct
+{
+    union
+    {
+        uint32_t value;
+        struct
+        {
+            uint32_t ok : 1;
+            uint32_t up : 1;
+            uint32_t down : 1;
+        } key;
+    };
+    uint32_t lastActiveTick;
+} Button_Info_t;
+
+} // namespace HAL
+
+#endif // __HAL_BUTTON_DEF_H

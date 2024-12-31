@@ -20,16 +20,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_DEF_H
-#define __HAL_DEF_H
+#ifndef __HAL_CLOCK_DEF_H
+#define __HAL_CLOCK_DEF_H
 
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Buzzer.h"
-#include "Def/Clock.h"
-#include "Def/Flash.h"
-#include "Def/Power.h"
-#include "Def/Tick.h"
-#include "Def/WatchDog.h"
+#include <stdint.h>
 
-#endif
+namespace HAL {
+
+/* clang-format off */
+
+/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
+
+typedef struct
+{
+    uint16_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t week;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint16_t millisecond;
+} Clock_Info_t;
+
+#define CLOCK_IOCMD_CALIBRATE   DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Clock_Info_t), 0, 0)
+
+} // namespace HAL
+
+#endif // __HAL_CLOCK_DEF_H

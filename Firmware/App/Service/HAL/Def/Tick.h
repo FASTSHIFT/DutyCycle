@@ -20,16 +20,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_DEF_H
-#define __HAL_DEF_H
+#ifndef __HAL_TICK_DEF_H
+#define __HAL_TICK_DEF_H
 
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Buzzer.h"
-#include "Def/Clock.h"
-#include "Def/Flash.h"
-#include "Def/Power.h"
-#include "Def/Tick.h"
-#include "Def/WatchDog.h"
+#include <stdint.h>
 
-#endif
+namespace HAL {
+
+/* clang-format off */
+
+/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
+
+#define TICK_IOCMD_START    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(uint32_t), 0, 0)
+#define TICK_IOCMD_STOP     DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
+
+} // namespace HAL
+
+#endif // __HAL_TICK_DEF_H
