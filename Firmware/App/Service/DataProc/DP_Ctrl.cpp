@@ -248,7 +248,7 @@ int32_t DP_Ctrl::timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, i
     return valueMap(x, min_in, max_in, min_out, max_out);
 }
 
-int32_t DP_Ctrl::valueMap(int32_t x, int32_t max_in, int32_t min_in, int32_t min_out, int32_t max_out)
+int32_t DP_Ctrl::valueMap(int32_t x, int32_t min_in, int32_t max_in, int32_t min_out, int32_t max_out)
 {
     if (max_in >= min_in && x >= max_in)
         return max_out;
