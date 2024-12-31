@@ -96,7 +96,7 @@
 /**
  *  Type definition for all the programs invoked by the shell (function pointer)
  */
-typedef int (*shell_program_t) (int, char **);
+typedef int (*shell_program_t) (int, const char **);
 
 /*
  * Type definition for a function that sends a single character to the remote

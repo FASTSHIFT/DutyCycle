@@ -34,7 +34,7 @@ typedef struct Shell_Info {
     {
     }
     int argc;
-    char** argv;
+    const char** argv;
 } Shell_Info_t;
 
 } // namespace DataProc
