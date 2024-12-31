@@ -32,7 +32,7 @@
 #define SYSTICK_PRIORITY                    0
 
 /* Hardware Serial */
-#define SERIAL_RX_BUFFER_SIZE               128
+#define SERIAL_RX_BUFFER_SIZE               64
 #define SERIAL_PREEMPTIONPRIORITY_DEFAULT   1
 #define SERIAL_SUBPRIORITY_DEFAULT          3
 #define SERIAL_CONFIG_DEFAULT               SERIAL_8N1
@@ -43,7 +43,7 @@
 #  define SERIAL_1_IRQ_HANDLER_DEF()        void USART1_IRQHandler(void)
 #endif
 
-#define SERIAL_2_ENABLE                     1
+#define SERIAL_2_ENABLE                     0
 #if SERIAL_2_ENABLE
 #  define SERIAL_2_USART                    USART2
 #  define SERIAL_2_IRQ_HANDLER_DEF()        void USART2_IRQHandler(void)
@@ -61,12 +61,12 @@
 #define SPI_CLASS_AVR_COMPATIBILITY_MODE    1
 #define SPI_CLASS_PIN_DEFINE_ENABLE         1
 
-#define SPI_CLASS_1_ENABLE                  1
+#define SPI_CLASS_1_ENABLE                  0
 #if SPI_CLASS_1_ENABLE
 #  define SPI_CLASS_1_SPI                   SPI1
 #endif
 
-#define SPI_CLASS_2_ENABLE                  1
+#define SPI_CLASS_2_ENABLE                  0
 #if SPI_CLASS_2_ENABLE
 #  define SPI_CLASS_2_SPI                   SPI2
 #endif
