@@ -26,7 +26,19 @@
 #include <time.h>
 #include "Arduino.h"
 
+#ifdef __MICROLIB
+#pragma import(__use_no_semihosting_swi)
+#include <stdio.h>
+
+extern "C" int fputc(int ch, FILE *stream)
+{
+    (void)stream;
+    Serial.write(ch);
+    return ch;
+}
+#else
 #pragma import(__use_no_semihosting)
+#endif
 
 enum
 {
