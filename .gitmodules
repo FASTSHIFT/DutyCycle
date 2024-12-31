@@ -1,0 +1,3 @@
+[submodule "Firmware/External/FlashDB"]
+	path = Firmware/External/FlashDB
+	url = https://github.com/armink/FlashDB.git
