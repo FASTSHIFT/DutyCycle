@@ -1,3 +1,6 @@
 [submodule "Firmware/External/FlashDB"]
 	path = Firmware/External/FlashDB
 	url = https://github.com/armink/FlashDB.git
+[submodule "Firmware/External/argparse"]
+	path = Firmware/External/argparse
+	url = https://github.com/FASTSHIFT/argparse.git
