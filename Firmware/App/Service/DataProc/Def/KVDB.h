@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2024 _VIFEXTech
+ * Copyright (c) 2021 - 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,17 +20,36 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#ifndef __DATA_PROC_KVDB_DEF_H
+#define __DATA_PROC_KVDB_DEF_H
 
-/* HAL Device Tree Define */
+#include <cstdint>
 
-HAL_DEF(Tick)
-HAL_DEF(FaultHandle)
-HAL_DEF(Clock)
-HAL_DEF(Power)
-HAL_DEF(Battery)
-HAL_DEF(WatchDog)
-HAL_DEF(Button)
-HAL_DEF(Motor)
-HAL_DEF(Buzzer)
-HAL_DEF(SerialIO)
-HAL_DEF(Flash)
+namespace DataProc {
+
+enum class KVDB_CMD {
+    GET,
+    SET,
+    SET_BLOB,
+    DEL,
+    LIST,
+    SAVE
+};
+
+typedef struct KVDB_Info {
+    KVDB_Info()
+        : cmd(KVDB_CMD::GET)
+        , key(nullptr)
+        , value(nullptr)
+        , size(0)
+    {
+    }
+    KVDB_CMD cmd;
+    const char* key;
+    const void* value;
+    uint32_t size;
+} KVDB_Info_t;
+
+} // namespace DataProc
+
+#endif // __DATA_PROC_KVDB_DEF_H

@@ -27,6 +27,7 @@
 #include "Def/Battery.h"
 #include "Def/Button.h"
 #include "Def/Global.h"
+#include "Def/KVDB.h"
 #include "Def/Power.h"
 #include "Def/Shell.h"
 #include "Def/Version.h"

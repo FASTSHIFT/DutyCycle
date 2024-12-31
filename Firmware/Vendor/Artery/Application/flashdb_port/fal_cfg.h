@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2024 _VIFEXTech
+ * Copyright (c) 2023 HanfG, _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,17 +20,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#ifndef __FAL_CFG_H__
+#define __FAL_CFG_H__
 
-/* HAL Device Tree Define */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-HAL_DEF(Tick)
-HAL_DEF(FaultHandle)
-HAL_DEF(Clock)
-HAL_DEF(Power)
-HAL_DEF(Battery)
-HAL_DEF(WatchDog)
-HAL_DEF(Button)
-HAL_DEF(Motor)
-HAL_DEF(Buzzer)
-HAL_DEF(SerialIO)
-HAL_DEF(Flash)
+void HAL_Log_Printf(const char* fmt, ...);
+#define FAL_PRINTF(...) HAL_Log_Printf(__VA_ARGS__)
+
+#ifndef FAL_DEBUG
+#define FAL_DEBUG 0
+#endif
+#define FAL_PART_HAS_TABLE_CFG
+
+/* ===================== Flash device Configuration ========================= */
+extern struct fal_flash_dev dev_onchip_flash;
+
+/* flash device table */
+#define FAL_FLASH_DEV_TABLE \
+    {                       \
+        &dev_onchip_flash,  \
+    }
+
+#define FDB_KVDB_PART_NAME "fdb_kvdb"
+
+/* ====================== Partition Configuration ========================== */
+#ifdef FAL_PART_HAS_TABLE_CFG
+/* partition table */
+#define FAL_PART_TABLE                                                               \
+    {                                                                                \
+        { FAL_PART_MAGIC_WORD, FDB_KVDB_PART_NAME, "onchip", (64 - 1) * 1024, 1024, 0 }, \
+    }
+#endif /* FAL_PART_HAS_TABLE_CFG */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

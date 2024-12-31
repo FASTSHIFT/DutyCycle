@@ -11,3 +11,4 @@ DP_DEF(Ctrl);
 DP_DEF(TimeMonitor);
 DP_DEF(Audio);
 DP_DEF(Shell);
+DP_DEF(KVDB);
