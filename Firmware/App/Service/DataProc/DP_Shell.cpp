@@ -23,6 +23,8 @@
 #include "DataProc.h"
 #include "External/argparse/argparse.h"
 #include "Service/HAL/HAL.h"
+#include "Service/HAL/HAL_Log.h"
+#include "Utils/CommonMacro/CommonMacro.h"
 #include "Utils/Shell/Shell.h"
 
 using namespace DataProc;
@@ -185,11 +187,10 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     };
 
     struct argparse argparse;
-    argparse_init(&argparse, options, nullptr, ARGPARSE_IGNORE_UNKNOWN_ARGS);
-    auto parse_ret = argparse_parse(&argparse, argc, argv);
-
-    if (parse_ret <= 0) {
-        return SHELL_RET_SUCCESS;
+    argparse_init(&argparse, options, nullptr, 0);
+    if (argparse_parse(&argparse, argc, argv) > 0) {
+        argparse_usage(&argparse);
+        return SHELL_RET_FAILURE;
     }
 
     info.year = year;
@@ -224,15 +225,16 @@ int DP_Shell::cmdPower(int argc, const char** argv)
     };
 
     struct argparse argparse;
-    argparse_init(&argparse, options, nullptr, ARGPARSE_IGNORE_UNKNOWN_ARGS);
-    argparse_parse(&argparse, argc, argv);
-
-    if (!cmd) {
+    argparse_init(&argparse, options, nullptr, 0);
+    if (argparse_parse(&argparse, argc, argv) > 0 || !cmd) {
         argparse_usage(&argparse);
-        return SHELL_RET_FAILURE;
+        return SHELL_RET_SUCCESS;
     }
 
-#define CMD_MAP_DEF(cmd) { POWER_CMD::cmd, #cmd }
+#define CMD_MAP_DEF(cmd)     \
+    {                        \
+        POWER_CMD::cmd, #cmd \
+    }
     typedef struct
     {
         POWER_CMD cmd;
@@ -246,11 +248,19 @@ int DP_Shell::cmdPower(int argc, const char** argv)
 
     Power_Info_t info;
 
-    for (int i = 0; i < sizeof(cmd_map) / sizeof(cmd_map_t); i++) {
+    for (int i = 0; i < CM_ARRAY_SIZE(cmd_map); i++) {
         if (strcmp(cmd, cmd_map[i].name) == 0) {
             info.cmd = cmd_map[i].cmd;
             break;
         }
+    }
+
+    if (info.cmd == POWER_CMD::NONE) {
+        shell_printf("Invalid command %s, available commands are:\r\n", cmd);
+        for (int i = 0; i < CM_ARRAY_SIZE(cmd_map); i++) {
+            shell_println(cmd_map[i].name);
+        }
+        return SHELL_RET_FAILURE;
     }
 
     if (_node->notify(nodePower, &info, sizeof(info)) != DataNode::RES_OK) {
