@@ -31,11 +31,15 @@ Audio_Helper::Audio_Helper(DataNode* node)
     _nodeAudio = node->subscribe("Audio");
 }
 
-int Audio_Helper::play(const Audio_Squence_t* squence, uint32_t length)
+int Audio_Helper::play(const Audio_Squence_t* squence, uint32_t length, uint32_t bpm, bool interruptible)
 {
     Audio_Info_t info;
     info.squence = squence;
     info.length = length;
+    info.interruptible = interruptible;
+    if (bpm) {
+        info.bpm = bpm;
+    }
     return _node->notify(_nodeAudio, &info, sizeof(info));
 }
 

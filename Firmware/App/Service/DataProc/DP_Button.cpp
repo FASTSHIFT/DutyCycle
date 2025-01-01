@@ -170,7 +170,7 @@ void DP_Button::onBtnOkEvent(const DataProc::Button_Info_t* info)
     switch (info->event) {
     case DataProc::BUTTON_EVENT::PRESSED: {
         static const Audio_Squence_t seq[] = {
-            { L7, 20 }
+            { ToneMap::L7, 20 }
         };
 
         _audio.play(AUDIO_HELPER_SEQ_DEF(seq));
@@ -179,9 +179,8 @@ void DP_Button::onBtnOkEvent(const DataProc::Button_Info_t* info)
 
     case DataProc::BUTTON_EVENT::RELEASED: {
         static const Audio_Squence_t seq[] = {
-            { M4, 20 }
+            { ToneMap::M4, 20 }
         };
-
         _audio.play(AUDIO_HELPER_SEQ_DEF(seq));
     } break;
 

@@ -23,7 +23,9 @@
 #ifndef TONE_MAP_H
 #define TONE_MAP_H
 
-enum ToneMap {
+namespace ToneMap {
+
+enum MAP {
     L1 = 262,
     L1h = 277,
     L2 = 294,
@@ -61,5 +63,24 @@ enum ToneMap {
     H6h = 1865,
     H7 = 1976,
 };
+
+#ifndef BEAT_BPM_DEF
+#define BEAT_BPM_DEF 80
+#endif
+
+#define BEAT_MAKE(a, b) BEAT_##a##_##b = (60 * 1000 * a / BEAT_BPM_DEF / b)
+
+enum BEAT {
+    BEAT_MAKE(1, 16),
+    BEAT_MAKE(1, 8),
+    BEAT_MAKE(1, 4),
+    BEAT_MAKE(1, 2),
+    BEAT_MAKE(1, 1),
+    BEAT_MAKE(2, 1),
+    BEAT_MAKE(4, 1),
+    BEAT_MAKE(8, 1),
+};
+
+} // namespace ToneMap
 
 #endif /* TONE_MAP_H */

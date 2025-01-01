@@ -42,7 +42,7 @@ private:
     int onEvent(DataNode::EventParam_t* param);
     void onTimer();
     void writeBuzzer(uint32_t freq, uint32_t duration);
-    void start(const Audio_Squence_t* squence, uint32_t length);
+    int start(const Audio_Info_t* info);
     void stop();
 };
 
@@ -63,11 +63,15 @@ DP_Audio::DP_Audio(DataNode* node)
         DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY | DataNode::EVENT_TIMER);
 
     static const Audio_Squence_t squence[] = {
-        { M1, 80 },
-        { M6, 80 },
-        { M3, 80 },
+        { ToneMap::M1, 80 },
+        { ToneMap::M6, 80 },
+        { ToneMap::M3, 80 },
     };
-    start(squence, sizeof(squence) / sizeof(Audio_Squence_t));
+
+    Audio_Info_t startUpInfo;
+    startUpInfo.squence = squence;
+    startUpInfo.length = sizeof(squence) / sizeof(Audio_Squence_t);
+    start(&startUpInfo);
 }
 
 int DP_Audio::onEvent(DataNode::EventParam_t* param)
@@ -84,8 +88,7 @@ int DP_Audio::onEvent(DataNode::EventParam_t* param)
         if (param->size != sizeof(_info)) {
             return DataNode::RES_SIZE_MISMATCH;
         }
-        auto info = (const Audio_Info_t*)param->data_p;
-        start(info->squence, info->length);
+        start((const Audio_Info_t*)param->data_p);
     } break;
 
     case DataNode::EVENT_TIMER:
@@ -107,22 +110,35 @@ void DP_Audio::writeBuzzer(uint32_t freq, uint32_t duration)
     _devBuzz->write(&info, sizeof(info));
 }
 
-void DP_Audio::start(const Audio_Squence_t* squence, uint32_t length)
+int DP_Audio::start(const Audio_Info_t* info)
 {
+    if (info->bpm == 0) {
+        HAL_LOG_ERROR("bpm need > 0");
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    if (_info.squence && !_info.interruptible) {
+        HAL_LOG_WARN("Audio is playing, can't interrupt");
+        return DataNode::RES_UNSUPPORTED_REQUEST;
+    }
+
     _curIndex = 0;
-    _info.squence = squence;
-    _info.length = length;
+    _info = *info;
 
     if (_info.squence == nullptr || _info.length == 0) {
         stop();
-        return;
+        return DataNode::RES_OK;
     }
 
+    HAL_LOG_INFO("Audio start: %p, length: %d, bpm: %d, interruptible: %d", _info.squence, _info.length, _info.bpm, _info.interruptible);
+
     _node->startTimer(0);
+    return DataNode::RES_OK;
 }
 
 void DP_Audio::stop()
 {
+    HAL_LOG_INFO("Audio stop: %p", _info.squence);
     _info.squence = nullptr;
     _info.length = 0;
     _node->stopTimer();
@@ -136,10 +152,10 @@ void DP_Audio::onTimer()
     }
 
     auto cur = &_info.squence[_curIndex++];
-    writeBuzzer(cur->frequency, cur->duration);
+    writeBuzzer(cur->frequency, cur->duration * AUDIO_BPM_DEFAULT / _info.bpm);
 
     const uint32_t period = cur->time > cur->duration ? cur->time : cur->duration;
-    _node->setTimerPeriod(period);
+    _node->setTimerPeriod(period * AUDIO_BPM_DEFAULT / _info.bpm);
 }
 
 DATA_PROC_DESCRIPTOR_DEF(Audio)

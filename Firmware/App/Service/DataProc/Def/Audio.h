@@ -25,6 +25,8 @@
 
 #include <stdint.h>
 
+#define AUDIO_BPM_DEFAULT 80
+
 namespace DataProc {
 
 typedef struct Audio_Squence {
@@ -32,21 +34,27 @@ typedef struct Audio_Squence {
         : frequency(freq)
         , duration(dur)
         , time(time)
+
     {
     }
     uint32_t frequency;
     uint32_t duration;
     uint32_t time;
+    bool interruptible;
 } Audio_Squence_t;
 
 typedef struct Audio_Info {
     Audio_Info()
         : squence(nullptr)
         , length(0)
+        , bpm(AUDIO_BPM_DEFAULT)
+        , interruptible(true)
     {
     }
     const Audio_Squence_t* squence;
     uint32_t length;
+    uint32_t bpm;
+    bool interruptible;
 } Audio_Info_t;
 
 } // namespace DataProc

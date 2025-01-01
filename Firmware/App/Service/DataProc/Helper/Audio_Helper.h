@@ -39,7 +39,7 @@ public:
         return _nodeAudio;
     }
 
-    int play(const Audio_Squence_t* squence, uint32_t length);
+    int play(const Audio_Squence_t* squence, uint32_t length, uint32_t bpm = 0, bool interruptible = true);
     int stop();
 
 private:
