@@ -40,7 +40,7 @@ private:
 
 private:
     int onEvent(DataNode::EventParam_t* param);
-    void calibrate(const HAL::Clock_Info_t* info);
+    int onNotify(const Clock_Info_t* info);
     void setCompileTimeToClock();
 };
 
@@ -75,8 +75,10 @@ int DP_Clock::onEvent(DataNode::EventParam_t* param)
     }
 
     case DataNode::EVENT_NOTIFY: {
-        int ret = _dev->ioctl(CLOCK_IOCMD_CALIBRATE, param->data_p, param->size);
-        return ret == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+        if (param->size != sizeof(Clock_Info_t)) {
+            return DataNode::RES_SIZE_MISMATCH;
+        }
+        return onNotify((const Clock_Info_t*)param->data_p);
     }
 
     case DataNode::EVENT_TIMER: {
@@ -95,9 +97,30 @@ int DP_Clock::onEvent(DataNode::EventParam_t* param)
     return DataNode::RES_UNKNOWN;
 }
 
-void DP_Clock::calibrate(const HAL::Clock_Info_t* info)
+int DP_Clock::onNotify(const Clock_Info_t* info)
 {
-    _dev->ioctl(CLOCK_IOCMD_CALIBRATE, (void*)info, sizeof(HAL::Clock_Info_t));
+    switch (info->cmd) {
+    case CLOCK_CMD::SET_TIME: {
+        int retval = _dev->ioctl(CLOCK_IOCMD_CALIBRATE, (void*)&(info->base), sizeof(info->base));
+        return retval == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+    }
+
+    case CLOCK_CMD::SET_ALARM: {
+        int retval = _dev->ioctl(CLOCK_IOCMD_SET_ALARM, (void*)&(info->base), sizeof(info->base));
+        return retval == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+    }
+
+    case CLOCK_CMD::GET_ALARM:
+        break;
+
+    case CLOCK_CMD::DISABLE_ALARM:
+        break;
+
+    default:
+        return DataNode::RES_UNSUPPORTED_REQUEST;
+    }
+
+    return DataNode::RES_OK;
 }
 
 void DP_Clock::setCompileTimeToClock()
@@ -130,7 +153,7 @@ void DP_Clock::setCompileTimeToClock()
     info.hour = hour;
     info.minute = minute;
     info.second = second;
-    calibrate(&info);
+    _dev->ioctl(CLOCK_IOCMD_CALIBRATE, &info, sizeof(info));
 }
 
 DATA_PROC_DESCRIPTOR_DEF(Clock)

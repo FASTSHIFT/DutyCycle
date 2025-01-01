@@ -174,9 +174,11 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     int hour = info.hour;
     int minute = info.minute;
     int second = info.second;
+    const char* cmd = "SET_TIME";
 
     struct argparse_option options[] = {
         OPT_HELP(),
+        OPT_STRING('c', "cmd", &cmd, "clock command", nullptr, 0, 0),
         OPT_INTEGER('y', "year", &year, "year", nullptr, 0, 0),
         OPT_INTEGER('m', "month", &month, "month", nullptr, 0, 0),
         OPT_INTEGER('d', "day", &day, "day", nullptr, 0, 0),
@@ -193,14 +195,45 @@ int DP_Shell::cmdClock(int argc, const char** argv)
         return SHELL_RET_FAILURE;
     }
 
-    info.year = year;
-    info.month = month;
-    info.day = day;
-    info.hour = hour;
-    info.minute = minute;
-    info.second = second;
+    Clock_Info_t clockInfo;
+    clockInfo.base.year = year;
+    clockInfo.base.month = month;
+    clockInfo.base.day = day;
+    clockInfo.base.hour = hour;
+    clockInfo.base.minute = minute;
+    clockInfo.base.second = second;
 
-    if (_node->notify(nodeClock, &info, sizeof(info)) != DataNode::RES_OK) {
+#define CMD_MAP_DEF(cmd)     \
+    {                        \
+        CLOCK_CMD::cmd, #cmd \
+    }
+    typedef struct
+    {
+        CLOCK_CMD cmd;
+        const char* name;
+    } cmd_map_t;
+    static const cmd_map_t cmd_map[] = {
+        CMD_MAP_DEF(SET_TIME),
+        CMD_MAP_DEF(SET_ALARM),
+    };
+#undef CMD_MAP_DEF
+
+    for (int i = 0; i < CM_ARRAY_SIZE(cmd_map); i++) {
+        if (strcmp(cmd, cmd_map[i].name) == 0) {
+            clockInfo.cmd = cmd_map[i].cmd;
+            break;
+        }
+    }
+
+    if (clockInfo.cmd == CLOCK_CMD::NONE) {
+        shell_printf("Invalid command %s, available commands are:\r\n", cmd);
+        for (int i = 0; i < CM_ARRAY_SIZE(cmd_map); i++) {
+            shell_println(cmd_map[i].name);
+        }
+        return SHELL_RET_FAILURE;
+    }
+
+    if (_node->notify(nodeClock, &clockInfo, sizeof(clockInfo)) != DataNode::RES_OK) {
         shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
         return SHELL_RET_FAILURE;
     }

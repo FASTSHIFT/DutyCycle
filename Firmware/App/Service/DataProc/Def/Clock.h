@@ -20,18 +20,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __DATA_PROC_DEF_H
-#define __DATA_PROC_DEF_H
+#ifndef __DATA_PROC_CLOCK_DEF_H
+#define __DATA_PROC_CLOCK_DEF_H
 
-#include "Def/Audio.h"
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Clock.h"
-#include "Def/Ctrl.h"
-#include "Def/Global.h"
-#include "Def/KVDB.h"
-#include "Def/Power.h"
-#include "Def/Shell.h"
-#include "Def/Version.h"
+#include "Service/HAL/Def/Clock.h"
+#include <stdint.h>
 
-#endif // __DATA_PROC_DEF_H
+namespace DataProc {
+
+enum class CLOCK_CMD {
+    NONE,
+    SET_TIME,
+    SET_ALARM,
+    GET_ALARM,
+    DISABLE_ALARM,
+};
+
+typedef struct Clock_Info {
+    Clock_Info()
+        : cmd(CLOCK_CMD::NONE)
+        , base { 0 }
+    {
+    }
+    CLOCK_CMD cmd;
+    HAL::Clock_Info_t base;
+} Clock_Info_t;
+
+} // namespace DataProc
+
+#endif // __DATA_PROC_CLOCK_DEF_H

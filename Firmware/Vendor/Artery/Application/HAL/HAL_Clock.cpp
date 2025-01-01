@@ -74,11 +74,18 @@ int Clock::onRead(void* buffer, size_t size)
 
 int Clock::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
 {
-    if (cmd.full != CLOCK_IOCMD_CALIBRATE) {
-        return DeviceObject::RES_PARAM_ERROR;
+    switch (cmd.full) {
+    case CLOCK_IOCMD_CALIBRATE:
+        calibrate((HAL::Clock_Info_t*)data);
+        break;
+
+    case CLOCK_IOCMD_SET_ALARM:
+        break;
+
+    default:
+        return DeviceObject::RES_UNSUPPORT;
     }
 
-    calibrate((HAL::Clock_Info_t*)data);
     return DeviceObject::RES_OK;
 }
 

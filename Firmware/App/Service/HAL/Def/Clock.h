@@ -43,7 +43,12 @@ typedef struct
     uint16_t millisecond;
 } Clock_Info_t;
 
-#define CLOCK_IOCMD_CALIBRATE   DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Clock_Info_t), 0, 0)
+#define CLOCK_IOCMD_CALIBRATE       DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Clock_Info_t), 0, 0)
+#define CLOCK_IOCMD_SET_ALARM       DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Clock_Info_t), 1, 0)
+#define CLOCK_IOCMD_ENABLE_ALARM    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 2, 0)
+#define CLOCK_IOCMD_DISABLE_ALARM   DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 3, 0)
+#define CLOCK_IOCMD_POLL_ALARM      DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_OUT, 0, 4, 0)
+#define CLOCK_IOCMD_CLEAR_ALARM     DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 4, 0)
 
 } // namespace HAL
 
