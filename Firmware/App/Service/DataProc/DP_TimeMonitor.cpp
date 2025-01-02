@@ -178,17 +178,17 @@ void DP_TimeMonitor::onMinuteChanged(int8_t hour, int8_t minute)
             { ToneMap::H2h, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
             { 0, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
 
-            { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
-            { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
-            { ToneMap::H1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
-            { ToneMap::H2h, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
-            { ToneMap::M6h, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
-            { 0, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
+//            { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
+//            { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
+//            { ToneMap::H1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
+//            { ToneMap::H2h, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
+//            { ToneMap::M6h, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
+//            { 0, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
 
-            { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
-            { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
-            { ToneMap::H1, TONE_BEAT_MAKE(ToneMap::BEAT_1_2) },
-            { ToneMap::H2h, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
+//            { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
+//            { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
+//            { ToneMap::H1, TONE_BEAT_MAKE(ToneMap::BEAT_1_2) },
+//            { ToneMap::H2h, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
         };
 
         seq_alarm = seq_mc_bgm;
