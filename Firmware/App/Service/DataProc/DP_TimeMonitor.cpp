@@ -36,19 +36,22 @@ private:
     const DataNode* _nodeClock;
     Audio_Helper _audio;
     int8_t _lastHour;
+    int8_t _lastMinute;
 
     Audio_Squence_t _seq[4];
 
 private:
     int onEvent(DataNode::EventParam_t* param);
     void onClockEvent(const HAL::Clock_Info_t* info);
-    void onHourChanged(int hour);
+    void onHourChanged(int8_t hour);
+    void onMinuteChanged(int8_t hour, int8_t minute);
 };
 
 DP_TimeMonitor::DP_TimeMonitor(DataNode* node)
     : _node(node)
     , _audio(node)
     , _lastHour(-1)
+    , _lastMinute(-1)
 {
     _nodeClock = _node->subscribe("Clock");
     if (!_nodeClock) {
@@ -85,29 +88,70 @@ void DP_TimeMonitor::onClockEvent(const HAL::Clock_Info_t* info)
     //    h = (h + 1) % 24;
     //    onHourChanged(h);
 
-    if (_lastHour == info->hour) {
-        return;
+    if (_lastHour != info->hour) {
+        onHourChanged(info->hour);
+        _lastHour = info->hour;
     }
 
-    onHourChanged(info->hour);
-
-    _lastHour = info->hour;
+    if (_lastMinute != info->minute) {
+        onMinuteChanged(info->hour, info->minute);
+        _lastMinute = info->minute;
+    }
 }
 
-void DP_TimeMonitor::onHourChanged(int hour)
+void DP_TimeMonitor::onHourChanged(int8_t hour)
 {
     if (hour > 0 && hour < 10) {
         return;
     }
 
+    static const uint16_t hourMap[] = {
+        ToneMap::L1,
+        ToneMap::L3,
+        ToneMap::L5,
+        ToneMap::M1,
+        ToneMap::M3,
+        ToneMap::M5,
+        ToneMap::H1,
+        ToneMap::H3,
+        ToneMap::H5,
+    };
+
+    // static const uint16_t hourMap[] = {
+    //     ToneMap::L3,
+    //     ToneMap::L5,
+    //     ToneMap::L7,
+    //     ToneMap::M2,
+    //     ToneMap::M4,
+    //     ToneMap::M6,
+    //     ToneMap::H1,
+    //     ToneMap::H3,
+    //     ToneMap::H5,
+    // };
+
+    const uint32_t hourIndexMax = sizeof(hourMap) / sizeof(hourMap[0]) - 1;
+
+    _seq[0].frequency = hourMap[hour / hourIndexMax];
+    _seq[0].duration = ToneMap::BEAT_1_4;
+    _seq[1].frequency = hourMap[hour % hourIndexMax + 1];
+    _seq[1].duration = ToneMap::BEAT_1_4;
+    _seq[2].frequency = hourMap[hour / hourIndexMax + 1];
+    _seq[2].duration = ToneMap::BEAT_1_4;
+    _seq[3].frequency = hourMap[hour % hourIndexMax];
+    _seq[3].duration = ToneMap::BEAT_1_4;
+    _audio.play(AUDIO_HELPER_SEQ_DEF(_seq));
+}
+
+void DP_TimeMonitor::onMinuteChanged(int8_t hour, int8_t minute)
+{
 #define TONE_DUTY_CYCLE 0.8f
-#define TONE_BEAT_MAKE(beat) ((uint32_t)((beat)*TONE_DUTY_CYCLE)), (beat)
+#define TONE_BEAT_MAKE(beat) ((uint32_t)((beat) * TONE_DUTY_CYCLE)), (beat)
 
     const Audio_Squence_t* seq_alarm = nullptr;
     int seq_alarm_len = 0;
     int seq_bpm = 0;
 
-    if (hour == 12) {
+    if (hour == 12 && minute == 30) {
         static const Audio_Squence_t seq_mtag[] = {
             { ToneMap::M1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
             { ToneMap::M1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
@@ -120,7 +164,7 @@ void DP_TimeMonitor::onHourChanged(int hour)
 
         seq_alarm = seq_mtag;
         seq_alarm_len = CM_ARRAY_SIZE(seq_mtag);
-    } else if (hour == 18) {
+    } else if (hour == 18 && minute == 30) {
         static const Audio_Squence_t seq_mc_bgm[] = {
             { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
             { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
@@ -177,47 +221,12 @@ void DP_TimeMonitor::onHourChanged(int hour)
         seq_bpm = 50;
     }
 
-    if (seq_alarm) {
-        HAL_LOG_INFO("Play alarm sound: %p, len: %d", seq_alarm, seq_alarm_len);
-        _audio.play(seq_alarm, seq_alarm_len, seq_bpm);
+    if (!seq_alarm) {
         return;
     }
 
-    static const uint16_t hourMap[] = {
-        ToneMap::L1,
-        ToneMap::L3,
-        ToneMap::L5,
-        ToneMap::M1,
-        ToneMap::M3,
-        ToneMap::M5,
-        ToneMap::H1,
-        ToneMap::H3,
-        ToneMap::H5,
-    };
-
-    // static const uint16_t hourMap[] = {
-    //     ToneMap::L3,
-    //     ToneMap::L5,
-    //     ToneMap::L7,
-    //     ToneMap::M2,
-    //     ToneMap::M4,
-    //     ToneMap::M6,
-    //     ToneMap::H1,
-    //     ToneMap::H3,
-    //     ToneMap::H5,
-    // };
-
-    const uint32_t hourIndexMax = sizeof(hourMap) / sizeof(hourMap[0]) - 1;
-
-    _seq[0].frequency = hourMap[hour / hourIndexMax];
-    _seq[0].duration = ToneMap::BEAT_1_4;
-    _seq[1].frequency = hourMap[hour % hourIndexMax + 1];
-    _seq[1].duration = ToneMap::BEAT_1_4;
-    _seq[2].frequency = hourMap[hour / hourIndexMax + 1];
-    _seq[2].duration = ToneMap::BEAT_1_4;
-    _seq[3].frequency = hourMap[hour % hourIndexMax];
-    _seq[3].duration = ToneMap::BEAT_1_4;
-    _audio.play(AUDIO_HELPER_SEQ_DEF(_seq));
+    HAL_LOG_INFO("Play alarm sound: %p, len: %d", seq_alarm, seq_alarm_len);
+    _audio.play(seq_alarm, seq_alarm_len, seq_bpm);
 }
 
 DATA_PROC_DESCRIPTOR_DEF(TimeMonitor)
