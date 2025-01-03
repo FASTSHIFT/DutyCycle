@@ -151,8 +151,8 @@ void DP_TimeMonitor::onMinuteChanged(int8_t hour, int8_t minute)
     int seq_alarm_len = 0;
     int seq_bpm = 0;
 
-    if (hour == 12 && minute == 30) {
-        static const Audio_Squence_t seq_mtag[] = {
+    if (hour == 12 && minute == 20) {
+        static constexpr Audio_Squence_t seq_mtag[] = {
             { ToneMap::M1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
             { ToneMap::M1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
             { ToneMap::M5, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
@@ -164,8 +164,8 @@ void DP_TimeMonitor::onMinuteChanged(int8_t hour, int8_t minute)
 
         seq_alarm = seq_mtag;
         seq_alarm_len = CM_ARRAY_SIZE(seq_mtag);
-    } else if (hour == 18 && minute == 30) {
-        static const Audio_Squence_t seq_mc_bgm[] = {
+    } else if (hour == 18 && minute == 20) {
+        static constexpr Audio_Squence_t seq_mc_bgm[] = {
             { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_2 + ToneMap::BEAT_1_4) },
             { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
             { ToneMap::H1, TONE_BEAT_MAKE(ToneMap::BEAT_1_2) },
@@ -194,8 +194,8 @@ void DP_TimeMonitor::onMinuteChanged(int8_t hour, int8_t minute)
         seq_alarm = seq_mc_bgm;
         seq_alarm_len = CM_ARRAY_SIZE(seq_mc_bgm);
         seq_bpm = 50;
-    } else if (hour == 21) {
-        static const Audio_Squence_t seq_gta4_phone[] = {
+    } else if (hour == 20 && minute == 50) {
+        static constexpr Audio_Squence_t seq_gta4_phone[] = {
             { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
             { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
             { ToneMap::H5, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },

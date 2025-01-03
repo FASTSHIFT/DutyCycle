@@ -30,17 +30,16 @@
 namespace DataProc {
 
 typedef struct Audio_Squence {
-    Audio_Squence(uint32_t freq = 0, uint16_t dur = 0, uint32_t time = 0)
+    constexpr Audio_Squence(uint32_t freq = 0, uint32_t dur = 0, uint32_t time = 0)
         : frequency(freq)
         , duration(dur)
         , time(time)
-
     {
     }
+
     uint32_t frequency;
     uint32_t duration;
     uint32_t time;
-    bool interruptible;
 } Audio_Squence_t;
 
 typedef struct Audio_Info {

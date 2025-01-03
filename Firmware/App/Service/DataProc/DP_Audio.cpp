@@ -62,7 +62,7 @@ DP_Audio::DP_Audio(DataNode* node)
         },
         DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY | DataNode::EVENT_TIMER);
 
-    static const Audio_Squence_t squence[] = {
+    static constexpr Audio_Squence_t squence[] = {
         { ToneMap::M1, 80 },
         { ToneMap::M6, 80 },
         { ToneMap::M3, 80 },
