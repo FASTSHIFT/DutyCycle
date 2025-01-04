@@ -103,6 +103,11 @@ bool DataBroker::remove(DataNode* node)
 
 bool DataBroker::remove(DataNode::DataNodeList_t* vec, DataNode* node)
 {
+    if (!node) {
+        DN_LOG_ERROR("DataNode is nullptr");
+        return false;
+    }
+
     auto iter = std::find(vec->begin(), vec->end(), node);
 
     if (iter == vec->end()) {

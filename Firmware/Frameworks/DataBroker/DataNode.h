@@ -110,6 +110,13 @@ public:
     bool unsubscribe(const char* pubID);
 
     /**
+     * @bref   Unsubscribe from publisher
+     * @param  pub: Publisher node pointer
+     * @retval Return true if unsubscribe is successful
+     */
+    bool unsubscribe(const DataNode* pub);
+
+    /**
      * @brief  Get the number of publishers
      * @retval number of publishers
      */

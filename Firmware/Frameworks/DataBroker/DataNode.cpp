@@ -115,13 +115,18 @@ bool DataNode::unsubscribe(const char* pubID)
         return false;
     }
 
-    /* Remove the publisher from the subscription list */
-    _broker->remove(&_publishers, pub);
+    return unsubscribe(pub);
+}
+
+bool DataNode::unsubscribe(const DataNode* pub)
+{
+    DataNode* p = (DataNode*)pub;
+    if (!_broker->remove(&_publishers, p)) {
+        return false;
+    }
 
     /* Let the publisher remove this subscriber */
-    _broker->remove(&pub->_subscribers, this);
-
-    return true;
+    return _broker->remove(&p->_subscribers, this);
 }
 
 int DataNode::publish(const void* data_p, size_t size)
