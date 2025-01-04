@@ -28,12 +28,23 @@
 
 #define LOG_SERIAL CONFIG_LOG_SERIAL
 
+static uint8_t logLevel = HAL_LOG_LEVEL;
+
 extern "C" {
 
 void HAL_Log_Init()
 {
     LOG_SERIAL.begin(115200);
     LOG_SERIAL.setTimeout(20);
+}
+
+void HAL_Log_SetLevel(uint8_t level)
+{
+    if (level > _HAL_LOG_LEVEL_LAST) {
+        return;
+    }
+
+    logLevel = level;
 }
 
 void HAL_Log_PrintString(const char* str)
@@ -43,12 +54,12 @@ void HAL_Log_PrintString(const char* str)
 
 void HAL_Log(uint8_t level, const char* func, const char* fmt, ...)
 {
-    if (level >= _HAL_LOG_LEVEL_LAST) {
+    if (level < logLevel) {
         return;
     }
 
     static const char* prompt[_HAL_LOG_LEVEL_LAST] = {
-        "INFO", "WARN", "ERROR"
+        "TRACE", "INFO", "WARN", "ERROR"
     };
 
     char buffer[256];

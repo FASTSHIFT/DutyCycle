@@ -30,8 +30,6 @@ namespace DataProc {
 enum class CTRL_CMD {
     NONE,
     SWEEP_TEST,
-    ENABLE_PRINT,
-    DISABLE_PRINT,
     ENABLE_CLOCK_MAP,
     SET_MOTOR_VALUE,
     SET_CLOCK_MAP,

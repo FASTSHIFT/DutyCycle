@@ -48,7 +48,6 @@ private:
 
     int16_t _hourMotorMap[25];
 
-    bool _enablePrint;
     bool _enableClockMap;
     int _sweepValue;
 
@@ -58,7 +57,6 @@ private:
     void onTimer();
     void onClockEvent(const HAL::Clock_Info_t* info);
     void onGlobalEvent(const Global_Info_t* info);
-    int setEnablePrint(bool enable);
     int setClockMap(int hour, int value);
     int setMotorValue(int value);
     void listHourMotorMap();
@@ -75,7 +73,6 @@ private:
 DP_Ctrl::DP_Ctrl(DataNode* node)
     : _node(node)
     , _kvdb(node)
-    , _enablePrint(false)
     , _enableClockMap(true)
 {
     for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
@@ -139,11 +136,6 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
         _sweepValue = 0;
         _node->startTimer(100);
         break;
-    case CTRL_CMD::ENABLE_PRINT:
-        return setEnablePrint(true);
-
-    case CTRL_CMD::DISABLE_PRINT:
-        return setEnablePrint(false);
 
     case CTRL_CMD::SET_MOTOR_VALUE:
         _enableClockMap = false;
@@ -187,18 +179,9 @@ void DP_Ctrl::onTimer()
 void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
 {
     if (info->event == GLOBAL_EVENT::APP_STARTED) {
-        KVDB_GET(_enablePrint);
         KVDB_GET(_hourMotorMap);
-
-        HAL_LOG_INFO("enablePrint: %d", _enablePrint);
         listHourMotorMap();
     }
-}
-
-int DP_Ctrl::setEnablePrint(bool enable)
-{
-    _enablePrint = enable;
-    return KVDB_SET(_enablePrint);
 }
 
 int DP_Ctrl::setClockMap(int hour, int value)
@@ -230,10 +213,8 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 
     uint32_t curTimestamp = getTimestamp(info->hour, info->minute, info->second);
 
-    if (_enablePrint) {
-        HAL_LOG_INFO("Current times: %04d-%02d-%02d %02d:%02d:%02d.%03d, timestamp: %d",
-            info->year, info->month, info->day, info->hour, info->minute, info->second, info->millisecond, curTimestamp);
-    }
+    HAL_LOG_TRACE("Current times: %04d-%02d-%02d %02d:%02d:%02d.%03d, timestamp: %d",
+        info->year, info->month, info->day, info->hour, info->minute, info->second, info->millisecond, curTimestamp);
 
     int motorValue = 0;
 
@@ -287,11 +268,9 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 
 int DP_Ctrl::setMotorValue(int value)
 {
-    if (_enablePrint) {
-        HAL_LOG_INFO("value: %d", value);
-    }
+    HAL_LOG_TRACE("value: %d", value);
 
-    if(value < MOTOR_VALUE_MIN || value > MOTOR_VALUE_MAX) {
+    if (value < MOTOR_VALUE_MIN || value > MOTOR_VALUE_MAX) {
         HAL_LOG_ERROR("Invalid motor value: %d", value);
         return DataNode::RES_PARAM_ERROR;
     }

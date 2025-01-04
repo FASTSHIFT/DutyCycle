@@ -27,6 +27,7 @@
 #include "Utils/CommonMacro/CommonMacro.h"
 #include "Utils/Shell/Shell.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 using namespace DataProc;
 
@@ -155,6 +156,8 @@ private:
     static bool argparseHelper(int argc, const char** argv, struct argparse_option* options);
 
     static int cmdHelp(int argc, const char** argv);
+    static int cmdLogLevel(int argc, const char** argv);
+
     static int cmdPublich(int argc, const char** argv);
     static int cmdClock(int argc, const char** argv);
     static int cmdPower(int argc, const char** argv);
@@ -199,8 +202,10 @@ DP_Shell::DP_Shell(DataNode* node)
         },
         nullptr, nullptr);
 
-    shell_register(cmdPublich, "publish");
     shell_register(cmdHelp, "help");
+    shell_register(cmdLogLevel, "loglevel");
+
+    shell_register(cmdPublich, "publish");
     shell_register(cmdClock, "clock");
     shell_register(cmdPower, "power");
     shell_register(cmdCtrl, "ctrl");
@@ -244,6 +249,17 @@ bool DP_Shell::argparseHelper(int argc, const char** argv, struct argparse_optio
 int DP_Shell::cmdHelp(int argc, const char** argv)
 {
     shell_print_commands();
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdLogLevel(int argc, const char** argv)
+{
+    if (argc < 2) {
+        shell_print_error(E_SHELL_ERR_ARGCOUNT, "Usage: loglevel <level>, level: 0~4");
+        return SHELL_RET_FAILURE;
+    }
+
+    HAL_Log_SetLevel(atoi(argv[1]));
     return SHELL_RET_SUCCESS;
 }
 
@@ -411,8 +427,6 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
 
     static constexpr CMD_PAIR<CTRL_CMD> cmd_map[] = {
         CMD_PAIR_DEF(CTRL_CMD, SWEEP_TEST),
-        CMD_PAIR_DEF(CTRL_CMD, ENABLE_PRINT),
-        CMD_PAIR_DEF(CTRL_CMD, DISABLE_PRINT),
         CMD_PAIR_DEF(CTRL_CMD, ENABLE_CLOCK_MAP),
         CMD_PAIR_DEF(CTRL_CMD, SET_MOTOR_VALUE),
         CMD_PAIR_DEF(CTRL_CMD, SET_CLOCK_MAP),

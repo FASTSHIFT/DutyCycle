@@ -31,17 +31,22 @@
 extern "C" {
 #endif
 
-#define HAL_LOG_LEVEL_OFF -1
-#define HAL_LOG_LEVEL_INFO 0
-#define HAL_LOG_LEVEL_WARN 1
-#define HAL_LOG_LEVEL_ERROR 2
-#define _HAL_LOG_LEVEL_LAST 3
+#define HAL_LOG_LEVEL_TRACE 0
+#define HAL_LOG_LEVEL_INFO 1
+#define HAL_LOG_LEVEL_WARN 2
+#define HAL_LOG_LEVEL_ERROR 3
+#define HAL_LOG_LEVEL_OFF 4
+#define _HAL_LOG_LEVEL_LAST 4
 
 #ifndef HAL_LOG_LEVEL
-#define HAL_LOG_LEVEL HAL_LOG_LEVEL_INFO
+#define HAL_LOG_LEVEL HAL_LOG_LEVEL_TRACE
 #endif
 
-#if HAL_LOG_LEVEL > HAL_LOG_LEVEL_OFF
+#if HAL_LOG_LEVEL <= HAL_LOG_LEVEL_TRACE
+#define HAL_LOG_TRACE(...) HAL_Log(HAL_LOG_LEVEL_TRACE, __func__, __VA_ARGS__)
+#else
+#define HAL_LOG_TRACE(...)
+#endif
 
 #if HAL_LOG_LEVEL <= HAL_LOG_LEVEL_INFO
 #define HAL_LOG_INFO(...) HAL_Log(HAL_LOG_LEVEL_INFO, __func__, __VA_ARGS__)
@@ -61,13 +66,8 @@ extern "C" {
 #define HAL_LOG_ERROR(...)
 #endif
 
-#else
-#define HAL_LOG_INFO(...)
-#define HAL_LOG_WARN(...)
-#define HAL_LOG_ERROR(...)
-#endif
-
 void HAL_Log_Init(void);
+void HAL_Log_SetLevel(uint8_t level);
 void HAL_Log_PrintString(const char* str);
 void HAL_Log(uint8_t level, const char* func, const char* fmt, ...);
 void HAL_Log_Printf(const char* fmt, ...);
