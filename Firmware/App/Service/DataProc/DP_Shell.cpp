@@ -48,6 +48,7 @@ private:
     static int cmdPublich(int argc, const char** argv);
     static int cmdClock(int argc, const char** argv);
     static int cmdPower(int argc, const char** argv);
+    static int cmdCtrl(int argc, const char** argv);
 };
 
 DataNode* DP_Shell::_node = nullptr;
@@ -78,6 +79,7 @@ DP_Shell::DP_Shell(DataNode* node)
     shell_register(cmdHelp, "help");
     shell_register(cmdClock, "clock");
     shell_register(cmdPower, "power");
+    shell_register(cmdCtrl, "ctrl");
 }
 
 int DP_Shell::onEvent(DataNode::EventParam_t* param)
@@ -297,6 +299,81 @@ int DP_Shell::cmdPower(int argc, const char** argv)
     }
 
     if (_node->notify(nodePower, &info, sizeof(info)) != DataNode::RES_OK) {
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdCtrl(int argc, const char** argv)
+{
+    auto nodeCtrl = _node->subscribe("Ctrl");
+    if (!nodeCtrl) {
+        shell_println("Ctrl node not found");
+        shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
+        return SHELL_RET_FAILURE;
+    }
+
+    const char* cmd = nullptr;
+    int hour = 0;
+    int motorValue = 0;
+
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_STRING('c', "cmd", &cmd, "send ctrl command", nullptr, 0, 0),
+        OPT_INTEGER('h', "hour", &hour, "the hour to set", nullptr, 0, 0),
+        OPT_INTEGER('m', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
+        OPT_END(),
+    };
+
+    struct argparse argparse;
+    argparse_init(&argparse, options, nullptr, 0);
+    if (argparse_parse(&argparse, argc, argv) > 0 || !cmd) {
+        argparse_usage(&argparse);
+        return SHELL_RET_SUCCESS;
+    }
+
+#define CMD_MAP_DEF(cmd)    \
+    {                       \
+        CTRL_CMD::cmd, #cmd \
+    }
+    typedef struct
+    {
+        CTRL_CMD cmd;
+        const char* name;
+    } cmd_map_t;
+    static const cmd_map_t cmd_map[] = {
+        CMD_MAP_DEF(SWEEP_TEST),
+        CMD_MAP_DEF(ENABLE_PRINT),
+        CMD_MAP_DEF(DISABLE_PRINT),
+        CMD_MAP_DEF(ENABLE_CLOCK_MAP),
+        CMD_MAP_DEF(SET_MOTOR_VALUE),
+        CMD_MAP_DEF(SET_CLOCK_MAP),
+    };
+#undef CMD_MAP_DEF
+
+    Ctrl_Info_t info;
+    info.hour = hour;
+    info.motorValue = motorValue;
+
+    for (int i = 0; i < CM_ARRAY_SIZE(cmd_map); i++) {
+        if (strcmp(cmd, cmd_map[i].name) == 0) {
+            info.cmd = cmd_map[i].cmd;
+            break;
+        }
+    }
+
+    if (info.cmd == CTRL_CMD::NONE) {
+        shell_printf("Invalid command %s, available commands are:\r\n", cmd);
+        for (int i = 0; i < CM_ARRAY_SIZE(cmd_map); i++) {
+            shell_println(cmd_map[i].name);
+        }
+        return SHELL_RET_FAILURE;
+    }
+
+    if (_node->notify(nodeCtrl, &info, sizeof(info)) != DataNode::RES_OK) {
+        shell_println("Ctrl node notify failed");
         shell_print_error(E_SHELL_ERR_ACTION, argv[0]);
         return SHELL_RET_FAILURE;
     }

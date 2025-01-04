@@ -40,6 +40,8 @@ enum class CTRL_CMD {
 typedef struct Ctrl_Info {
     Ctrl_Info()
         : cmd(CTRL_CMD::NONE)
+        , hour(0)
+        , motorValue(0)
     {
     }
     CTRL_CMD cmd;

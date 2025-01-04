@@ -190,6 +190,15 @@ void DP_Ctrl::setEnablePrint(bool enable)
 #define MOTOR_VALUE_1AM -540
 #define MOTOR_VALUE_5PM_DOWN -710
 
+// #define MOTOR_VALUE_5AM 485
+// #define MOTOR_VALUE_7AM 365
+// #define MOTOR_VALUE_9AM 210
+// #define MOTOR_VALUE_12AM 0
+// #define MOTOR_VALUE_9PM -200
+// #define MOTOR_VALUE_12PM -315
+// #define MOTOR_VALUE_1AM -350
+// #define MOTOR_VALUE_5PM_DOWN -470
+
 void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 {
     if (!_enableClockMap) {
@@ -210,7 +219,7 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
     //    }
     //    curTimestamp = getTimestamp(timeTable[timeIndex], 0, 0);
 
-    static int motorValue = 0;
+    int motorValue = 0;
 
     if (curTimestamp >= getTimestamp(5, 0, 0) && curTimestamp < getTimestamp(7, 0, 0)) {
         motorValue = timestampMap(curTimestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
