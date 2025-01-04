@@ -23,6 +23,7 @@
 #include "DataProc.h"
 #include "Service/HAL/HAL.h"
 #include "Service/HAL/HAL_Log.h"
+#include "Utils/ToneMap/ToneMap.h"
 
 using namespace DataProc;
 
@@ -34,6 +35,7 @@ private:
     DataNode* _node;
     const DataNode* _nodeGlobal;
     const DataNode* _nodeButton;
+    Audio_Helper _audio;
     DeviceObject* _devPower;
     DeviceObject* _devBattery;
     DeviceObject* _devTick;
@@ -41,6 +43,7 @@ private:
     Power_Info_t _info;
     uint32_t _lastTick;
     uint32_t _wakeUpTick;
+    uint32_t _buttonLongPressedTick;
     int _lockCount;
 
 private:
@@ -54,6 +57,7 @@ private:
 
 DP_Power::DP_Power(DataNode* node)
     : _node(node)
+    , _audio(node)
 {
     _devPower = HAL::Manager()->getDevice("Power");
     if (!_devPower) {
@@ -169,8 +173,17 @@ int DP_Power::onButtonEvent(const Button_Info_t* info)
 {
     switch (info->event) {
     case BUTTON_EVENT::LONG_PRESSED:
-        // onShutdown();
+        _buttonLongPressedTick = HAL::GetTick();
         break;
+
+    case BUTTON_EVENT::LONG_PRESSED_REPEAT: {
+        uint32_t elaps = HAL::GetTickElaps(_buttonLongPressedTick);
+        HAL_LOG_TRACE("Long pressed, elaps = %d", elaps);
+        if (elaps > 10000) {
+            onShutdown();
+        }
+    }
+    break;
 
     default:
         break;
@@ -234,6 +247,11 @@ void DP_Power::checkShutdown()
 
 void DP_Power::onShutdown()
 {
+    if (_info.cmd == POWER_CMD::SHUTDOWN) {
+        HAL_LOG_WARN("Shutdown is already in progress");
+        return;
+    }
+
     _info.cmd = POWER_CMD::SHUTDOWN;
     if (_node->publish(&_info, sizeof(_info)) == DataNode::RES_STOP_PROCESS) {
         HAL_LOG_WARN("Stop shutdown process");
@@ -243,6 +261,13 @@ void DP_Power::onShutdown()
     _devBattery->ioctl(BATTERY_IOCMD_SLEEP);
     _devPower->ioctl(POWER_IOCMD_POWER_OFF);
     _node->stopTimer();
+
+    static constexpr Audio_Squence_t squence[] = {
+        { ToneMap::M3, 80 },
+        { ToneMap::M6, 80 },
+        { ToneMap::M1, 80 },
+    };
+    _audio.play(AUDIO_HELPER_SEQ_DEF(squence));
 }
 
 DATA_PROC_DESCRIPTOR_DEF(Power)
