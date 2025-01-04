@@ -23,9 +23,14 @@
 #include "DataProc.h"
 #include "Service/HAL/HAL.h"
 #include "Service/HAL/HAL_Log.h"
+#include "Utils/CommonMacro/CommonMacro.h"
 
 #define KVDB_GET(value) _kvdb.get(#value, &value, sizeof(value))
 #define KVDB_SET(value) _kvdb.set(#value, &value, sizeof(value))
+
+#define MOTOR_VALUE_MIN -1000
+#define MOTOR_VALUE_MAX 1000
+#define MOTOR_VALUE_INVALID -32768
 
 using namespace DataProc;
 
@@ -34,11 +39,14 @@ public:
     DP_Ctrl(DataNode* node);
 
 private:
+private:
     DataNode* _node;
     const DataNode* _nodeClock;
     const DataNode* _nodeGlobal;
     KVDB_Helper _kvdb;
     DeviceObject* _devMotor;
+
+    int16_t _hourMotorMap[25];
 
     bool _enablePrint;
     bool _enableClockMap;
@@ -50,8 +58,11 @@ private:
     void onTimer();
     void onClockEvent(const HAL::Clock_Info_t* info);
     void onGlobalEvent(const Global_Info_t* info);
-    void setEnablePrint(bool enable);
-    void setMotorValue(int value);
+    int setEnablePrint(bool enable);
+    int setClockMap(int hour, int value);
+    int setMotorValue(int value);
+    void listHourMotorMap();
+
     uint32_t getTimestamp(int hour, int minute, int second);
     inline uint32_t getTimestamp(int hour)
     {
@@ -67,6 +78,10 @@ DP_Ctrl::DP_Ctrl(DataNode* node)
     , _enablePrint(false)
     , _enableClockMap(true)
 {
+    for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
+        _hourMotorMap[i] = MOTOR_VALUE_INVALID;
+    }
+
     _devMotor = HAL::Manager()->getDevice("Motor");
     if (!_devMotor) {
         return;
@@ -125,24 +140,25 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
         _node->startTimer(100);
         break;
     case CTRL_CMD::ENABLE_PRINT:
-        setEnablePrint(true);
-        break;
+        return setEnablePrint(true);
+
     case CTRL_CMD::DISABLE_PRINT:
-        setEnablePrint(false);
-        break;
+        return setEnablePrint(false);
+
     case CTRL_CMD::SET_MOTOR_VALUE:
         _enableClockMap = false;
-        setMotorValue(info->motorValue);
-        break;
+        return setMotorValue(info->motorValue);
+
     case CTRL_CMD::SET_CLOCK_MAP:
-        break;
+        return setClockMap(info->hour, info->motorValue);
+
     case CTRL_CMD::ENABLE_CLOCK_MAP:
         _enableClockMap = true;
         break;
     default:
         return DataNode::RES_UNSUPPORTED_REQUEST;
     }
-    
+
     return DataNode::RES_OK;
 }
 
@@ -150,14 +166,14 @@ void DP_Ctrl::onTimer()
 {
     int motorValue = 0;
 
-    if (_sweepValue < 1000) {
+    if (_sweepValue < MOTOR_VALUE_MAX) {
         motorValue = _sweepValue;
-    } else if (_sweepValue < 2000) {
-        motorValue = valueMap(_sweepValue, 1000, 2000, 1000, 0);
-    } else if (_sweepValue < 3000) {
-        motorValue = valueMap(_sweepValue, 2000, 3000, 0, -1000);
-    } else if (_sweepValue < 4000) {
-        motorValue = valueMap(_sweepValue, 3000, 4000, -1000, 0);
+    } else if (_sweepValue < MOTOR_VALUE_MAX * 2) {
+        motorValue = valueMap(_sweepValue, MOTOR_VALUE_MAX, MOTOR_VALUE_MAX * 2, MOTOR_VALUE_MAX, 0);
+    } else if (_sweepValue < MOTOR_VALUE_MAX * 3) {
+        motorValue = valueMap(_sweepValue, MOTOR_VALUE_MAX * 2, MOTOR_VALUE_MAX * 3, 0, MOTOR_VALUE_MIN);
+    } else if (_sweepValue < MOTOR_VALUE_MAX * 4) {
+        motorValue = valueMap(_sweepValue, MOTOR_VALUE_MAX * 3, MOTOR_VALUE_MAX * 4, MOTOR_VALUE_MIN, 0);
     } else {
         HAL_LOG_INFO("Sweep test finished");
         _node->stopTimer();
@@ -165,39 +181,46 @@ void DP_Ctrl::onTimer()
 
     setMotorValue(motorValue);
 
-    _sweepValue += 10;
+    _sweepValue += (MOTOR_VALUE_MAX / 100);
 }
 
 void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
 {
     if (info->event == GLOBAL_EVENT::APP_STARTED) {
         KVDB_GET(_enablePrint);
+        KVDB_GET(_hourMotorMap);
+
+        HAL_LOG_INFO("enablePrint: %d", _enablePrint);
+        listHourMotorMap();
     }
 }
 
-void DP_Ctrl::setEnablePrint(bool enable)
+int DP_Ctrl::setEnablePrint(bool enable)
 {
     _enablePrint = enable;
-    KVDB_SET(_enablePrint);
+    return KVDB_SET(_enablePrint);
 }
 
-#define MOTOR_VALUE_5AM 690
-#define MOTOR_VALUE_7AM 520
-#define MOTOR_VALUE_9AM 300
-#define MOTOR_VALUE_12AM 0
-#define MOTOR_VALUE_9PM -310
-#define MOTOR_VALUE_12PM -490
-#define MOTOR_VALUE_1AM -540
-#define MOTOR_VALUE_5PM_DOWN -710
+int DP_Ctrl::setClockMap(int hour, int value)
+{
+    if (hour < 0 || hour >= CM_ARRAY_SIZE(_hourMotorMap)) {
+        HAL_LOG_ERROR("Invalid hour: %d", hour);
+        return DataNode::RES_PARAM_ERROR;
+    }
 
-// #define MOTOR_VALUE_5AM 485
-// #define MOTOR_VALUE_7AM 365
-// #define MOTOR_VALUE_9AM 210
-// #define MOTOR_VALUE_12AM 0
-// #define MOTOR_VALUE_9PM -200
-// #define MOTOR_VALUE_12PM -315
-// #define MOTOR_VALUE_1AM -350
-// #define MOTOR_VALUE_5PM_DOWN -470
+    if ((value < MOTOR_VALUE_MIN || value > MOTOR_VALUE_MAX) && value != MOTOR_VALUE_INVALID) {
+        HAL_LOG_ERROR("Invalid motor value: %d", value);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    HAL_LOG_INFO("H:%d -> M:%d", hour, value);
+
+    _hourMotorMap[hour] = value;
+
+    listHourMotorMap();
+
+    return KVDB_SET(_hourMotorMap);
+}
 
 void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 {
@@ -212,14 +235,36 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
             info->year, info->month, info->day, info->hour, info->minute, info->second, info->millisecond, curTimestamp);
     }
 
-    //    static int timeIndex = 0;
-    //    static const int timeTable[] = { 5, 7, 9, 12, 21, 0, 1, 4 };
-    //    if (timeIndex++ >= sizeof(timeTable) / sizeof(timeTable[0])) {
-    //        timeIndex = 0;
-    //    }
-    //    curTimestamp = getTimestamp(timeTable[timeIndex], 0, 0);
-
     int motorValue = 0;
+
+    // 42L6
+    // #define MOTOR_VALUE_5AM 690
+    // #define MOTOR_VALUE_7AM 520
+    // #define MOTOR_VALUE_9AM 300
+    // #define MOTOR_VALUE_12AM 0
+    // #define MOTOR_VALUE_9PM -310
+    // #define MOTOR_VALUE_12PM -490
+    // #define MOTOR_VALUE_1AM -540
+    // #define MOTOR_VALUE_5PM_DOWN -710
+
+    // 6L2
+    // #define MOTOR_VALUE_5AM 485
+    // #define MOTOR_VALUE_7AM 365
+    // #define MOTOR_VALUE_9AM 210
+    // #define MOTOR_VALUE_12AM 0
+    // #define MOTOR_VALUE_9PM -200
+    // #define MOTOR_VALUE_12PM -315
+    // #define MOTOR_VALUE_1AM -350
+    // #define MOTOR_VALUE_5PM_DOWN -470
+
+#define MOTOR_VALUE_5AM _hourMotorMap[5]
+#define MOTOR_VALUE_7AM _hourMotorMap[7]
+#define MOTOR_VALUE_9AM _hourMotorMap[9]
+#define MOTOR_VALUE_12AM _hourMotorMap[12]
+#define MOTOR_VALUE_9PM _hourMotorMap[21]
+#define MOTOR_VALUE_12PM _hourMotorMap[0]
+#define MOTOR_VALUE_1AM _hourMotorMap[1]
+#define MOTOR_VALUE_5PM_DOWN _hourMotorMap[24]
 
     if (curTimestamp >= getTimestamp(5, 0, 0) && curTimestamp < getTimestamp(7, 0, 0)) {
         motorValue = timestampMap(curTimestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
@@ -240,9 +285,28 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
     setMotorValue(motorValue);
 }
 
-void DP_Ctrl::setMotorValue(int value)
+int DP_Ctrl::setMotorValue(int value)
 {
-    _devMotor->write(&value, sizeof(value));
+    if (_enablePrint) {
+        HAL_LOG_INFO("value: %d", value);
+    }
+
+    if(value < MOTOR_VALUE_MIN || value > MOTOR_VALUE_MAX) {
+        HAL_LOG_ERROR("Invalid motor value: %d", value);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    return _devMotor->write(&value, sizeof(value)) == sizeof(value) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
+}
+
+void DP_Ctrl::listHourMotorMap()
+{
+    for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
+        if (_hourMotorMap[i] == MOTOR_VALUE_INVALID) {
+            continue;
+        }
+        HAL_LOG_INFO("H:%d -> M:%d", i, _hourMotorMap[i]);
+    }
 }
 
 uint32_t DP_Ctrl::getTimestamp(int hour, int minute, int second)

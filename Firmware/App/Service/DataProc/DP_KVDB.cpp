@@ -63,7 +63,7 @@ DP_KVDB::DP_KVDB(DataNode* node)
             auto ctx = (DP_KVDB*)n->getUserData();
             return ctx->onEvent(param);
         },
-        DataNode::EVENT_NOTIFY | DataNode::EVENT_NOTIFY | DataNode::EVENT_PUBLISH);
+        DataNode::EVENT_NOTIFY | DataNode::EVENT_PULL | DataNode::EVENT_PUBLISH);
 }
 
 int DP_KVDB::onEvent(DataNode::EventParam_t* param)
@@ -144,8 +144,14 @@ int DP_KVDB::onSet(KVDB_Info_t* info)
 
 int DP_KVDB::onGet(KVDB_Info_t* info)
 {
-    info->value = fdb_kv_get(&_kvdb, info->key);
-    return DataNode::RES_OK;
+    if (!info->value) {
+        info->value = fdb_kv_get(&_kvdb, info->key);
+        return (info->value != NULL) ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+    }
+
+    struct fdb_blob blob;
+    auto size = fdb_kv_get_blob(&_kvdb, info->key, fdb_blob_make(&blob, info->value, info->size));
+    return size == info->size ? DataNode::RES_OK : DataNode::RES_SIZE_MISMATCH;
 }
 
 DATA_PROC_DESCRIPTOR_DEF(KVDB)

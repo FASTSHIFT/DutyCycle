@@ -394,14 +394,14 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
     }
 
     const char* cmd = nullptr;
-    int hour = 0;
+    int hour = -1;
     int motorValue = 0;
 
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_STRING('c', "cmd", &cmd, "send ctrl command", nullptr, 0, 0),
-        OPT_INTEGER('h', "hour", &hour, "the hour to set", nullptr, 0, 0),
-        OPT_INTEGER('m', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
+        OPT_INTEGER('H', "hour", &hour, "the hour to set", nullptr, 0, 0),
+        OPT_INTEGER('M', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
         OPT_END(),
     };
 
