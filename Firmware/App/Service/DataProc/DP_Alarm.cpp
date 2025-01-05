@@ -362,7 +362,7 @@ int DP_Alarm::playAlarmMusic(int musicID)
 
     static constexpr Alarm_Music_t alarmMusics[] = {
         { seq_mtag, CM_ARRAY_SIZE(seq_mtag) },
-        { seq_mc_bgm, CM_ARRAY_SIZE(seq_mc_bgm), 50 },
+        { seq_mc_bgm, CM_ARRAY_SIZE(seq_mc_bgm), 40 },
         { seq_gta4_phone, CM_ARRAY_SIZE(seq_gta4_phone), 50 },
     };
 
