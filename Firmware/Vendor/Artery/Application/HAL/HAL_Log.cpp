@@ -28,7 +28,7 @@
 
 #define LOG_SERIAL CONFIG_LOG_SERIAL
 
-static uint8_t logLevel = HAL_LOG_LEVEL;
+static uint8_t logLevel = HAL_LOG_LEVEL_INFO;
 
 extern "C" {
 

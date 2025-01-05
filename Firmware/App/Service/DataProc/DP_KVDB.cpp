@@ -21,7 +21,8 @@
  * SOFTWARE.
  */
 #include "DataProc.h"
-#include "HAL/HAL.h"
+#include "Service/HAL/HAL.h"
+#include "Service/HAL/HAL_Log.h"
 #include "fal_cfg.h"
 #include "flashdb.h"
 
@@ -94,18 +95,21 @@ int DP_KVDB::onSet(KVDB_Info_t* info)
 
     switch (info->cmd) {
     case KVDB_CMD::GET:
-        onGet(info);
-        break;
+        return onGet(info);
+
     case KVDB_CMD::SET:
         err = fdb_kv_set(&_kvdb, info->key, (const char*)info->value);
         break;
+
     case KVDB_CMD::SET_BLOB: {
         struct fdb_blob blob;
         err = fdb_kv_set_blob(&_kvdb, info->key, fdb_blob_make(&blob, info->value, info->size));
     } break;
+
     case KVDB_CMD::DEL:
         err = fdb_kv_del(&_kvdb, info->key);
         break;
+
     case KVDB_CMD::LIST: {
         struct fdb_kv_iterator iterator;
         fdb_kv_t cur_kv;
@@ -128,11 +132,12 @@ int DP_KVDB::onSet(KVDB_Info_t* info)
             index++;
         }
     } break;
+
     case KVDB_CMD::SAVE:
-        _dev->ioctl(FLASH_IOCMD_SAVE);
-        break;
+        return _dev->ioctl(FLASH_IOCMD_SAVE) == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+
     default:
-        break;
+        return DataNode::RES_UNSUPPORTED_REQUEST;
     }
 
     if (err != FDB_NO_ERR) {
@@ -146,12 +151,22 @@ int DP_KVDB::onGet(KVDB_Info_t* info)
 {
     if (!info->value) {
         info->value = fdb_kv_get(&_kvdb, info->key);
-        return (info->value != NULL) ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+        if (!info->value) {
+            HAL_LOG_ERROR("key '%s' not found", info->key);
+            return DataNode::RES_NO_DATA;
+        }
+
+        return DataNode::RES_OK;
     }
 
     struct fdb_blob blob;
     auto size = fdb_kv_get_blob(&_kvdb, info->key, fdb_blob_make(&blob, info->value, info->size));
-    return size == info->size ? DataNode::RES_OK : DataNode::RES_SIZE_MISMATCH;
+    if (size != info->size) {
+        HAL_LOG_ERROR("key '%s' data size mismatch: size:%d != info->size:%d", info->key, size, info->size);
+        return DataNode::RES_NO_DATA;
+    }
+
+    return DataNode::RES_OK;
 }
 
 DATA_PROC_DESCRIPTOR_DEF(KVDB)

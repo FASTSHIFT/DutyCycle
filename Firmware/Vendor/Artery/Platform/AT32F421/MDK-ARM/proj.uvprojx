@@ -625,6 +625,11 @@
               <FileType>8</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\DP_KVDB.cpp</FilePath>
             </File>
+            <File>
+              <FileName>DP_Alarm.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Alarm.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -674,6 +679,26 @@
               <FileName>Shell.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\Def\Shell.h</FilePath>
+            </File>
+            <File>
+              <FileName>Alarm.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Def\Alarm.h</FilePath>
+            </File>
+            <File>
+              <FileName>Clock.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Def\Clock.h</FilePath>
+            </File>
+            <File>
+              <FileName>Ctrl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Def\Ctrl.h</FilePath>
+            </File>
+            <File>
+              <FileName>TimeMonitor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Def\TimeMonitor.h</FilePath>
             </File>
           </Files>
         </Group>

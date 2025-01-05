@@ -38,7 +38,7 @@
 /**
  * Defines the maximum number of commands that can be registered
  */
-#define CONFIG_SHELL_MAX_COMMANDS       8
+#define CONFIG_SHELL_MAX_COMMANDS       16
 #endif
 #if !defined(CONFIG_SHELL_MAX_INPUT)
 /**
@@ -50,7 +50,7 @@
 /**
  * Configures the maximum number of arguments per command that can be accepted
  */
-#define CONFIG_SHELL_MAX_COMMAND_ARGS       10
+#define CONFIG_SHELL_MAX_COMMAND_ARGS       16
 #endif
 
 #if !defined(CONFIG_SHELL_FMT_BUFFER)

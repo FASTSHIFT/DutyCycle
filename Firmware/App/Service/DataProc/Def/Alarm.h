@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2021 - 2024 _VIFEXTech
+ * Copyright (c) 2021 - 2025 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,20 +20,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __DATA_PROC_DEF_H
-#define __DATA_PROC_DEF_H
+#ifndef __DATA_PROC_ALARM_DEF_H
+#define __DATA_PROC_ALARM_DEF_H
 
-#include "Def/Alarm.h"
-#include "Def/Audio.h"
-#include "Def/Battery.h"
-#include "Def/Button.h"
-#include "Def/Clock.h"
-#include "Def/Ctrl.h"
-#include "Def/Global.h"
-#include "Def/KVDB.h"
-#include "Def/Power.h"
-#include "Def/Shell.h"
-#include "Def/TimeMonitor.h"
-#include "Def/Version.h"
+#include <stdint.h>
 
-#endif // __DATA_PROC_DEF_H
+namespace DataProc {
+
+enum class ALARM_CMD {
+    NONE,
+    SET,
+    SAVE,
+    LIST,
+    ENABLE_HOURLY_ALARM,
+    DISABLE_HOURLY_ALARM,
+    SET_HOURLY_ALARM_START,
+    SET_HOURLY_ALARM_END,
+    PLAY_ALARM_MUSIC,
+};
+
+typedef struct Alarm_Info {
+    Alarm_Info()
+        : cmd(ALARM_CMD::NONE)
+        , id(-1)
+        , hour(-1)
+        , minute(0)
+        , musicID(0)
+    {
+    }
+    ALARM_CMD cmd;
+    int id;
+    int hour;
+    int minute;
+    int musicID;
+} Alarm_Info_t;
+
+} // namespace DataProc
+
+#endif // __DATA_PROC_ALARM_DEF_H

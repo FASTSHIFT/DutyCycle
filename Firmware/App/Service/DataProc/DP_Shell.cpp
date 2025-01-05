@@ -162,6 +162,8 @@ private:
     static int cmdClock(int argc, const char** argv);
     static int cmdPower(int argc, const char** argv);
     static int cmdCtrl(int argc, const char** argv);
+    static int cmdAlarm(int argc, const char** argv);
+    static int cmdKVDB(int argc, const char** argv);
 };
 
 DataNode* DP_Shell::_node = nullptr;
@@ -209,6 +211,8 @@ DP_Shell::DP_Shell(DataNode* node)
     shell_register(cmdClock, "clock");
     shell_register(cmdPower, "power");
     shell_register(cmdCtrl, "ctrl");
+    shell_register(cmdAlarm, "alarm");
+    shell_register(cmdKVDB, "kvdb");
 }
 
 int DP_Shell::onEvent(DataNode::EventParam_t* param)
@@ -442,6 +446,97 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
     }
 
     if (!nodeCtrl.notify(&info)) {
+        return SHELL_RET_FAILURE;
+    }
+
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdAlarm(int argc, const char** argv)
+{
+    ShellNodeHelper<Alarm_Info_t, Alarm_Info_t> nodeAlarm("Alarm");
+    if (!nodeAlarm) {
+        return SHELL_RET_FAILURE;
+    }
+
+    const char* cmd = nullptr;
+    Alarm_Info_t info;
+
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_STRING('c', "cmd", &cmd, "send audio command", nullptr, 0, 0),
+        OPT_INTEGER('i', "ID", &info.id, "alarm ID", nullptr, 0, 0),
+        OPT_INTEGER('H', "hour", &info.hour, "hour", nullptr, 0, 0),
+        OPT_INTEGER('M', "minute", &info.minute, "minute", nullptr, 0, 0),
+        OPT_INTEGER('m', "music", &info.musicID, "music ID", nullptr, 0, 0),
+        OPT_END(),
+    };
+
+    if (!argparseHelper(argc, argv, options)) {
+        return SHELL_RET_FAILURE;
+    }
+
+    static constexpr CMD_PAIR<ALARM_CMD> cmd_map[] = {
+        CMD_PAIR_DEF(ALARM_CMD, SET),
+        CMD_PAIR_DEF(ALARM_CMD, SAVE),
+        CMD_PAIR_DEF(ALARM_CMD, LIST),
+        CMD_PAIR_DEF(ALARM_CMD, ENABLE_HOURLY_ALARM),
+        CMD_PAIR_DEF(ALARM_CMD, DISABLE_HOURLY_ALARM),
+        CMD_PAIR_DEF(ALARM_CMD, SET_HOURLY_ALARM_START),
+        CMD_PAIR_DEF(ALARM_CMD, SET_HOURLY_ALARM_END),
+        CMD_PAIR_DEF(ALARM_CMD, PLAY_ALARM_MUSIC),
+    };
+
+    static constexpr CmdMapHelper<ALARM_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
+
+    if (!cmdMap.get(cmd, &info.cmd)) {
+        return SHELL_RET_FAILURE;
+    }
+
+    if (!nodeAlarm.notify(&info)) {
+        return SHELL_RET_FAILURE;
+    }
+
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdKVDB(int argc, const char** argv)
+{
+    ShellNodeHelper<KVDB_Info_t, KVDB_Info_t> nodeKVDB("KVDB");
+    if (!nodeKVDB) {
+        return SHELL_RET_FAILURE;
+    }
+
+    const char* cmd = nullptr;
+    const char* key = nullptr;
+
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_STRING('c', "cmd", &cmd, "send KVDB command", nullptr, 0, 0),
+        OPT_STRING('k', "key", &key, "key of the value", nullptr, 0, 0),
+        OPT_END(),
+    };
+
+    if (!argparseHelper(argc, argv, options)) {
+        return SHELL_RET_FAILURE;
+    }
+
+    KVDB_Info_t info;
+    info.key = key;
+
+    static constexpr CMD_PAIR<KVDB_CMD> cmd_map[] = {
+        CMD_PAIR_DEF(KVDB_CMD, DEL),
+        CMD_PAIR_DEF(KVDB_CMD, LIST),
+        CMD_PAIR_DEF(KVDB_CMD, SAVE),
+    };
+
+    static constexpr CmdMapHelper<KVDB_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
+
+    if (!cmdMap.get(cmd, &info.cmd)) {
+        return SHELL_RET_FAILURE;
+    }
+
+    if (!nodeKVDB.notify(&info)) {
         return SHELL_RET_FAILURE;
     }
 
