@@ -36,7 +36,7 @@ static void Memory_DumpStackInfo()
 }
 #endif
 
-#if CONFIG_MEMORY_HEAP_INFO
+#if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB)
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -71,7 +71,7 @@ void HAL_MemoryDumpInfo()
     Memory_DumpStackInfo();
 #endif
 
-#if CONFIG_MEMORY_HEAP_INFO
+#if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB)
     Memory_DumpHeapInfo();
 #endif
 }

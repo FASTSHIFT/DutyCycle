@@ -44,7 +44,7 @@
 
 /* Memory */
 #define CONFIG_MEMORY_STACK_INFO  1 /* Reuqire MPU Disabled */
-#define CONFIG_MEMORY_HEAP_INFO   0
+#define CONFIG_MEMORY_HEAP_INFO   1
 
 /* WatchDog */
 #define CONFIG_WATCHDOG_TIMEOUT   0 /* seconds */
