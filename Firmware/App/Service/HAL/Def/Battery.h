@@ -39,7 +39,8 @@ typedef struct
     bool isCharging;
 } Battery_Info_t;
 
-#define BATTERY_IOCMD_SLEEP     DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 0, 0)
+#define BATTERY_IOCMD_WAKEUP    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 0, 0)
+#define BATTERY_IOCMD_SLEEP     DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
 
 /* clang-format on */
 

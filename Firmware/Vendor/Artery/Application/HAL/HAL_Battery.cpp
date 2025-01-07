@@ -22,6 +22,7 @@
  */
 #include "HAL.h"
 
+#define BATTERY_ADC_REF_VOLTAGE 2800
 #define BATTERY_FULL_VOLTAGE 4100 /* mv */
 #define BATTERY_LOW_VOLTAGE 3100 /* mv */
 
@@ -38,15 +39,23 @@ private:
     virtual int onInit();
     virtual int onRead(void* buffer, size_t size);
     virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
+
+    void adcInit();
+    void adcDeinit();
+    uint16_t adcRead();
 };
 
 int Battery::onInit()
 {
     pinMode(CONFIG_BATT_DET_PIN, INPUT_ANALOG);
 
+    adcInit();
+
     Battery_Info_t info;
     onRead(&info, sizeof(info));
     HAL_LOG_INFO("voltage: %dmV, level: %d%%", info.voltage, info.level);
+
+    adcDeinit();
 
     return DeviceObject::RES_OK;
 }
@@ -57,7 +66,7 @@ int Battery::onRead(void* buffer, size_t size)
         return DeviceObject::RES_PARAM_ERROR;
     }
 
-    uint16_t voltage = analogRead(CONFIG_BATT_DET_PIN) * 2 * 1000 / 4095;
+    uint16_t voltage = (analogRead(CONFIG_BATT_DET_PIN) * BATTERY_ADC_REF_VOLTAGE / 4095) * 2;
 
     auto info = (Battery_Info_t*)buffer;
     info->voltage = voltage;
@@ -72,12 +81,27 @@ int Battery::onRead(void* buffer, size_t size)
 int Battery::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
 {
     switch (cmd.full) {
+    case BATTERY_IOCMD_WAKEUP:
+        adcInit();
+        break;
     case BATTERY_IOCMD_SLEEP:
+        adcDeinit();
         break;
     default:
         return DeviceObject::RES_UNSUPPORT;
     }
     return DeviceObject::RES_OK;
+}
+
+void Battery::adcInit()
+{
+    ADCx_Init(ADC1);
+}
+
+void Battery::adcDeinit()
+{
+    adc_enable(ADC1, FALSE);
+    crm_periph_clock_enable(CRM_ADC1_PERIPH_CLOCK, FALSE);
 }
 
 } /* namespace HAL */
