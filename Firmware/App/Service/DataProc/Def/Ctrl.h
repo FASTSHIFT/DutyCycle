@@ -33,6 +33,7 @@ enum class CTRL_CMD {
     ENABLE_CLOCK_MAP,
     SET_MOTOR_VALUE,
     SET_CLOCK_MAP,
+    SHOW_BATTERY_USAGE,
 };
 
 typedef struct Ctrl_Info {

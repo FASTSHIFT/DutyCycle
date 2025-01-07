@@ -39,16 +39,25 @@ public:
     DP_Ctrl(DataNode* node);
 
 private:
+    enum class DISPLAY_STATE {
+        CLOCK_MAP,
+        SWEEP_TEST,
+        MOTOR_SET,
+        BATTERY_USAGE,
+    };
+
 private:
     DataNode* _node;
     const DataNode* _nodeClock;
     const DataNode* _nodeGlobal;
+    const DataNode* _nodeButton;
     KVDB_Helper _kvdb;
     DeviceObject* _devMotor;
+    DeviceObject* _devBattery;
 
     int16_t _hourMotorMap[25];
 
-    bool _enableClockMap;
+    DISPLAY_STATE _displayState;
     int _sweepValue;
 
 private:
@@ -57,15 +66,16 @@ private:
     void onTimer();
     void onClockEvent(const HAL::Clock_Info_t* info);
     void onGlobalEvent(const Global_Info_t* info);
+    void onButtonEvent(const Button_Info_t* info);
     int setClockMap(int hour, int value);
     int setMotorValue(int value);
     void listHourMotorMap();
+    void sweepTest();
+    void showBatteryUsage();
 
-    uint32_t getTimestamp(int hour, int minute, int second);
-    inline uint32_t getTimestamp(int hour)
-    {
-        return getTimestamp(hour, 0, 0);
-    }
+    int timestampToMotorValue(uint32_t timestamp);
+
+    uint32_t getTimestamp(int hour, int minute = 0, int second = 0);
     int32_t timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, int32_t min_out, int32_t max_out);
     int32_t valueMap(int32_t x, int32_t max_in, int32_t min_in, int32_t min_out, int32_t max_out);
 };
@@ -73,7 +83,7 @@ private:
 DP_Ctrl::DP_Ctrl(DataNode* node)
     : _node(node)
     , _kvdb(node)
-    , _enableClockMap(true)
+    , _displayState(DISPLAY_STATE::CLOCK_MAP)
 {
     for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
         _hourMotorMap[i] = MOTOR_VALUE_INVALID;
@@ -84,12 +94,15 @@ DP_Ctrl::DP_Ctrl(DataNode* node)
         return;
     }
 
+    _devBattery = HAL::Manager()->getDevice("Battery");
+
     _nodeClock = _node->subscribe("Clock");
     if (!_nodeClock) {
         return;
     }
 
     _nodeGlobal = _node->subscribe("Global");
+    _nodeButton = _node->subscribe("Button");
 
     _node->setEventCallback(
         [](DataNode* n, DataNode::EventParam_t* param) -> int {
@@ -108,6 +121,8 @@ int DP_Ctrl::onEvent(DataNode::EventParam_t* param)
             onGlobalEvent((const Global_Info_t*)param->data_p);
         } else if (param->tran == _nodeClock) {
             onClockEvent((const HAL::Clock_Info_t*)param->data_p);
+        } else if (param->tran == _nodeButton) {
+            onButtonEvent((const Button_Info_t*)param->data_p);
         }
         break;
 
@@ -132,21 +147,24 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 {
     switch (info->cmd) {
     case CTRL_CMD::SWEEP_TEST:
-        _enableClockMap = false;
-        _sweepValue = 0;
-        _node->startTimer(100);
+        sweepTest();
         break;
 
     case CTRL_CMD::SET_MOTOR_VALUE:
-        _enableClockMap = false;
+        _displayState = DISPLAY_STATE::MOTOR_SET;
         return setMotorValue(info->motorValue);
 
     case CTRL_CMD::SET_CLOCK_MAP:
         return setClockMap(info->hour, info->motorValue);
 
     case CTRL_CMD::ENABLE_CLOCK_MAP:
-        _enableClockMap = true;
+        _displayState = DISPLAY_STATE::CLOCK_MAP;
         break;
+
+    case CTRL_CMD::SHOW_BATTERY_USAGE:
+        showBatteryUsage();
+        break;
+
     default:
         return DataNode::RES_UNSUPPORTED_REQUEST;
     }
@@ -156,6 +174,12 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 
 void DP_Ctrl::onTimer()
 {
+    if (_displayState != DISPLAY_STATE::SWEEP_TEST) {
+        HAL_LOG_WARN("Sweep test interrupted");
+        _node->stopTimer();
+        return;
+    }
+
     int motorValue = 0;
 
     if (_sweepValue < MOTOR_VALUE_MAX) {
@@ -207,7 +231,7 @@ int DP_Ctrl::setClockMap(int hour, int value)
 
 void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 {
-    if (!_enableClockMap) {
+    if (_displayState != DISPLAY_STATE::CLOCK_MAP) {
         return;
     }
 
@@ -216,6 +240,97 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
     HAL_LOG_TRACE("Current times: %04d-%02d-%02d %02d:%02d:%02d.%03d, timestamp: %d",
         info->year, info->month, info->day, info->hour, info->minute, info->second, info->millisecond, curTimestamp);
 
+    setMotorValue(timestampToMotorValue(curTimestamp));
+}
+
+void DP_Ctrl::onButtonEvent(const Button_Info_t* info)
+{
+    switch (info->event) {
+    case BUTTON_EVENT::PRESSED:
+        showBatteryUsage();
+        break;
+
+    case BUTTON_EVENT::RELEASED:
+        _displayState = DISPLAY_STATE::CLOCK_MAP;
+        break;
+
+    default:
+        break;
+    }
+}
+
+int DP_Ctrl::setMotorValue(int value)
+{
+    HAL_LOG_TRACE("value: %d", value);
+
+    if (value < MOTOR_VALUE_MIN || value > MOTOR_VALUE_MAX) {
+        HAL_LOG_ERROR("Invalid motor value: %d", value);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    return _devMotor->write(&value, sizeof(value)) == sizeof(value) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
+}
+
+void DP_Ctrl::listHourMotorMap()
+{
+    for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
+        if (_hourMotorMap[i] == MOTOR_VALUE_INVALID) {
+            continue;
+        }
+        HAL_LOG_INFO("H:%d -> M:%d", i, _hourMotorMap[i]);
+    }
+}
+
+void DP_Ctrl::sweepTest()
+{
+    _displayState = DISPLAY_STATE::SWEEP_TEST;
+    _sweepValue = 0;
+    _node->startTimer(100);
+}
+
+void DP_Ctrl::showBatteryUsage()
+{
+    if (!_devBattery) {
+        HAL_LOG_WARN("No battery device found");
+        return;
+    }
+
+    _displayState = DISPLAY_STATE::BATTERY_USAGE;
+
+    if (_devBattery->ioctl(BATTERY_IOCMD_WAKEUP) != DeviceObject::RES_OK) {
+        HAL_LOG_ERROR("Failed to wakeup battery device");
+        return;
+    }
+
+    HAL::Battery_Info_t info;
+    if (_devBattery->read(&info, sizeof(info)) == sizeof(info)) {
+        HAL_LOG_INFO("voltage: %dmV, level: %d%%", info.voltage, info.level);
+
+        auto timestamp_0_0_0 = getTimestamp(0, 0, 0);
+        auto timestamp_5_0_0 = getTimestamp(5, 0, 0);
+        auto timestamp_23_59_59 = getTimestamp(23, 59, 59);
+
+        uint32_t timestamp = 0;
+        static const uint32_t demarcationPct = timestamp_5_0_0 * 100 / timestamp_23_59_59;
+
+        if (info.level >= demarcationPct) {
+            timestamp = valueMap(info.level, 100, demarcationPct, timestamp_5_0_0, timestamp_23_59_59);
+        } else {
+            timestamp = valueMap(info.level, demarcationPct, 0, timestamp_0_0_0, timestamp_5_0_0);
+        }
+
+        setMotorValue(timestampToMotorValue(timestamp));
+
+    } else {
+        HAL_LOG_ERROR("Failed to read battery info");
+        return;
+    }
+
+    _devBattery->ioctl(BATTERY_IOCMD_SLEEP);
+}
+
+int DP_Ctrl::timestampToMotorValue(uint32_t timestamp)
+{
     int motorValue = 0;
 
     // 42L6
@@ -247,45 +362,23 @@ void DP_Ctrl::onClockEvent(const HAL::Clock_Info_t* info)
 #define MOTOR_VALUE_1AM _hourMotorMap[1]
 #define MOTOR_VALUE_5PM_DOWN _hourMotorMap[24]
 
-    if (curTimestamp >= getTimestamp(5, 0, 0) && curTimestamp < getTimestamp(7, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
-    } else if (curTimestamp >= getTimestamp(7, 0, 0) && curTimestamp < getTimestamp(9, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 7, 9, MOTOR_VALUE_7AM, MOTOR_VALUE_9AM);
-    } else if (curTimestamp >= getTimestamp(9, 0, 0) && curTimestamp < getTimestamp(12, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 9, 12, MOTOR_VALUE_9AM, MOTOR_VALUE_12AM);
-    } else if (curTimestamp >= getTimestamp(12, 0, 0) && curTimestamp < getTimestamp(21, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 12, 21, MOTOR_VALUE_12AM, MOTOR_VALUE_9PM);
-    } else if (curTimestamp >= getTimestamp(21, 0, 0) && curTimestamp < getTimestamp(24, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 21, 24, MOTOR_VALUE_9PM, MOTOR_VALUE_12PM);
-    } else if (curTimestamp >= getTimestamp(0, 0, 0) && curTimestamp < getTimestamp(1, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 0, 1, MOTOR_VALUE_12PM, MOTOR_VALUE_1AM);
-    } else if (curTimestamp >= getTimestamp(1, 0, 0) && curTimestamp < getTimestamp(5, 0, 0)) {
-        motorValue = timestampMap(curTimestamp, 1, 5, MOTOR_VALUE_1AM, MOTOR_VALUE_5PM_DOWN);
+    if (timestamp >= getTimestamp(5, 0, 0) && timestamp < getTimestamp(7, 0, 0)) {
+        motorValue = timestampMap(timestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
+    } else if (timestamp >= getTimestamp(7, 0, 0) && timestamp < getTimestamp(9, 0, 0)) {
+        motorValue = timestampMap(timestamp, 7, 9, MOTOR_VALUE_7AM, MOTOR_VALUE_9AM);
+    } else if (timestamp >= getTimestamp(9, 0, 0) && timestamp < getTimestamp(12, 0, 0)) {
+        motorValue = timestampMap(timestamp, 9, 12, MOTOR_VALUE_9AM, MOTOR_VALUE_12AM);
+    } else if (timestamp >= getTimestamp(12, 0, 0) && timestamp < getTimestamp(21, 0, 0)) {
+        motorValue = timestampMap(timestamp, 12, 21, MOTOR_VALUE_12AM, MOTOR_VALUE_9PM);
+    } else if (timestamp >= getTimestamp(21, 0, 0) && timestamp < getTimestamp(24, 0, 0)) {
+        motorValue = timestampMap(timestamp, 21, 24, MOTOR_VALUE_9PM, MOTOR_VALUE_12PM);
+    } else if (timestamp >= getTimestamp(0, 0, 0) && timestamp < getTimestamp(1, 0, 0)) {
+        motorValue = timestampMap(timestamp, 0, 1, MOTOR_VALUE_12PM, MOTOR_VALUE_1AM);
+    } else if (timestamp >= getTimestamp(1, 0, 0) && timestamp < getTimestamp(5, 0, 0)) {
+        motorValue = timestampMap(timestamp, 1, 5, MOTOR_VALUE_1AM, MOTOR_VALUE_5PM_DOWN);
     }
 
-    setMotorValue(motorValue);
-}
-
-int DP_Ctrl::setMotorValue(int value)
-{
-    HAL_LOG_TRACE("value: %d", value);
-
-    if (value < MOTOR_VALUE_MIN || value > MOTOR_VALUE_MAX) {
-        HAL_LOG_ERROR("Invalid motor value: %d", value);
-        return DataNode::RES_PARAM_ERROR;
-    }
-
-    return _devMotor->write(&value, sizeof(value)) == sizeof(value) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
-}
-
-void DP_Ctrl::listHourMotorMap()
-{
-    for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
-        if (_hourMotorMap[i] == MOTOR_VALUE_INVALID) {
-            continue;
-        }
-        HAL_LOG_INFO("H:%d -> M:%d", i, _hourMotorMap[i]);
-    }
+    return motorValue;
 }
 
 uint32_t DP_Ctrl::getTimestamp(int hour, int minute, int second)

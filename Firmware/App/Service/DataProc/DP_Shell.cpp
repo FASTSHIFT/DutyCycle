@@ -434,6 +434,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         CMD_PAIR_DEF(CTRL_CMD, ENABLE_CLOCK_MAP),
         CMD_PAIR_DEF(CTRL_CMD, SET_MOTOR_VALUE),
         CMD_PAIR_DEF(CTRL_CMD, SET_CLOCK_MAP),
+        CMD_PAIR_DEF(CTRL_CMD, SHOW_BATTERY_USAGE),
     };
 
     static constexpr CmdMapHelper<CTRL_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
