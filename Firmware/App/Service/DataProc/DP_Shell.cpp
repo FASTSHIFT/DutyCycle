@@ -464,7 +464,7 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
 
     struct argparse_option options[] = {
         OPT_HELP(),
-        OPT_STRING('c', "cmd", &cmd, "send audio command", nullptr, 0, 0),
+        OPT_STRING('c', "cmd", &cmd, "send alarm command", nullptr, 0, 0),
         OPT_INTEGER('i', "ID", &info.id, "alarm ID", nullptr, 0, 0),
         OPT_INTEGER('H', "hour", &info.hour, "hour", nullptr, 0, 0),
         OPT_INTEGER('M', "minute", &info.minute, "minute", nullptr, 0, 0),
