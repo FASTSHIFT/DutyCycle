@@ -461,6 +461,7 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
     }
 
     const char* cmd = nullptr;
+    const char* filter_str = nullptr;
     Alarm_Info_t info;
 
     struct argparse_option options[] = {
@@ -470,6 +471,7 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
         OPT_INTEGER('H', "hour", &info.hour, "hour", nullptr, 0, 0),
         OPT_INTEGER('M', "minute", &info.minute, "minute", nullptr, 0, 0),
         OPT_INTEGER('m', "music", &info.musicID, "music ID", nullptr, 0, 0),
+        OPT_STRING('f', "filter", &filter_str, "hourly alarm filter, e.g. 1,2,3,4", nullptr, 0, 0),
         OPT_END(),
     };
 
@@ -481,14 +483,30 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
         CMD_PAIR_DEF(ALARM_CMD, SET),
         CMD_PAIR_DEF(ALARM_CMD, SAVE),
         CMD_PAIR_DEF(ALARM_CMD, LIST),
-        CMD_PAIR_DEF(ALARM_CMD, ENABLE_HOURLY_ALARM),
-        CMD_PAIR_DEF(ALARM_CMD, DISABLE_HOURLY_ALARM),
-        CMD_PAIR_DEF(ALARM_CMD, SET_HOURLY_ALARM_START),
-        CMD_PAIR_DEF(ALARM_CMD, SET_HOURLY_ALARM_END),
+        CMD_PAIR_DEF(ALARM_CMD, SET_FILTER),
         CMD_PAIR_DEF(ALARM_CMD, PLAY_ALARM_MUSIC),
     };
 
     static constexpr CmdMapHelper<ALARM_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
+
+    if (filter_str) {
+        char buf[64] = { 0 };
+        strncpy(buf, filter_str, sizeof(buf) - 1);
+
+        char* token = strtok(buf, ",");
+        while (token) {
+            int hour = atoi(token);
+            shell_printf("add hour: %d to filter\r\n", hour);
+            if (hour < 0 || hour > 24) {
+                shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid hourly alarm filter");
+                return SHELL_RET_FAILURE;
+            }
+
+            info.filter |= 1 << hour;
+
+            token = strtok(nullptr, ",");
+        }
+    }
 
     if (!cmdMap.get(cmd, &info.cmd)) {
         return SHELL_RET_FAILURE;

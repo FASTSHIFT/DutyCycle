@@ -32,10 +32,7 @@ enum class ALARM_CMD {
     SET,
     SAVE,
     LIST,
-    ENABLE_HOURLY_ALARM,
-    DISABLE_HOURLY_ALARM,
-    SET_HOURLY_ALARM_START,
-    SET_HOURLY_ALARM_END,
+    SET_FILTER,
     PLAY_ALARM_MUSIC,
 };
 
@@ -46,6 +43,7 @@ typedef struct Alarm_Info {
         , hour(-1)
         , minute(0)
         , musicID(0)
+        , filter(0)
     {
     }
     ALARM_CMD cmd;
@@ -53,6 +51,7 @@ typedef struct Alarm_Info {
     int hour;
     int minute;
     int musicID;
+    uint32_t filter;
 } Alarm_Info_t;
 
 } // namespace DataProc

@@ -51,17 +51,10 @@ private:
 
     typedef struct Alarm_Param {
         Alarm_Param()
+            : hourlyAlarmFilter(0xFFFFFFFF)
         {
-            hourlyAlarm.enable = true;
-            hourlyAlarm.start = -1;
-            hourlyAlarm.end = -1;
         }
-        struct {
-            bool enable;
-            int8_t start;
-            int8_t end;
-        } hourlyAlarm;
-
+        uint32_t hourlyAlarmFilter;
         Alarm_Item_t alarms[4];
     } Alarm_Param_t;
 
@@ -172,8 +165,7 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
         _alarmParam.alarms[info->id].hour = info->hour;
         _alarmParam.alarms[info->id].minute = info->minute;
         _alarmParam.alarms[info->id].musicID = info->musicID;
-        return playAlarmMusic(info->musicID);
-    }
+    } break;
 
     case ALARM_CMD::SAVE:
         return KVDB_SET(_alarmParam);
@@ -182,30 +174,9 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
         listAlarms();
         break;
 
-    case ALARM_CMD::ENABLE_HOURLY_ALARM:
-        _alarmParam.hourlyAlarm.enable = true;
-        break;
-
-    case ALARM_CMD::DISABLE_HOURLY_ALARM:
-        _alarmParam.hourlyAlarm.enable = false;
-        break;
-
-    case ALARM_CMD::SET_HOURLY_ALARM_START:
-        if (!HOUR_IS_VALID(info->hour)) {
-            HAL_LOG_ERROR("Invalid start hour: %d", info->hour);
-            return DataNode::RES_PARAM_ERROR;
-        }
-
-        _alarmParam.hourlyAlarm.start = info->hour;
-        break;
-
-    case ALARM_CMD::SET_HOURLY_ALARM_END:
-        if (!HOUR_IS_VALID(info->hour)) {
-            HAL_LOG_ERROR("Invalid end hour: %d", info->hour);
-            return DataNode::RES_PARAM_ERROR;
-        }
-
-        _alarmParam.hourlyAlarm.end = info->hour;
+    case ALARM_CMD::SET_FILTER:
+        _alarmParam.hourlyAlarmFilter = info->filter;
+        HAL_LOG_INFO("Set hourly alarm filter: 0x%08X", _alarmParam.hourlyAlarmFilter);
         break;
 
     case ALARM_CMD::PLAY_ALARM_MUSIC:
@@ -228,31 +199,10 @@ void DP_Alarm::onGlobalEvent(const Global_Info_t* info)
 
 void DP_Alarm::onHourChanged(int hour)
 {
-    if (!_alarmParam.hourlyAlarm.enable) {
-        HAL_LOG_WARN("Hourly alarm was disabled");
-        return;
-    }
-
     /* Apply hourly alarm filter */
-    if (_alarmParam.hourlyAlarm.start >= 0 && _alarmParam.hourlyAlarm.end >= 0) {
-        bool filterMatch = false;
-        HAL_LOG_INFO("Hourly alarm filter: %d ~ %d", _alarmParam.hourlyAlarm.start, _alarmParam.hourlyAlarm.end);
-        if (_alarmParam.hourlyAlarm.start <= _alarmParam.hourlyAlarm.end) {
-            if (hour >= _alarmParam.hourlyAlarm.start && hour <= _alarmParam.hourlyAlarm.end) {
-                filterMatch = true;
-            }
-        } else {
-            if (hour >= _alarmParam.hourlyAlarm.start && hour <= 23) {
-                filterMatch = true;
-            } else if (hour >= 0 && hour <= _alarmParam.hourlyAlarm.end) {
-                filterMatch = true;
-            }
-        }
-
-        if (!filterMatch) {
-            HAL_LOG_WARN("hour: %d is not in filter range, skip", hour);
-            return;
-        }
+    if (!(_alarmParam.hourlyAlarmFilter & (1 << hour))) {
+        HAL_LOG_WARN("hour: %d is not in filter: 0x%08X, skip", hour, _alarmParam.hourlyAlarmFilter);
+        return;
     }
 
     static const uint16_t hourMap[] = {
@@ -376,8 +326,7 @@ int DP_Alarm::playAlarmMusic(int musicID)
 
 void DP_Alarm::listAlarms()
 {
-    HAL_LOG_INFO("Hourly alarm: %s", _alarmParam.hourlyAlarm.enable ? "Enabled" : "Disabled");
-    HAL_LOG_INFO("Hourly alarm filter: %d ~ %d", _alarmParam.hourlyAlarm.start, _alarmParam.hourlyAlarm.end);
+    HAL_LOG_INFO("Hourly alarm filter: 0x%08X", _alarmParam.hourlyAlarmFilter);
     for (int i = 0; i < CM_ARRAY_SIZE(_alarmParam.alarms); i++) {
         if (_alarmParam.alarms[i].hour < 0) {
             continue;
