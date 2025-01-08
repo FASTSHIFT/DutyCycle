@@ -49,7 +49,10 @@ private:
         T cmd;
         const char* name;
     };
-#define CMD_PAIR_DEF(CMD_TYPE, CMD) { CMD_TYPE::CMD, #CMD }
+#define CMD_PAIR_DEF(CMD_TYPE, CMD) \
+    {                               \
+        CMD_TYPE::CMD, #CMD         \
+    }
 
     template <typename T>
     class CmdMapHelper {
@@ -157,6 +160,7 @@ private:
 
     static int cmdHelp(int argc, const char** argv);
     static int cmdLogLevel(int argc, const char** argv);
+    static int cmdPs(int argc, const char** argv);
 
     static int cmdPublich(int argc, const char** argv);
     static int cmdClock(int argc, const char** argv);
@@ -206,6 +210,7 @@ DP_Shell::DP_Shell(DataNode* node)
 
     shell_register(cmdHelp, "help");
     shell_register(cmdLogLevel, "loglevel");
+    shell_register(cmdPs, "ps");
 
     shell_register(cmdPublich, "publish");
     shell_register(cmdClock, "clock");
@@ -264,6 +269,13 @@ int DP_Shell::cmdLogLevel(int argc, const char** argv)
     }
 
     HAL_Log_SetLevel(atoi(argv[1]));
+    return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdPs(int argc, const char** argv)
+{
+    extern void HAL_MemoryDumpInfo();
+    HAL_MemoryDumpInfo();
     return SHELL_RET_SUCCESS;
 }
 
