@@ -62,25 +62,25 @@ void HAL_Log(uint8_t level, const char* func, const char* fmt, ...)
         "TRACE", "INFO", "WARN", "ERROR"
     };
 
-    char buffer[256];
+    char buffer[128];
 
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(buffer, sizeof(buffer), fmt, ap);
     va_end(ap);
 
-    HAL_Log_Printf("[%" PRIu32 "][%s] %s: %s\r\n", HAL::GetTick(), prompt[level], func, buffer);
+    LOG_SERIAL.printf("[%s] %s: %s\r\n", prompt[level], func, buffer);
 }
 
 void HAL_Log_Printf(const char* fmt, ...)
 {
-    char buffer[256];
+    char buffer[128];
 
     va_list ap;
     va_start(ap, fmt);
     vsnprintf(buffer, sizeof(buffer), fmt, ap);
     va_end(ap);
 
-    LOG_SERIAL.printf("%s", buffer);
+    HAL_Log_PrintString(buffer);
 }
 } /* extern "C" */
