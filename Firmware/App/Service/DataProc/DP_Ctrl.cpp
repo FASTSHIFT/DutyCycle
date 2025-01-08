@@ -56,9 +56,10 @@ private:
     DeviceObject* _devBattery;
 
     int16_t _hourMotorMap[25];
+    int16_t _motorValueTarget;
+    int8_t _sweepValueIndex;
 
     DISPLAY_STATE _displayState;
-    int _sweepValue;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
@@ -68,7 +69,11 @@ private:
     void onGlobalEvent(const Global_Info_t* info);
     void onButtonEvent(const Button_Info_t* info);
     int setClockMap(int hour, int value);
-    int setMotorValue(int value);
+    void setMotorValue(int value, bool immediate = true);
+    int getMotorValueRaw();
+    int setMotorValueRaw(int value);
+    void onMotorFinished();
+
     void listHourMotorMap();
     void sweepTest();
     void showBatteryUsage();
@@ -83,6 +88,8 @@ private:
 DP_Ctrl::DP_Ctrl(DataNode* node)
     : _node(node)
     , _kvdb(node)
+    , _motorValueTarget(0)
+    , _sweepValueIndex(0)
     , _displayState(DISPLAY_STATE::CLOCK_MAP)
 {
     for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
@@ -152,7 +159,8 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 
     case CTRL_CMD::SET_MOTOR_VALUE:
         _displayState = DISPLAY_STATE::MOTOR_SET;
-        return setMotorValue(info->motorValue);
+        setMotorValue(info->motorValue);
+        break;
 
     case CTRL_CMD::SET_CLOCK_MAP:
         return setClockMap(info->hour, info->motorValue);
@@ -174,30 +182,26 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 
 void DP_Ctrl::onTimer()
 {
-    if (_displayState != DISPLAY_STATE::SWEEP_TEST) {
-        HAL_LOG_WARN("Sweep test interrupted");
+#define ABS(x) ((x) < 0 ? -(x) : (x))
+    const int curMotorValue = getMotorValueRaw();
+    int step = _motorValueTarget - curMotorValue;
+    if (step == 0) {
         _node->stopTimer();
+        onMotorFinished();
+        HAL_LOG_INFO("Motor value reached: %d", curMotorValue);
         return;
     }
 
-    int motorValue = 0;
-
-    if (_sweepValue < MOTOR_VALUE_MAX) {
-        motorValue = _sweepValue;
-    } else if (_sweepValue < MOTOR_VALUE_MAX * 2) {
-        motorValue = valueMap(_sweepValue, MOTOR_VALUE_MAX, MOTOR_VALUE_MAX * 2, MOTOR_VALUE_MAX, 0);
-    } else if (_sweepValue < MOTOR_VALUE_MAX * 3) {
-        motorValue = valueMap(_sweepValue, MOTOR_VALUE_MAX * 2, MOTOR_VALUE_MAX * 3, 0, MOTOR_VALUE_MIN);
-    } else if (_sweepValue < MOTOR_VALUE_MAX * 4) {
-        motorValue = valueMap(_sweepValue, MOTOR_VALUE_MAX * 3, MOTOR_VALUE_MAX * 4, MOTOR_VALUE_MIN, 0);
-    } else {
-        HAL_LOG_INFO("Sweep test finished");
-        _node->stopTimer();
+    /* limit motor step */
+    if (step > 10) {
+        step = 10;
+    } else if (step < -10) {
+        step = -10;
     }
 
-    setMotorValue(motorValue);
+    HAL_LOG_TRACE("step: %d", step);
 
-    _sweepValue += (MOTOR_VALUE_MAX / 100);
+    setMotorValueRaw(curMotorValue + step);
 }
 
 void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
@@ -259,7 +263,28 @@ void DP_Ctrl::onButtonEvent(const Button_Info_t* info)
     }
 }
 
-int DP_Ctrl::setMotorValue(int value)
+void DP_Ctrl::setMotorValue(int value, bool immediate)
+{
+    if (immediate && value == getMotorValueRaw()) {
+        return;
+    }
+
+    _motorValueTarget = value;
+    _node->startTimer(30);
+    return;
+}
+
+int DP_Ctrl::getMotorValueRaw()
+{
+    int currentValue = 0;
+    if (_devMotor->read(&currentValue, sizeof(currentValue)) != sizeof(currentValue)) {
+        return 0;
+    }
+
+    return currentValue;
+}
+
+int DP_Ctrl::setMotorValueRaw(int value)
 {
     HAL_LOG_TRACE("value: %d", value);
 
@@ -269,6 +294,28 @@ int DP_Ctrl::setMotorValue(int value)
     }
 
     return _devMotor->write(&value, sizeof(value)) == sizeof(value) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
+}
+
+void DP_Ctrl::onMotorFinished()
+{
+    if (_displayState != DISPLAY_STATE::SWEEP_TEST) {
+        return;
+    }
+
+    static const int16_t testValues[] = {
+        0,
+        MOTOR_VALUE_MAX,
+        MOTOR_VALUE_MIN,
+        0,
+    };
+
+    if (_sweepValueIndex >= CM_ARRAY_SIZE(testValues)) {
+        HAL_LOG_INFO("Sweep test finished");
+        return;
+    }
+
+    setMotorValue(testValues[_sweepValueIndex], false);
+    _sweepValueIndex++;
 }
 
 void DP_Ctrl::listHourMotorMap()
@@ -284,8 +331,8 @@ void DP_Ctrl::listHourMotorMap()
 void DP_Ctrl::sweepTest()
 {
     _displayState = DISPLAY_STATE::SWEEP_TEST;
-    _sweepValue = 0;
-    _node->startTimer(100);
+    _sweepValueIndex = 0;
+    setMotorValue(0, false);
 }
 
 void DP_Ctrl::showBatteryUsage()
