@@ -428,12 +428,14 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
     const char* cmd = nullptr;
     int hour = -1;
     int motorValue = 0;
+    int mode = 0;
 
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_STRING('c', "cmd", &cmd, "send ctrl command", nullptr, 0, 0),
         OPT_INTEGER('H', "hour", &hour, "the hour to set", nullptr, 0, 0),
         OPT_INTEGER('M', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
+        OPT_INTEGER(0, "mode", &mode, "display mode, 0: cos-phi, 1: linear", nullptr, 0, 0),
         OPT_END(),
     };
 
@@ -446,12 +448,28 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         CMD_PAIR_DEF(CTRL_CMD, ENABLE_CLOCK_MAP),
         CMD_PAIR_DEF(CTRL_CMD, SET_MOTOR_VALUE),
         CMD_PAIR_DEF(CTRL_CMD, SET_CLOCK_MAP),
+        CMD_PAIR_DEF(CTRL_CMD, SET_MODE),
         CMD_PAIR_DEF(CTRL_CMD, SHOW_BATTERY_USAGE),
     };
 
     static constexpr CmdMapHelper<CTRL_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
 
     Ctrl_Info_t info;
+
+    switch (mode) {
+    case 0:
+        info.displayMode = CTRL_DISPLAY_MODE::COS_PHI;
+        break;
+
+    case 1:
+        info.displayMode = CTRL_DISPLAY_MODE::LINEAR;
+        break;
+
+    default:
+        shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid display mode");
+        return SHELL_RET_FAILURE;
+    }
+
     info.hour = hour;
     info.motorValue = motorValue;
     if (!cmdMap.get(cmd, &info.cmd)) {

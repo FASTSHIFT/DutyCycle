@@ -32,6 +32,61 @@
 #define MOTOR_VALUE_MAX 1000
 #define MOTOR_VALUE_INVALID -32768
 
+// 42L6-cos-phi
+// #define MOTOR_VALUE_H5 690
+// #define MOTOR_VALUE_H7 520
+// #define MOTOR_VALUE_H9 300
+// #define MOTOR_VALUE_H12 0
+// #define MOTOR_VALUE_H21 -310
+// #define MOTOR_VALUE_H0 -490
+// #define MOTOR_VALUE_H1 -540
+// #define MOTOR_VALUE_H5_DOWN -710
+
+// 6L2-cos-phi
+// #define MOTOR_VALUE_H5 485
+// #define MOTOR_VALUE_H7 365
+// #define MOTOR_VALUE_H9 210
+// #define MOTOR_VALUE_H12 0
+// #define MOTOR_VALUE_H21 -200
+// #define MOTOR_VALUE_H0 -315
+// #define MOTOR_VALUE_H1 -350
+// #define MOTOR_VALUE_H5_DOWN -470
+
+// 42L6-linear-voltage
+// #define MOTOR_VALUE_H0 0
+// #define MOTOR_VALUE_H5 160
+// #define MOTOR_VALUE_H10 305
+// #define MOTOR_VALUE_H15 450
+// #define MOTOR_VALUE_H20 595
+// #define MOTOR_VALUE_H24 712
+
+#define MOTOR_VALUE_H0 _hourMotorMap[0]
+#define MOTOR_VALUE_H1 _hourMotorMap[1]
+#define MOTOR_VALUE_H2 _hourMotorMap[2]
+#define MOTOR_VALUE_H3 _hourMotorMap[3]
+#define MOTOR_VALUE_H4 _hourMotorMap[4]
+#define MOTOR_VALUE_H5 _hourMotorMap[5]
+#define MOTOR_VALUE_H6 _hourMotorMap[6]
+#define MOTOR_VALUE_H7 _hourMotorMap[7]
+#define MOTOR_VALUE_H8 _hourMotorMap[8]
+#define MOTOR_VALUE_H9 _hourMotorMap[9]
+#define MOTOR_VALUE_H10 _hourMotorMap[10]
+#define MOTOR_VALUE_H11 _hourMotorMap[11]
+#define MOTOR_VALUE_H12 _hourMotorMap[12]
+#define MOTOR_VALUE_H13 _hourMotorMap[13]
+#define MOTOR_VALUE_H14 _hourMotorMap[14]
+#define MOTOR_VALUE_H15 _hourMotorMap[15]
+#define MOTOR_VALUE_H16 _hourMotorMap[16]
+#define MOTOR_VALUE_H17 _hourMotorMap[17]
+#define MOTOR_VALUE_H18 _hourMotorMap[18]
+#define MOTOR_VALUE_H19 _hourMotorMap[19]
+#define MOTOR_VALUE_H20 _hourMotorMap[20]
+#define MOTOR_VALUE_H21 _hourMotorMap[21]
+#define MOTOR_VALUE_H22 _hourMotorMap[22]
+#define MOTOR_VALUE_H23 _hourMotorMap[23]
+#define MOTOR_VALUE_H24 _hourMotorMap[24]
+#define MOTOR_VALUE_H5_DOWN _hourMotorMap[24]
+
 using namespace DataProc;
 
 class DP_Ctrl {
@@ -59,7 +114,8 @@ private:
     int16_t _motorValueTarget;
     int8_t _sweepValueIndex;
 
-    DISPLAY_STATE _displayState;
+    DISPLAY_STATE _displayState : 4;
+    CTRL_DISPLAY_MODE _displayMode;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
@@ -91,6 +147,7 @@ DP_Ctrl::DP_Ctrl(DataNode* node)
     , _motorValueTarget(0)
     , _sweepValueIndex(0)
     , _displayState(DISPLAY_STATE::CLOCK_MAP)
+    , _displayMode(CTRL_DISPLAY_MODE::COS_PHI)
 {
     for (int i = 0; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
         _hourMotorMap[i] = MOTOR_VALUE_INVALID;
@@ -169,6 +226,10 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
         _displayState = DISPLAY_STATE::CLOCK_MAP;
         break;
 
+    case CTRL_CMD::SET_MODE:
+        _displayMode = info->displayMode;
+        return KVDB_SET(_displayMode);
+
     case CTRL_CMD::SHOW_BATTERY_USAGE:
         showBatteryUsage();
         break;
@@ -208,6 +269,7 @@ void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
 {
     if (info->event == GLOBAL_EVENT::APP_STARTED) {
         KVDB_GET(_hourMotorMap);
+        KVDB_GET(_displayMode);
         listHourMotorMap();
     }
 }
@@ -353,20 +415,25 @@ void DP_Ctrl::showBatteryUsage()
     if (_devBattery->read(&info, sizeof(info)) == sizeof(info)) {
         HAL_LOG_INFO("voltage: %dmV, level: %d%%", info.voltage, info.level);
 
-        auto timestamp_0_0_0 = getTimestamp(0, 0, 0);
-        auto timestamp_5_0_0 = getTimestamp(5, 0, 0);
-        auto timestamp_23_59_59 = getTimestamp(23, 59, 59);
+        if (_displayMode == CTRL_DISPLAY_MODE::COS_PHI) {
+            auto timestamp_0_0_0 = getTimestamp(0);
+            auto timestamp_5_0_0 = getTimestamp(5);
+            auto timestamp_23_59_59 = getTimestamp(23, 59, 59);
 
-        uint32_t timestamp = 0;
-        static const uint32_t demarcationPct = timestamp_5_0_0 * 100 / timestamp_23_59_59;
+            uint32_t timestamp = 0;
+            static const uint32_t demarcationPct = timestamp_5_0_0 * 100 / timestamp_23_59_59;
 
-        if (info.level >= demarcationPct) {
-            timestamp = valueMap(info.level, 100, demarcationPct, timestamp_5_0_0, timestamp_23_59_59);
-        } else {
-            timestamp = valueMap(info.level, demarcationPct, 0, timestamp_0_0_0, timestamp_5_0_0);
+            if (info.level >= demarcationPct) {
+                timestamp = valueMap(info.level, 100, demarcationPct, timestamp_5_0_0, timestamp_23_59_59);
+            } else {
+                timestamp = valueMap(info.level, demarcationPct, 0, timestamp_0_0_0, timestamp_5_0_0);
+            }
+
+            setMotorValue(timestampToMotorValue(timestamp));
+        } else if (_displayMode == CTRL_DISPLAY_MODE::LINEAR) {
+            uint32_t timestamp = valueMap(info.level, 0, 100, getTimestamp(0), getTimestamp(24));
+            setMotorValue(timestampToMotorValue(timestamp));
         }
-
-        setMotorValue(timestampToMotorValue(timestamp));
 
     } else {
         HAL_LOG_ERROR("Failed to read battery info");
@@ -378,54 +445,45 @@ void DP_Ctrl::showBatteryUsage()
 
 int DP_Ctrl::timestampToMotorValue(uint32_t timestamp)
 {
-    int motorValue = 0;
+    if (_displayMode == CTRL_DISPLAY_MODE::COS_PHI) {
+        int motorValue = 0;
 
-    // 42L6
-    // #define MOTOR_VALUE_5AM 690
-    // #define MOTOR_VALUE_7AM 520
-    // #define MOTOR_VALUE_9AM 300
-    // #define MOTOR_VALUE_12AM 0
-    // #define MOTOR_VALUE_9PM -310
-    // #define MOTOR_VALUE_12PM -490
-    // #define MOTOR_VALUE_1AM -540
-    // #define MOTOR_VALUE_5PM_DOWN -710
+        if (timestamp >= getTimestamp(5) && timestamp < getTimestamp(7)) {
+            motorValue = timestampMap(timestamp, 5, 7, MOTOR_VALUE_H5, MOTOR_VALUE_H7);
+        } else if (timestamp >= getTimestamp(7) && timestamp < getTimestamp(9)) {
+            motorValue = timestampMap(timestamp, 7, 9, MOTOR_VALUE_H7, MOTOR_VALUE_H9);
+        } else if (timestamp >= getTimestamp(9) && timestamp < getTimestamp(12)) {
+            motorValue = timestampMap(timestamp, 9, 12, MOTOR_VALUE_H9, MOTOR_VALUE_H12);
+        } else if (timestamp >= getTimestamp(12) && timestamp < getTimestamp(21)) {
+            motorValue = timestampMap(timestamp, 12, 21, MOTOR_VALUE_H12, MOTOR_VALUE_H21);
+        } else if (timestamp >= getTimestamp(21) && timestamp < getTimestamp(24)) {
+            motorValue = timestampMap(timestamp, 21, 24, MOTOR_VALUE_H21, MOTOR_VALUE_H0);
+        } else if (timestamp >= getTimestamp(0) && timestamp < getTimestamp(1)) {
+            motorValue = timestampMap(timestamp, 0, 1, MOTOR_VALUE_H0, MOTOR_VALUE_H1);
+        } else if (timestamp >= getTimestamp(1) && timestamp < getTimestamp(5)) {
+            motorValue = timestampMap(timestamp, 1, 5, MOTOR_VALUE_H1, MOTOR_VALUE_H5_DOWN);
+        }
 
-    // 6L2
-    // #define MOTOR_VALUE_5AM 485
-    // #define MOTOR_VALUE_7AM 365
-    // #define MOTOR_VALUE_9AM 210
-    // #define MOTOR_VALUE_12AM 0
-    // #define MOTOR_VALUE_9PM -200
-    // #define MOTOR_VALUE_12PM -315
-    // #define MOTOR_VALUE_1AM -350
-    // #define MOTOR_VALUE_5PM_DOWN -470
-
-#define MOTOR_VALUE_5AM _hourMotorMap[5]
-#define MOTOR_VALUE_7AM _hourMotorMap[7]
-#define MOTOR_VALUE_9AM _hourMotorMap[9]
-#define MOTOR_VALUE_12AM _hourMotorMap[12]
-#define MOTOR_VALUE_9PM _hourMotorMap[21]
-#define MOTOR_VALUE_12PM _hourMotorMap[0]
-#define MOTOR_VALUE_1AM _hourMotorMap[1]
-#define MOTOR_VALUE_5PM_DOWN _hourMotorMap[24]
-
-    if (timestamp >= getTimestamp(5, 0, 0) && timestamp < getTimestamp(7, 0, 0)) {
-        motorValue = timestampMap(timestamp, 5, 7, MOTOR_VALUE_5AM, MOTOR_VALUE_7AM);
-    } else if (timestamp >= getTimestamp(7, 0, 0) && timestamp < getTimestamp(9, 0, 0)) {
-        motorValue = timestampMap(timestamp, 7, 9, MOTOR_VALUE_7AM, MOTOR_VALUE_9AM);
-    } else if (timestamp >= getTimestamp(9, 0, 0) && timestamp < getTimestamp(12, 0, 0)) {
-        motorValue = timestampMap(timestamp, 9, 12, MOTOR_VALUE_9AM, MOTOR_VALUE_12AM);
-    } else if (timestamp >= getTimestamp(12, 0, 0) && timestamp < getTimestamp(21, 0, 0)) {
-        motorValue = timestampMap(timestamp, 12, 21, MOTOR_VALUE_12AM, MOTOR_VALUE_9PM);
-    } else if (timestamp >= getTimestamp(21, 0, 0) && timestamp < getTimestamp(24, 0, 0)) {
-        motorValue = timestampMap(timestamp, 21, 24, MOTOR_VALUE_9PM, MOTOR_VALUE_12PM);
-    } else if (timestamp >= getTimestamp(0, 0, 0) && timestamp < getTimestamp(1, 0, 0)) {
-        motorValue = timestampMap(timestamp, 0, 1, MOTOR_VALUE_12PM, MOTOR_VALUE_1AM);
-    } else if (timestamp >= getTimestamp(1, 0, 0) && timestamp < getTimestamp(5, 0, 0)) {
-        motorValue = timestampMap(timestamp, 1, 5, MOTOR_VALUE_1AM, MOTOR_VALUE_5PM_DOWN);
+        return motorValue;
     }
 
-    return motorValue;
+    if (_displayMode == CTRL_DISPLAY_MODE::LINEAR) {
+        int motorValue = 0;
+        if (timestamp >= getTimestamp(0) && timestamp < getTimestamp(5)) {
+            motorValue = timestampMap(timestamp, 0, 5, MOTOR_VALUE_H0, MOTOR_VALUE_H5);
+        } else if (timestamp >= getTimestamp(5) && timestamp < getTimestamp(10)) {
+            motorValue = timestampMap(timestamp, 5, 10, MOTOR_VALUE_H5, MOTOR_VALUE_H10);
+        } else if (timestamp >= getTimestamp(10) && timestamp < getTimestamp(15)) {
+            motorValue = timestampMap(timestamp, 10, 15, MOTOR_VALUE_H10, MOTOR_VALUE_H15);
+        } else if (timestamp >= getTimestamp(15) && timestamp < getTimestamp(20)) {
+            motorValue = timestampMap(timestamp, 15, 20, MOTOR_VALUE_H15, MOTOR_VALUE_H20);
+        } else if (timestamp >= getTimestamp(20) && timestamp < getTimestamp(24)) {
+            motorValue = timestampMap(timestamp, 20, 24, MOTOR_VALUE_H20, MOTOR_VALUE_H24);
+        }
+        return motorValue;
+    }
+
+    return 0;
 }
 
 uint32_t DP_Ctrl::getTimestamp(int hour, int minute, int second)

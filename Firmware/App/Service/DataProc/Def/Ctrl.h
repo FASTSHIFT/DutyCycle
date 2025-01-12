@@ -33,17 +33,25 @@ enum class CTRL_CMD {
     ENABLE_CLOCK_MAP,
     SET_MOTOR_VALUE,
     SET_CLOCK_MAP,
+    SET_MODE,
     SHOW_BATTERY_USAGE,
+};
+
+enum class CTRL_DISPLAY_MODE {
+    COS_PHI,
+    LINEAR,
 };
 
 typedef struct Ctrl_Info {
     Ctrl_Info()
         : cmd(CTRL_CMD::NONE)
+        , displayMode(CTRL_DISPLAY_MODE::COS_PHI)
         , hour(0)
         , motorValue(0)
     {
     }
     CTRL_CMD cmd;
+    CTRL_DISPLAY_MODE displayMode;
     int hour;
     int motorValue;
 } Ctrl_Info_t;
