@@ -367,11 +367,10 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     }
 
     shell_printf(
-        "New clock: %04d-%02d-%02d %s %02d:%02d:%02d.%d\r\n",
+        "New clock: %04d-%02d-%02d %02d:%02d:%02d.%d\r\n",
         clockInfo.base.year,
         clockInfo.base.month,
         clockInfo.base.day,
-        week_str[clockInfo.base.week % 7],
         clockInfo.base.hour,
         clockInfo.base.minute,
         clockInfo.base.second,
