@@ -162,7 +162,7 @@ private:
     static int cmdLogLevel(int argc, const char** argv);
     static int cmdPs(int argc, const char** argv);
 
-    static int cmdPublich(int argc, const char** argv);
+    static int cmdPublish(int argc, const char** argv);
     static int cmdClock(int argc, const char** argv);
     static int cmdPower(int argc, const char** argv);
     static int cmdCtrl(int argc, const char** argv);
@@ -212,7 +212,7 @@ DP_Shell::DP_Shell(DataNode* node)
     shell_register(cmdLogLevel, "loglevel");
     shell_register(cmdPs, "ps");
 
-    shell_register(cmdPublich, "publish");
+    shell_register(cmdPublish, "publish");
     shell_register(cmdClock, "clock");
     shell_register(cmdPower, "power");
     shell_register(cmdCtrl, "ctrl");
@@ -279,7 +279,7 @@ int DP_Shell::cmdPs(int argc, const char** argv)
     return SHELL_RET_SUCCESS;
 }
 
-int DP_Shell::cmdPublich(int argc, const char** argv)
+int DP_Shell::cmdPublish(int argc, const char** argv)
 {
     if (argc < 2) {
         shell_print_error(E_SHELL_ERR_ARGCOUNT, "Usage: publish <topic> [data]");
