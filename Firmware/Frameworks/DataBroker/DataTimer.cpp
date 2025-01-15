@@ -149,10 +149,12 @@ uint32_t DataTimerManager::getTickElaps(uint32_t prevTick)
 uint32_t DataTimerManager::handler()
 {
     /* invoke all timers that are ready */
-    for (const auto& iter : _timerList) {
-        if (iter->isReady()) {
-            iter->reset();
-            iter->invoke();
+    auto next = _timerList.begin();
+    while (next != _timerList.end()) {
+        auto cur = *next++;
+        if (cur->isReady()) {
+            cur->reset();
+            cur->invoke();
         }
     }
 
