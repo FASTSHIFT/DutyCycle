@@ -167,7 +167,7 @@ int DP_Audio::onButtonEvent(const Button_Info_t* info)
     switch (info->event) {
     case BUTTON_EVENT::DOUBLE_CLICKED:
         _isMute = !_isMute;
-        HAL_LOG_INFO("Button double clicked");
+        HAL_LOG_INFO("Set mute: %d", _isMute);
         break;
 
     default:
