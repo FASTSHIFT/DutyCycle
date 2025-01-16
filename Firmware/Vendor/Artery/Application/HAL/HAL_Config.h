@@ -47,7 +47,7 @@
 #define CONFIG_MEMORY_HEAP_INFO   1
 
 /* WatchDog */
-#define CONFIG_WATCHDOG_TIMEOUT   0 /* seconds */
+#define CONFIG_WATCHDOG_TIMEOUT   10 /* seconds */
 
 /* clang-format on */
 
