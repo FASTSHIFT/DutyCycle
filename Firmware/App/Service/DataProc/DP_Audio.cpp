@@ -33,10 +33,12 @@ public:
 
 private:
     DataNode* _node;
+    const DataNode* _nodeButton;
     DeviceObject* _devBuzz;
 
     Audio_Info_t _info;
     uint32_t _curIndex;
+    bool _isMute;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
@@ -44,23 +46,27 @@ private:
     void writeBuzzer(uint32_t freq, uint32_t duration);
     int start(const Audio_Info_t* info);
     void stop();
+    int onButtonEvent(const Button_Info_t* info);
 };
 
 DP_Audio::DP_Audio(DataNode* node)
     : _node(node)
     , _curIndex(0)
+    , _isMute(false)
 {
     _devBuzz = HAL::Manager()->getDevice("Buzzer");
     if (!_devBuzz) {
         return;
     }
 
+    _nodeButton = _node->subscribe("Button");
+
     _node->setEventCallback(
         [](DataNode* n, DataNode::EventParam_t* param) -> int {
             auto ctx = (DP_Audio*)n->getUserData();
             return ctx->onEvent(param);
         },
-        DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY | DataNode::EVENT_TIMER);
+        DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY | DataNode::EVENT_TIMER | DataNode::EVENT_PUBLISH);
 
     static constexpr Audio_Squence_t squence[] = {
         { ToneMap::M1, 80 },
@@ -82,6 +88,12 @@ int DP_Audio::onEvent(DataNode::EventParam_t* param)
             return DataNode::RES_SIZE_MISMATCH;
         }
         memcpy(param->data_p, &_info, sizeof(_info));
+        break;
+
+    case DataNode::EVENT_PUBLISH:
+        if (param->tran == _nodeButton) {
+            onButtonEvent((const Button_Info_t*)param->data_p);
+        }
         break;
 
     case DataNode::EVENT_NOTIFY: {
@@ -112,6 +124,11 @@ void DP_Audio::writeBuzzer(uint32_t freq, uint32_t duration)
 
 int DP_Audio::start(const Audio_Info_t* info)
 {
+    if (_isMute) {
+        HAL_LOG_WARN("Audio is muted, can't play");
+        return DataNode::RES_UNSUPPORTED_REQUEST;
+    }
+
     if (info->bpm == 0) {
         HAL_LOG_ERROR("bpm need > 0");
         return DataNode::RES_PARAM_ERROR;
@@ -143,6 +160,21 @@ void DP_Audio::stop()
     _info.length = 0;
     _node->stopTimer();
     writeBuzzer(0, 0);
+}
+
+int DP_Audio::onButtonEvent(const Button_Info_t* info)
+{
+    switch (info->event) {
+    case BUTTON_EVENT::DOUBLE_CLICKED:
+        _isMute = !_isMute;
+        HAL_LOG_INFO("Button double clicked");
+        break;
+
+    default:
+        break;
+    }
+
+    return DataNode::RES_OK;
 }
 
 void DP_Audio::onTimer()
