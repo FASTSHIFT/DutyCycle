@@ -30,7 +30,6 @@ namespace DataProc {
 enum class ALARM_CMD {
     NONE,
     SET,
-    SAVE,
     LIST,
     SET_FILTER,
     PLAY_ALARM_MUSIC,

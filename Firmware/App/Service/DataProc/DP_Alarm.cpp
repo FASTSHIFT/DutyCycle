@@ -165,10 +165,9 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
         _alarmParam.alarms[info->id].hour = info->hour;
         _alarmParam.alarms[info->id].minute = info->minute;
         _alarmParam.alarms[info->id].musicID = info->musicID;
-    } break;
 
-    case ALARM_CMD::SAVE:
         return KVDB_SET(_alarmParam);
+    }
 
     case ALARM_CMD::LIST:
         listAlarms();
@@ -177,7 +176,7 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
     case ALARM_CMD::SET_FILTER:
         _alarmParam.hourlyAlarmFilter = info->filter;
         HAL_LOG_INFO("Set hourly alarm filter: 0x%08X", _alarmParam.hourlyAlarmFilter);
-        break;
+        return KVDB_SET(_alarmParam);
 
     case ALARM_CMD::PLAY_ALARM_MUSIC:
         return playAlarmMusic(info->musicID);
@@ -250,7 +249,7 @@ void DP_Alarm::onMinuteChanged(int hour, int minute)
 int DP_Alarm::playAlarmMusic(int musicID)
 {
 #define TONE_DUTY_CYCLE 0.8f
-#define TONE_BEAT_MAKE(beat) ((uint32_t)((beat) * TONE_DUTY_CYCLE)), (beat)
+#define TONE_BEAT_MAKE(beat) ((uint32_t)((beat)*TONE_DUTY_CYCLE)), (beat)
 
     static constexpr Audio_Squence_t seq_mtag[] = {
         { ToneMap::M1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },

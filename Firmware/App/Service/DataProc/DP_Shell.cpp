@@ -510,7 +510,6 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
 
     static constexpr CMD_PAIR<ALARM_CMD> cmd_map[] = {
         CMD_PAIR_DEF(ALARM_CMD, SET),
-        CMD_PAIR_DEF(ALARM_CMD, SAVE),
         CMD_PAIR_DEF(ALARM_CMD, LIST),
         CMD_PAIR_DEF(ALARM_CMD, SET_FILTER),
         CMD_PAIR_DEF(ALARM_CMD, PLAY_ALARM_MUSIC),
