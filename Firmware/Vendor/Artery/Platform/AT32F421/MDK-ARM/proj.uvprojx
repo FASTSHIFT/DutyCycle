@@ -929,6 +929,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\App\Utils\Shell\Shell.c</FilePath>
             </File>
+            <File>
+              <FileName>easing.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\App\Utils\easing\easing.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

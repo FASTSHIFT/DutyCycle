@@ -24,6 +24,7 @@
 #include "Service/HAL/HAL.h"
 #include "Service/HAL/HAL_Log.h"
 #include "Utils/CommonMacro/CommonMacro.h"
+#include "Utils/easing/easing.h"
 
 #define KVDB_GET(value) _kvdb.get(#value, &value, sizeof(value))
 #define KVDB_SET(value) _kvdb.set(#value, &value, sizeof(value))
@@ -31,6 +32,7 @@
 #define MOTOR_VALUE_MIN -1000
 #define MOTOR_VALUE_MAX 1000
 #define MOTOR_VALUE_INVALID -32768
+#define MOTOR_TIMER_PERIOD 30
 
 // 42L6-cos-phi
 // #define MOTOR_VALUE_H5 690
@@ -111,8 +113,8 @@ private:
     DeviceObject* _devBattery;
 
     int16_t _hourMotorMap[25];
-    int16_t _motorValueTarget;
     int8_t _sweepValueIndex;
+    easing_t _easing;
 
     DISPLAY_STATE _displayState : 4;
     CTRL_DISPLAY_MODE _displayMode;
@@ -144,7 +146,6 @@ private:
 DP_Ctrl::DP_Ctrl(DataNode* node)
     : _node(node)
     , _kvdb(node)
-    , _motorValueTarget(0)
     , _sweepValueIndex(0)
     , _displayState(DISPLAY_STATE::CLOCK_MAP)
     , _displayMode(CTRL_DISPLAY_MODE::COS_PHI)
@@ -167,6 +168,15 @@ DP_Ctrl::DP_Ctrl(DataNode* node)
 
     _nodeGlobal = _node->subscribe("Global");
     _nodeButton = _node->subscribe("Button");
+
+    easing_init(
+        &_easing,
+        EASING_MODE_DEFAULT,
+        _easing_calc_InOutQuad,
+        0,
+        MOTOR_TIMER_PERIOD * 2,
+        0);
+    easing_set_tick_callback(HAL::GetTick);
 
     _node->setEventCallback(
         [](DataNode* n, DataNode::EventParam_t* param) -> int {
@@ -243,26 +253,17 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 
 void DP_Ctrl::onTimer()
 {
-#define ABS(x) ((x) < 0 ? -(x) : (x))
-    const int curMotorValue = getMotorValueRaw();
-    int step = _motorValueTarget - curMotorValue;
-    if (step == 0) {
+    easing_update(&_easing);
+    const int pos = easing_curpos(&_easing);
+
+    setMotorValueRaw(pos);
+
+    /* when easing is finished, stop timer */
+    if (easing_isok(&_easing)) {
         _node->stopTimer();
         onMotorFinished();
-        HAL_LOG_INFO("Motor value reached: %d", curMotorValue);
-        return;
+        HAL_LOG_INFO("Motor value reached: %d", pos);
     }
-
-    /* limit motor step */
-    if (step > 10) {
-        step = 10;
-    } else if (step < -10) {
-        step = -10;
-    }
-
-    HAL_LOG_TRACE("step: %d", step);
-
-    setMotorValueRaw(curMotorValue + step);
 }
 
 void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
@@ -327,13 +328,13 @@ void DP_Ctrl::onButtonEvent(const Button_Info_t* info)
 
 void DP_Ctrl::setMotorValue(int value, bool immediate)
 {
-    if (immediate && value == getMotorValueRaw()) {
+    const int currentValue = getMotorValueRaw();
+    if (immediate && value == currentValue) {
         return;
     }
 
-    _motorValueTarget = value;
-    _node->startTimer(30);
-    return;
+    easing_start_absolute(&_easing, currentValue, value);
+    _node->startTimer(MOTOR_TIMER_PERIOD);
 }
 
 int DP_Ctrl::getMotorValueRaw()
