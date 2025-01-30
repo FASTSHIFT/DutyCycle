@@ -114,10 +114,9 @@ private:
 
     int16_t _hourMotorMap[25];
     int8_t _sweepValueIndex;
-    easing_t _easing;
-
     DISPLAY_STATE _displayState : 4;
     CTRL_DISPLAY_MODE _displayMode;
+    easing_t _easing;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
@@ -368,6 +367,7 @@ void DP_Ctrl::onMotorFinished()
     static const int16_t testValues[] = {
         0,
         MOTOR_VALUE_MAX,
+        0,
         MOTOR_VALUE_MIN,
         0,
     };
@@ -413,32 +413,31 @@ void DP_Ctrl::showBatteryUsage()
     }
 
     HAL::Battery_Info_t info;
-    if (_devBattery->read(&info, sizeof(info)) == sizeof(info)) {
-        HAL_LOG_INFO("voltage: %dmV, level: %d%%", info.voltage, info.level);
-
-        if (_displayMode == CTRL_DISPLAY_MODE::COS_PHI) {
-            auto timestamp_0_0_0 = getTimestamp(0);
-            auto timestamp_5_0_0 = getTimestamp(5);
-            auto timestamp_23_59_59 = getTimestamp(23, 59, 59);
-
-            uint32_t timestamp = 0;
-            static const uint32_t demarcationPct = timestamp_5_0_0 * 100 / timestamp_23_59_59;
-
-            if (info.level >= demarcationPct) {
-                timestamp = valueMap(info.level, 100, demarcationPct, timestamp_5_0_0, timestamp_23_59_59);
-            } else {
-                timestamp = valueMap(info.level, demarcationPct, 0, timestamp_0_0_0, timestamp_5_0_0);
-            }
-
-            setMotorValue(timestampToMotorValue(timestamp));
-        } else if (_displayMode == CTRL_DISPLAY_MODE::LINEAR) {
-            uint32_t timestamp = valueMap(info.level, 0, 100, getTimestamp(0), getTimestamp(24));
-            setMotorValue(timestampToMotorValue(timestamp));
-        }
-
-    } else {
+    if (_devBattery->read(&info, sizeof(info)) != sizeof(info)) {
         HAL_LOG_ERROR("Failed to read battery info");
         return;
+    }
+
+    HAL_LOG_INFO("voltage: %dmV, level: %d%%", info.voltage, info.level);
+
+    if (_displayMode == CTRL_DISPLAY_MODE::COS_PHI) {
+        auto timestamp_0_0_0 = getTimestamp(0);
+        auto timestamp_5_0_0 = getTimestamp(5);
+        auto timestamp_23_59_59 = getTimestamp(23, 59, 59);
+
+        uint32_t timestamp = 0;
+        static const uint32_t demarcationPct = timestamp_5_0_0 * 100 / timestamp_23_59_59;
+
+        if (info.level >= demarcationPct) {
+            timestamp = valueMap(info.level, 100, demarcationPct, timestamp_5_0_0, timestamp_23_59_59);
+        } else {
+            timestamp = valueMap(info.level, demarcationPct, 0, timestamp_0_0_0, timestamp_5_0_0);
+        }
+
+        setMotorValue(timestampToMotorValue(timestamp));
+    } else if (_displayMode == CTRL_DISPLAY_MODE::LINEAR) {
+        uint32_t timestamp = valueMap(info.level, 0, 100, getTimestamp(0), getTimestamp(24));
+        setMotorValue(timestampToMotorValue(timestamp));
     }
 
     _devBattery->ioctl(BATTERY_IOCMD_SLEEP);
