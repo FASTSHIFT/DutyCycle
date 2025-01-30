@@ -100,21 +100,10 @@ int DP_Clock::onEvent(DataNode::EventParam_t* param)
 int DP_Clock::onNotify(const Clock_Info_t* info)
 {
     switch (info->cmd) {
-    case CLOCK_CMD::SET_TIME: {
+    case CLOCK_CMD::SET: {
         int retval = _dev->ioctl(CLOCK_IOCMD_CALIBRATE, (void*)&(info->base), sizeof(info->base));
         return retval == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
     }
-
-    case CLOCK_CMD::SET_ALARM: {
-        int retval = _dev->ioctl(CLOCK_IOCMD_SET_ALARM, (void*)&(info->base), sizeof(info->base));
-        return retval == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
-    }
-
-    case CLOCK_CMD::GET_ALARM:
-        break;
-
-    case CLOCK_CMD::DISABLE_ALARM:
-        break;
 
     default:
         return DataNode::RES_UNSUPPORTED_REQUEST;

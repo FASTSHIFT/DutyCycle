@@ -353,8 +353,7 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     clockInfo.base.second = second;
 
     static constexpr CMD_PAIR<CLOCK_CMD> cmd_map[] = {
-        CMD_PAIR_DEF(CLOCK_CMD, SET_TIME),
-        CMD_PAIR_DEF(CLOCK_CMD, SET_ALARM),
+        CMD_PAIR_DEF(CLOCK_CMD, SET),
     };
 
     static constexpr CmdMapHelper<CLOCK_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));

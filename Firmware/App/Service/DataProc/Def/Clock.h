@@ -30,10 +30,7 @@ namespace DataProc {
 
 enum class CLOCK_CMD {
     NONE,
-    SET_TIME,
-    SET_ALARM,
-    GET_ALARM,
-    DISABLE_ALARM,
+    SET,
 };
 
 typedef struct Clock_Info {
