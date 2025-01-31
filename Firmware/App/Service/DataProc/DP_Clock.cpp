@@ -106,10 +106,10 @@ int DP_Clock::onNotify(const Clock_Info_t* info)
     }
 
     default:
-        return DataNode::RES_UNSUPPORTED_REQUEST;
+        break;
     }
 
-    return DataNode::RES_OK;
+    return DataNode::RES_UNSUPPORTED_REQUEST;
 }
 
 void DP_Clock::setCompileTimeToClock()
