@@ -32,7 +32,8 @@
 #define MOTOR_VALUE_MIN -1000
 #define MOTOR_VALUE_MAX 1000
 #define MOTOR_VALUE_INVALID -32768
-#define MOTOR_TIMER_PERIOD 30
+#define MOTOR_TIMER_PERIOD 60
+#define MOTOR_ANIM_SPEED_FACTOR 0.15f
 
 // 42L6-cos-phi
 // #define MOTOR_VALUE_H5 690
@@ -173,7 +174,7 @@ DP_Ctrl::DP_Ctrl(DataNode* node)
         EASING_MODE_DEFAULT,
         _easing_calc_InOutQuad,
         0,
-        MOTOR_TIMER_PERIOD * 2,
+        MOTOR_TIMER_PERIOD,
         0);
     easing_set_tick_callback(HAL::GetTick);
 
@@ -332,6 +333,21 @@ void DP_Ctrl::setMotorValue(int value, bool immediate)
         return;
     }
 
+    /* Not interrupting current animation */
+    if (!easing_isok(&_easing)) {
+        return;
+    }
+
+#define ABS(x) ((x) < 0 ? -(x) : (x))
+
+    /* Calculate the number of frames to animate */
+    _easing.nFrameCount = ABS(value - currentValue) * MOTOR_ANIM_SPEED_FACTOR;
+
+    /* Limit the minimum number of frames */
+    if (_easing.nFrameCount < MOTOR_TIMER_PERIOD / 2) {
+        _easing.nFrameCount = MOTOR_TIMER_PERIOD / 2;
+    }
+
     easing_start_absolute(&_easing, currentValue, value);
     _node->startTimer(MOTOR_TIMER_PERIOD);
 }
@@ -367,7 +383,6 @@ void DP_Ctrl::onMotorFinished()
     static const int16_t testValues[] = {
         0,
         MOTOR_VALUE_MAX,
-        0,
         MOTOR_VALUE_MIN,
         0,
     };
