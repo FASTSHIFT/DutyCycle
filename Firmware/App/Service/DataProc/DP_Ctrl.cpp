@@ -136,12 +136,17 @@ private:
     void sweepTest();
     void showBatteryUsage();
 
-    int timestampToMotorValue(uint32_t timestamp);
+    int timestampToMotorValue(int timestamp);
 
-    uint32_t getTimestamp(int hour, int minute = 0, int second = 0);
     int32_t timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, int32_t min_out, int32_t max_out);
     int32_t valueMap(int32_t x, int32_t max_in, int32_t min_in, int32_t min_out, int32_t max_out);
 };
+
+/* Optimize variables that can be calculated at compile time */
+static constexpr int getTimestamp(int hour, int minute = 0, int second = 0)
+{
+    return hour * 3600 + minute * 60 + second;
+}
 
 DP_Ctrl::DP_Ctrl(DataNode* node)
     : _node(node)
@@ -458,7 +463,7 @@ void DP_Ctrl::showBatteryUsage()
     _devBattery->ioctl(BATTERY_IOCMD_SLEEP);
 }
 
-int DP_Ctrl::timestampToMotorValue(uint32_t timestamp)
+int DP_Ctrl::timestampToMotorValue(int timestamp)
 {
     if (_displayMode == CTRL_DISPLAY_MODE::COS_PHI) {
         int motorValue = 0;
@@ -499,11 +504,6 @@ int DP_Ctrl::timestampToMotorValue(uint32_t timestamp)
     }
 
     return 0;
-}
-
-uint32_t DP_Ctrl::getTimestamp(int hour, int minute, int second)
-{
-    return hour * 3600 + minute * 60 + second;
 }
 
 int32_t DP_Ctrl::timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, int32_t min_out, int32_t max_out)
