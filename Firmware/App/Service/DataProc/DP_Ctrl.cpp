@@ -261,7 +261,9 @@ void DP_Ctrl::onTimer()
     easing_update(&_easing);
     const int pos = easing_curpos(&_easing);
 
-    setMotorValueRaw(pos);
+    if (setMotorValueRaw(pos) != DataNode::RES_OK) {
+        easing_stop(&_easing, 0);
+    }
 
     /* when easing is finished, stop timer */
     if (easing_isok(&_easing)) {
