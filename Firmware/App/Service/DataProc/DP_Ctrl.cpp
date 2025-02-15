@@ -499,7 +499,7 @@ int DP_Ctrl::timestampToMotorValue(int timestamp)
             motorValue = timestampMap(timestamp, 10, 15, MOTOR_VALUE_H10, MOTOR_VALUE_H15);
         } else if (timestamp >= getTimestamp(15) && timestamp < getTimestamp(20)) {
             motorValue = timestampMap(timestamp, 15, 20, MOTOR_VALUE_H15, MOTOR_VALUE_H20);
-        } else if (timestamp >= getTimestamp(20) && timestamp < getTimestamp(24)) {
+        } else if (timestamp >= getTimestamp(20) && timestamp <= getTimestamp(24)) {
             motorValue = timestampMap(timestamp, 20, 24, MOTOR_VALUE_H20, MOTOR_VALUE_H24);
         }
         return motorValue;
