@@ -13850,8 +13850,8 @@
 			(justify left bottom)
 		)
 	)
-	(gr_text "CC=CLK\nD-=RX\nD+=DIO\nSBU=TX"
-		(at 87 80.5 0)
+	(gr_text "CC=CLK\nSBU=DIO"
+		(at 87 79.75 0)
 		(layer "F.SilkS")
 		(uuid "f2041b18-245f-4415-8756-2907dd3e4492")
 		(effects
