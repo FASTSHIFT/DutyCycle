@@ -36,14 +36,14 @@
 #define MOTOR_ANIM_SPEED_FACTOR 0.15f
 
 // 42L6-cos-phi
-// #define MOTOR_VALUE_H5 690
-// #define MOTOR_VALUE_H7 520
-// #define MOTOR_VALUE_H9 300
+// #define MOTOR_VALUE_H5 700
+// #define MOTOR_VALUE_H7 535
+// #define MOTOR_VALUE_H9 310
 // #define MOTOR_VALUE_H12 0
-// #define MOTOR_VALUE_H21 -310
-// #define MOTOR_VALUE_H0 -490
-// #define MOTOR_VALUE_H1 -540
-// #define MOTOR_VALUE_H5_DOWN -710
+// #define MOTOR_VALUE_H21 -300
+// #define MOTOR_VALUE_H0 -475
+// #define MOTOR_VALUE_H1 -530
+// #define MOTOR_VALUE_H5_DOWN -700
 
 // 6L2-cos-phi
 // #define MOTOR_VALUE_H5 485

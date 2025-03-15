@@ -25,8 +25,8 @@
 
 /* Firmware Version */
 #define VERSION_FIRMWARE_NAME   "DutyCycle"
-#define VERSION_SOFTWARE        "v1.0"
-#define VERSION_HARDWARE        "v1.1"
+#define VERSION_SOFTWARE        "v1.1"
+#define VERSION_HARDWARE        "v1.2"
 #define VERSION_AUTHOR_NAME     "_VIFEXTech"
 #define VERSION_WEBSITE         "https://github.com/FASTSHIFT/DutyCycle"
 

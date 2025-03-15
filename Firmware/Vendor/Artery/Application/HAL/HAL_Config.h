@@ -33,14 +33,14 @@
 #define CONFIG_MOTOR_OUT2_PIN     PA3
 
 /* Buzzer */
-#define CONFIG_BUZZ_PIN           PB2
+#define CONFIG_BUZZ_PIN           PB1
 
 /* Battery */
-#define CONFIG_BATT_DET_PIN       PB1
-#define CONFIG_PWR_EN_PIN         PA7
+#define CONFIG_BATT_DET_PIN       PB0
+#define CONFIG_PWR_EN_PIN         PA6
 
 /* Button */
-#define CONFIG_BUTTON_SEL_PIN     PB0
+#define CONFIG_BUTTON_SEL_PIN     PA7
 
 /* Memory */
 #define CONFIG_MEMORY_STACK_INFO  1 /* Reuqire MPU Disabled */
