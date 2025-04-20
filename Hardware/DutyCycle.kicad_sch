@@ -8120,7 +8120,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "100R"
 			(at 254.0001 232.41 0)
 			(effects
 				(font
@@ -9182,7 +9182,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "10kR"
+		(property "Value" "100R"
 			(at 256.5399 224.79 0)
 			(effects
 				(font
