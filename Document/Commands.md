@@ -168,6 +168,34 @@ New clock: 2025-04-25 14:15:10.0
 ```
 当前时间为2025年4月25日14时01分07秒260毫秒，设置后的时间为2025年4月25日14时15分10秒0毫秒。
 
+**示例3**：
+
+使用`config_clock.py`脚本自动配置时间，打开PC终端（非串口终端），使用脚本请确保安装`python3.x`及`pyserial`模块:
+````shell
+pip install pyserial
+````
+
+运行以下命令自动设置时间：
+```shell
+python Tools/config_clock.py
+```
+
+或者添加`-p`参数手动指定串口号：
+```shell
+python Tools/config_clock.py -p COM3
+```
+
+**输出**：
+```
+No specific port was provided. Using the first available port: COM3
+Serial port COM3 opened with baud rate 115200 and timeout 1 seconds
+Sending command: clock -c SET -y 2025 -m 4 -d 26 -H 0 -M 3 -S 14
+Received data:
+clock -c SET -y 2025 -m 4 -d 26 -H 0 -M 3 -S 14
+Serial port closed
+```
+脚本使用自动扫描串口模式，显示了回显信息，表示自动配置时间为2025年4月26日0点3分14秒。
+
 ---
 
 ### 6. power
