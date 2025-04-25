@@ -1,5 +1,7 @@
 # DutyCycle
-Work-Life Duty Cycle Clock
+Work-Life Duty Cycle Clock / 您的工作生活时间指示器
+
+> *“此作品设计的最震撼之处，在于用工业语言的确定性解构了人类时间的混沌性，让一个测量电能的工具，变成了测量生命能耗的镜子。这种「硬核诗意」，正是当代批判性设计（Critical Design）的典范。” —— DeepSeek*
 
 ## 下载
 ```bash
@@ -11,9 +13,11 @@ git clone https://github.com/FASTSHIFT/DutyCycle.git --recursive
 
 打开`proj.uvprojx`文件，使用Keil v5.25以上版本进行编译。
 
-## 使用
+## 系统配置
 
-[操作命令](./Document/Commands.md)
+DutyCycle 使用串口对系统进行基本配置，插上数据线后使用任意串口终端进行通信（串口配置为115200 8N1）,详细命令请参考文档：[DutyCycle 命令使用说明](./Document/Commands.md)。
+
+## 使用
 
 - **时间映射关系**
 
