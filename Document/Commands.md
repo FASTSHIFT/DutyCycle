@@ -13,15 +13,15 @@ DutyCycle提供了一个命令行界面，用于与系统中的数据节点进�
 | **ps** | 显示栈使用最大深度         |
 | **publish** | 发布消息（仅供调试使用） |
 | **clock** | 显示或设置系统时钟   |
-| **power** | 控制置电源状态   |
+| **power** | 控制电源状态   |
 | **ctrl** | 控制设备功能         |
 | **alarm** | 闹钟设置       |
-| **kvdb** | 操作键值数据库    |
+| **kvdb** | 数据库操作（仅供调试使用）    |
 
 ---
 
 ### 1. help
-**概述**：显示所有可用命令及其简要说明。
+**概述**：显示所有可用命令。
 
 **命令格式**：
 ```shell
@@ -35,7 +35,16 @@ help
 
 **输出**：
 ```
-
+Available Commands:
+help
+loglevel
+ps
+publish
+clock
+power
+ctrl
+alarm
+kvdb
 ```
 
 ---
@@ -49,26 +58,26 @@ loglevel <level>
 ```
 
 - `<level>`：日志级别，取值范围为0~4。
-    - 0: None
-    - 1: Error
+    - 0: Trace
+    - 1: Info （默认值）
     - 2: Warning
-    - 3: Info
-    - 4: Debug
+    - 3: Error
+    - 4: Off
 
 **示例**：
+
+设置日志级别为3（仅打印错误等级日志）。
 ```shell
 loglevel 3
 ```
 
 **输出**：
-```
-
-```
+无，后面将仅打印错误等级日志。
 
 ---
 
 ### 3. ps
-**概述**：显示系统栈最深使用量。
+**概述**：显示系统栈最深使用量，需要确保日志等级为1(Info)及以下。
 
 **命令格式**：
 ```shell
@@ -82,31 +91,34 @@ ps
 
 **输出**：
 ```
-
+[INFO] Memory_DumpStackInfo: Stack: 99% used (total: 1536, free: 4)
 ```
+栈使用量为99%，总大小为1536字节，剩余大小为4字节。
 
 ---
 
 ### 4. publish
-**概述**：向指定主题发布数据。
+**概述**：向订阅`DP_Shell`的节点发布消息，仅供内部调试使用。
 
 **命令格式**：
 ```shell
-publish <topic> [data]
+publish <msg1> <msg2> ...
 ```
 
-- `<topic>`：要发布数据的主题名称。
-- `[data]`：要发布的数据（可选）。
+- `<msg1>`：消息内容1。
+- `<msg2>`：消息内容2。
+- 等等。
 
 **示例**：
 ```shell
-publish MyTopic "Hello, World!"
+publish aaa bbb
 ```
 
 **输出**：
+```shell
+publish finished: -3
 ```
-
-```
+消息发布结束，返回值为`-3`。
 
 ---
 
@@ -127,28 +139,46 @@ clock [-c <cmd>] [-y <year>] [-m <month>] [-d <day>] [-H <hour>] [-M <minute>] [
 - `-M <minute>`：分钟。
 - `-S <second>`：秒。
 
-**示例**：
+**示例1**：
+
+显示当前时间，不设置新的时间。
 ```shell
-clock -c SET -y 2023 -m 10 -d 15 -H 14 -M 30 -S 45
+clock
+```
+
+**输出**：
+```shell
+Current clock: 2025-04-25 FRI 14:17:32.18
+#ERROR-PARAM:command is null
+#ERROR-TYPE:PARSING
+```
+当前时间为2025年4月25日星期五14时17分32秒18毫秒。
+
+**示例2**：
+
+设置新的时钟时间为2025年4月25日14时15分10秒。
+```shell
+clock -c SET -y 2025 -m 4 -d 25 -H 14 -M 15 -S 10
 ```
 
 **输出**：
 ```
-Current clock: 2023-10-15 MON 14:30:45.0
-New clock: 2023-10-15 14:30:45.0
+Current clock: 2025-04-25 FRI 14:01:07.260
+New clock: 2025-04-25 14:15:10.0
 ```
+当前时间为2025年4月25日14时01分07秒260毫秒，设置后的时间为2025年4月25日14时15分10秒0毫秒。
 
 ---
 
 ### 6. power
-**概述**：发送电源控制命令。
+**概述**：电源控制。注意：关闭或重启系统后，RTC（实时时钟）也会关闭，再次启动后需要重新设置时间，系统启动的默认时间为固件编译时间。
 
 **命令格式**：
 ```shell
 power -c <cmd>
 ```
 
-- `-c <cmd>`：电源命令，可选值包括：
+- `-c <cmd>`：电源控制命令，可选值包括：
     - `SHUTDOWN`：关闭系统。
     - `REBOOT`：重启系统。
 
@@ -159,8 +189,9 @@ power -c SHUTDOWN
 
 **输出**：
 ```
-
+[WARN] HAL::Power::onIoctl: Power off!
 ```
+系统下电。
 
 ---
 
@@ -173,7 +204,7 @@ ctrl -c <cmd> [-H <hour>] [-M <motor>] [--mode <mode>]
 ```
 
 - `-c <cmd>`：控制命令，可选值包括：
-    - `SWEEP_TEST`：执行扫频测试。
+    - `SWEEP_TEST`：执行指针扫动测试。
     - `ENABLE_CLOCK_MAP`：启用时钟映射。
     - `SET_MOTOR_VALUE`：设置电机值。
     - `SET_CLOCK_MAP`：设置时钟映射。
@@ -183,81 +214,108 @@ ctrl -c <cmd> [-H <hour>] [-M <motor>] [--mode <mode>]
 - `-M <motor>`：要设置的电机值。
 - `--mode <mode>`：显示模式，可选值包括：
     - `0`：功率因数表模式（cos-phi）。
-    - `1`：线性电压、电流表模式（linear）。
+    - `1`：电压、电流（线性）表模式（linear）。
 
 **示例**：
+设置电机值为100。
 ```shell
-ctrl -c SET_MOTOR_VALUE -M 100 --mode 1
+ctrl -c SET_MOTOR_VALUE -M 100
 ```
 
 **输出**：
 ```
-
+[INFO] DP_Ctrl::onTimer: Motor value reached: 100
 ```
+电机已设置值为100。
 
 ---
 
 ### 8. alarm
-**概述**：发送报警控制命令。
+**概述**：设置闹钟和正点报时功能。
 
 **命令格式**：
 ```shell
 alarm -c <cmd> [-i <ID>] [-H <hour>] [-M <minute>] [-m <music>] [-f <filter>]
 ```
 
-- `-c <cmd>`：报警命令，可选值包括：
-    - `SET`：设置报警时间。
-    - `LIST`：列出所有报警。
+- `-c <cmd>`：闹钟命令，可选值包括：
+    - `SET`：设置闹钟时间。
+    - `LIST`：列出所有闹钟。
     - `SET_FILTER`：设置小时过滤器。
-    - `PLAY_ALARM_MUSIC`：播放报警音乐。
-- `-i <ID>`：报警ID。
+    - `PLAY_ALARM_MUSIC`：播放闹钟音乐。
+- `-i <ID>`：闹钟ID。范围为0~2。
 - `-H <hour>`：小时。
 - `-M <minute>`：分钟。
-- `-m <music>`：音乐ID。
-- `-f <filter>`：小时过滤器，格式为 `1,2,3,4`。
+- `-m <music>`：音乐ID。范围为0~2。
+- `-f <filter>`：正点报时小时过滤器，格式为 `1,2,3,4`。
 
-**示例**：
+**示例1**：
+设置闹钟0的时间为7:30，音乐ID为1。
 ```shell
-alarm -c SET -i 1 -H 7 -M 30 -m 5 -f 1,7,9
+alarm -c SET -i 0 -H 7 -M 30 -m 1
+```
+
+**输出**：
+无，使用`LIST`指令查看是否生效。
+
+**示例2**：
+列出所有闹钟信息。
+```shell
+alarm -c LIST
 ```
 
 **输出**：
 ```
-
+[INFO] DP_Alarm::listAlarms: Hourly alarm filter: 0x00FFDC00
+[INFO] DP_Alarm::listAlarms: Alarm 0: 07:30, Music ID: 1
+[INFO] DP_Alarm::listAlarms: Alarm 1: 18:20, Music ID: 1
+[INFO] DP_Alarm::listAlarms: Alarm 2: 21:00, Music ID: 2
 ```
+报时过滤器为`0x00FFDC00`；闹钟0为7:30，音乐ID为1；闹钟1为18:20，音乐ID为1；闹钟2为21:00，音乐ID为2。
 
 ---
 
 ### 9. kvdb
-**概述**：发送键值数据库控制命令。
+**概述**：数据库操作（仅供调试使用）。
 
 **命令格式**：
 ```shell
-kvdb -c <cmd> -k <key> [value]
+kvdb -c <cmd> -k <key>
 ```
 
 - `-c <cmd>`：KVDB命令，可选值包括：
     - `DEL`：删除指定的键。
     - `LIST`：列出所有键。
-    - `SAVE`：保存键值对。
+    - `SAVE`：保存（此）。
 - `-k <key>`：键名。
-- `[value]`：要保存的值（仅在 `SAVE` 命令中使用）。
 
 **示例**：
+列出所有键。
 ```shell
-kvdb -c SAVE -k myKey myValue
+kvdb -c LIST
 ```
 
 **输出**：
 ```
-
+[INFO] DP_KVDB::onSet: Key list:
+[INFO] DP_KVDB::onSet: [0]:
+[INFO] DP_KVDB::onSet: 	name = '_hourMotorMap'
+[INFO] DP_KVDB::onSet: 	status = 2
+[INFO] DP_KVDB::onSet: 	crc_is_ok = 1
+[INFO] DP_KVDB::onSet: 	name_len = 13
+[INFO] DP_KVDB::onSet: 	magic = 0x1
+[INFO] DP_KVDB::onSet: 	len = 108
+[INFO] DP_KVDB::onSet: 	value_len = 50
+[INFO] DP_KVDB::onSet: 	addr.start = 0x1452
+[INFO] DP_KVDB::onSet: 	addr.value = 0x1508
+[INFO] DP_KVDB::onSet: [1]:
+[INFO] DP_KVDB::onSet: 	name = '_alarmParam'
+[INFO] DP_KVDB::onSet: 	status = 2
+[INFO] DP_KVDB::onSet: 	crc_is_ok = 1
+[INFO] DP_KVDB::onSet: 	name_len = 11
+[INFO] DP_KVDB::onSet: 	magic = 0x1
+[INFO] DP_KVDB::onSet: 	len = 68
+[INFO] DP_KVDB::onSet: 	value_len = 16
+[INFO] DP_KVDB::onSet: 	addr.start = 0x1696
+[INFO] DP_KVDB::onSet: 	addr.value = 0x1748
 ```
-
----
-
-## 注意事项
-- 所有命令在解析错误或指定参数无效时，将返回错误信息。
-- `SAVE` 命令需要同时指定键名和值。
-- `DEL` 命令仅需要指定键名。
-- `LIST` 命令不需要指定任何参数。
-- 时钟命令的过滤器格式为逗号分隔的小时列表，例如 `1,2,3,4`。
