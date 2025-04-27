@@ -33,9 +33,8 @@ class DataBroker {
 public:
     /**
      * @brief  Data broker constructor
-     * @param  name: The name of the data broker
      */
-    DataBroker(const char* name);
+    DataBroker();
 
     /**
      * @brief  Data broker destructor
@@ -49,13 +48,11 @@ public:
     size_t getNodeNumber();
 
     /**
-     * @brief  Get the main node
-     * @retval Pointer to the main node
+     * @brief  Search node
+     * @param  id: DataNode ID
+     * @retval If the search is successful, return the pointer of the node
      */
-    DataNode* mainNode()
-    {
-        return _mainNode;
-    }
+    DataNode* search(const char* id);
 
     /**
      * @brief  Set the main node
@@ -93,13 +90,6 @@ protected:
     bool remove(DataNode::DataNodeList_t* vec, DataNode* node);
 
     /**
-     * @brief  Search node
-     * @param  id: DataNode ID
-     * @retval If the search is successful, return the pointer of the node
-     */
-    DataNode* search(const char* id);
-
-    /**
      * @brief  Search node in vector
      * @param  vec: Pointer to vector
      * @param  id:  DataNode ID
@@ -120,14 +110,8 @@ private:
     /* DataNode pool */
     DataNode::DataNodeList_t* _nodePool;
 
-    /* Main node, will automatically follow all nodes */
-    DataNode* _mainNode;
-
     /* Timer manager */
     DataTimerManager* _timerManager;
-
-    /* The name of the data center will be used as the ID of the main node */
-    const char* _name;
 };
 
 #endif

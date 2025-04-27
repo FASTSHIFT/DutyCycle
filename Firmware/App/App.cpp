@@ -27,7 +27,15 @@
 
 struct AppContext {
     DataBroker* broker;
-    DataProc::Global_Helper* global;
+    DataNode* global;
+
+    int publish(DataProc::GLOBAL_EVENT event, void* param = nullptr)
+    {
+        DataProc::Global_Info_t info;
+        info.event = event;
+        info.param = param;
+        return global->publish(&info, sizeof(info));
+    }
 };
 
 AppContext_t* App_CreateContext(int argc, const char* argv[])
@@ -38,14 +46,12 @@ AppContext_t* App_CreateContext(int argc, const char* argv[])
     HAL::Init();
 
     /* Data processor */
-    context->broker = new DataBroker("Broker");
+    context->broker = new DataBroker;
     DataProc_Init(context->broker);
 
-    context->global = new DataProc::Global_Helper(context->broker->mainNode());
-    context->global->publish(DataProc::GLOBAL_EVENT::DATA_PROC_INIT_FINISHED);
-
-    /* App started */
-    context->global->publish(DataProc::GLOBAL_EVENT::APP_STARTED);
+    context->global = context->broker->search("Global");
+    context->publish(DataProc::GLOBAL_EVENT::DATA_PROC_INIT_FINISHED);
+    context->publish(DataProc::GLOBAL_EVENT::APP_STARTED);
 
     HAL_MemoryDumpInfo();
 
@@ -54,16 +60,16 @@ AppContext_t* App_CreateContext(int argc, const char* argv[])
 
 uint32_t App_RunLoopExecute(AppContext_t* context)
 {
-    context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_BEGIN);
+    context->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_BEGIN);
     uint32_t timeTillNext = context->broker->handleTimer();
-    context->global->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_END, &timeTillNext);
-//    HAL_LOG_INFO("timeTillNext = %d", timeTillNext);
+    context->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_END, &timeTillNext);
+    //    HAL_LOG_INFO("timeTillNext = %d", timeTillNext);
     return timeTillNext;
 }
 
 void App_DestroyContext(AppContext_t* context)
 {
-    context->global->publish(DataProc::GLOBAL_EVENT::APP_STOPPED);
+    context->publish(DataProc::GLOBAL_EVENT::APP_STOPPED);
 
     delete context->broker;
     delete context;

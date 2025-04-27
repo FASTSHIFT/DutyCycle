@@ -785,16 +785,6 @@
               <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\_Template_Helper.h</FilePath>
             </File>
             <File>
-              <FileName>Global_Helper.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Global_Helper.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>Global_Helper.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Global_Helper.h</FilePath>
-            </File>
-            <File>
               <FileName>Power_Helper.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\Power_Helper.cpp</FilePath>

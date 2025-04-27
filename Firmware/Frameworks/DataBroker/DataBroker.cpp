@@ -26,23 +26,16 @@
 #include <algorithm>
 #include <string.h>
 
-DataBroker::DataBroker(const char* name)
+DataBroker::DataBroker()
     : _nodePool(nullptr)
-    , _mainNode(nullptr)
     , _timerManager(nullptr)
 {
-    _name = name;
     _nodePool = new DataNode::DataNodeList_t;
-    _mainNode = new DataNode(name, this);
 }
 
 DataBroker::~DataBroker()
 {
-    DN_LOG_WARN("DataBroker[%s] closing...", _name);
-
-    DN_LOG_INFO("Deleting main node: %p", _mainNode);
-    delete _mainNode;
-    _mainNode = nullptr;
+    DN_LOG_WARN("DataBroker closing...");
 
     /* check leak */
     for (auto iter : *_nodePool) {
@@ -60,7 +53,7 @@ DataBroker::~DataBroker()
         _timerManager = nullptr;
     }
 
-    DN_LOG_WARN("DataBroker[%s] closed.", _name);
+    DN_LOG_WARN("DataBroker closed.");
 }
 
 DataNode* DataBroker::search(const char* id)
@@ -80,19 +73,12 @@ DataNode* DataBroker::search(DataNode::DataNodeList_t* vec, const char* id)
 
 bool DataBroker::add(DataNode* node)
 {
-    if (_mainNode == nullptr || node == _mainNode) {
-        return false;
-    }
-
     if (search(node->getID()) != nullptr) {
         DN_LOG_ERROR("Multi add DataNode[%s]", node->getID());
         return false;
     }
 
     _nodePool->push_back(node);
-
-    _mainNode->subscribe(node->getID());
-
     return true;
 }
 
