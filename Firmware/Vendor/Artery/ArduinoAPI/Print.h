@@ -25,6 +25,7 @@
  *********************/
 
 #include <stddef.h>
+#include <stdarg.h>
 #include "Printable.h"
 #include "WString.h"
 
@@ -117,6 +118,7 @@ public:
     size_t println(void);
 
     int printf(const char* format, ...);
+    int vprintf(const char* format, va_list arg);
 
     virtual void flush() { /* Empty implementation for backward compatibility */ }
 };
