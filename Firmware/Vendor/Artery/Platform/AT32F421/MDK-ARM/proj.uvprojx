@@ -576,11 +576,6 @@
               <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Button.cpp</FilePath>
             </File>
             <File>
-              <FileName>DP_Global.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Global.cpp</FilePath>
-            </File>
-            <File>
               <FileName>DP_Power.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\DP_Power.cpp</FilePath>

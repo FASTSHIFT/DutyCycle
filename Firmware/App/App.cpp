@@ -27,15 +27,17 @@
 
 struct AppContext {
     DataBroker* broker;
-    DataNode* global;
-
-    int publish(DataProc::GLOBAL_EVENT event, void* param = nullptr)
+    struct
     {
-        DataProc::Global_Info_t info;
-        info.event = event;
-        info.param = param;
-        return global->publish(&info, sizeof(info));
-    }
+        DataNode* node;
+        int publish(DataProc::GLOBAL_EVENT event, void* param = nullptr)
+        {
+            DataProc::Global_Info_t info;
+            info.event = event;
+            info.param = param;
+            return node->publish(&info, sizeof(info));
+        }
+    } global;
 };
 
 AppContext_t* App_CreateContext(int argc, const char* argv[])
@@ -49,9 +51,9 @@ AppContext_t* App_CreateContext(int argc, const char* argv[])
     context->broker = new DataBroker;
     DataProc_Init(context->broker);
 
-    context->global = context->broker->search("Global");
-    context->publish(DataProc::GLOBAL_EVENT::DATA_PROC_INIT_FINISHED);
-    context->publish(DataProc::GLOBAL_EVENT::APP_STARTED);
+    context->global.node = new DataNode("Global", context->broker);
+    context->global.publish(DataProc::GLOBAL_EVENT::DATA_PROC_INIT_FINISHED);
+    context->global.publish(DataProc::GLOBAL_EVENT::APP_STARTED);
 
     HAL_MemoryDumpInfo();
 
@@ -60,17 +62,18 @@ AppContext_t* App_CreateContext(int argc, const char* argv[])
 
 uint32_t App_RunLoopExecute(AppContext_t* context)
 {
-    context->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_BEGIN);
+    context->global.publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_BEGIN);
     uint32_t timeTillNext = context->broker->handleTimer();
-    context->publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_END, &timeTillNext);
+    context->global.publish(DataProc::GLOBAL_EVENT::APP_RUN_LOOP_END, &timeTillNext);
     //    HAL_LOG_INFO("timeTillNext = %d", timeTillNext);
     return timeTillNext;
 }
 
 void App_DestroyContext(AppContext_t* context)
 {
-    context->publish(DataProc::GLOBAL_EVENT::APP_STOPPED);
+    context->global.publish(DataProc::GLOBAL_EVENT::APP_STOPPED);
 
+    delete context->global.node;
     delete context->broker;
     delete context;
 }

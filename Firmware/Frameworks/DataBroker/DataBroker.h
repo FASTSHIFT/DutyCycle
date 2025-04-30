@@ -48,13 +48,6 @@ public:
     size_t getNodeNumber();
 
     /**
-     * @brief  Search node
-     * @param  id: DataNode ID
-     * @retval If the search is successful, return the pointer of the node
-     */
-    DataNode* search(const char* id);
-
-    /**
      * @brief  Set the main node
      * @param  node: Pointer to the main node
      */
@@ -88,6 +81,13 @@ protected:
      * @retval Return true if the removal is successful
      */
     bool remove(DataNode::DataNodeList_t* vec, DataNode* node);
+
+    /**
+     * @brief  Search node
+     * @param  id: DataNode ID
+     * @retval If the search is successful, return the pointer of the node
+     */
+    DataNode* search(const char* id);
 
     /**
      * @brief  Search node in vector
