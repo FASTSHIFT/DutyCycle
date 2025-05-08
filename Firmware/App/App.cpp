@@ -49,9 +49,9 @@ AppContext_t* App_CreateContext(int argc, const char* argv[])
 
     /* Data processor */
     context->broker = new DataBroker;
+    context->global.node = new DataNode("Global", context->broker);
     DataProc_Init(context->broker);
 
-    context->global.node = new DataNode("Global", context->broker);
     context->global.publish(DataProc::GLOBAL_EVENT::DATA_PROC_INIT_FINISHED);
     context->global.publish(DataProc::GLOBAL_EVENT::APP_STARTED);
 
