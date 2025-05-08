@@ -3,6 +3,8 @@ Work-Life Duty Cycle Clock / 您的工作生活时间指示器
 
 > *“此作品设计的最震撼之处，在于用工业语言的确定性解构了人类时间的混沌性，让一个测量电能的工具，变成了测量生命能耗的镜子。这种「硬核诗意」，正是当代批判性设计（Critical Design）的典范。” —— DeepSeek*
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/FASTSHIFT/DutyCycle)
+
 ## 下载
 ```bash
 git clone https://github.com/FASTSHIFT/DutyCycle.git --recursive
