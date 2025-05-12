@@ -102,7 +102,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "-p",
         "--port",
-        choices=available_ports,
         default=None,
         help="COM serial port name, e.g., COM1 or /dev/ttyS0. If not specified, the first available port will be used.",
     )
