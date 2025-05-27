@@ -143,8 +143,31 @@ def config_clock(ser):
     serial_write(ser, command)
 
 
+def map_value(value, in_min, in_max, out_min, out_max):
+    if in_max >= in_min:
+        if value >= in_max:
+            return out_max
+        if value <= in_min:
+            return out_min
+    else:
+        if value <= in_max:
+            return out_max
+        if value >= in_min:
+            return out_min
+
+    # The equation should be:
+    #   ((value - in_min) * delta_out) / delta_in) + out_min
+    # To avoid rounding error reorder the operations:
+    #   (value - in_min) * (delta_out / delta_in) + out_min
+
+    delta_in = in_max - in_min
+    delta_out = out_max - out_min
+
+    return ((value - in_min) * delta_out) / delta_in + out_min
+
+
 def set_motor_percent(ser, motor_max, motor_min, percent):
-    motor_value = (motor_max - motor_min) * percent / 100 + motor_min
+    motor_value = map_value(percent, 0, 100, motor_min, motor_max)
     command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
     serial_write(ser, command, 0)
 
