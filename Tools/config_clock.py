@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # MIT License
 # Copyright (c) 2025 _VIFEXTech
 #
@@ -24,6 +26,7 @@ import serial
 import serial.tools.list_ports
 import datetime
 import time  # Add this import for the sleep function
+import psutil
 
 
 def scan_serial_ports():
@@ -32,73 +35,49 @@ def scan_serial_ports():
     return [port.device for port in ports]
 
 
-def config_clock(port, baudrate, timeout):
+def serial_open(port, baudrate=115200, timeout=1):
     try:
-        # Open the serial port
-        ser = serial.Serial(
-            port=port,
-            baudrate=baudrate,
-            timeout=timeout,
-            bytesize=serial.EIGHTBITS,  # 8 data bits
-            parity=serial.PARITY_NONE,  # No parity
-            stopbits=serial.STOPBITS_ONE,  # 1 stop bit
+        ser = serial.Serial(port, baudrate, timeout=timeout)
+        if not ser.isOpen():
+            print(f"Error opening serial port {port}.")
+            exit(1)
+
+        print(
+            f"Serial port {port} opened with baud rate {baudrate} and timeout {timeout} seconds"
         )
-
-        if ser.isOpen():
-            print(
-                f"Serial port {port} opened with baud rate {baudrate} and timeout {timeout} seconds"
-            )
-
-            # Get current system time
-            now = datetime.datetime.now()
-            year = now.year
-            month = now.month
-            day = now.day
-            hour = now.hour
-            minute = now.minute
-            second = now.second
-
-            # Create the command to set the time
-            command = f"clock -c SET -y {year} -m {month} -d {day} -H {hour} -M {minute} -S {second}\r\n"
-            print(f"Sending command: {command.strip()}")
-
-            # Send the command to the serial port
-            ser.write(command.encode())
-
-            # Add a delay after writing to the serial port
-            time.sleep(0.5)  # Adjust the sleep duration as needed
-
-            # Read and print all received data
-            print("Received data:")
-            while True:
-                response = ser.readline().decode().strip()
-                if response:
-                    print(response)
-                else:
-                    break  # Exit the loop if no more data is received
-
-        else:
-            print("Serial port could not be opened")
+        return ser
     except serial.SerialException as e:
         print(f"Error opening serial port: {e}")
+        exit(1)
     except Exception as e:
         print(f"Other error: {e}")
-    finally:
-        if ser.is_open:
-            ser.close()
-            print("Serial port closed")
-
-
-if __name__ == "__main__":
-    available_ports = scan_serial_ports()
-
-    if not available_ports:
-        print("No serial ports found.")
         exit(1)
 
+
+def serial_write(ser, command, sleep_duration=0.5):
+    print(f"Sending command: {command.strip()}")
+
+    # Send the command to the serial port
+    ser.write(command.encode())
+
+    # Add a delay after writing to the serial port
+    time.sleep(sleep_duration)  # Adjust the sleep duration as needed
+
+    # Read and print all received data
+    print("Received data:")
+    while True:
+        response = ser.readline().decode().strip()
+        if response:
+            print(response)
+        else:
+            break  # Exit the loop if no more data is received
+
+
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Open a COM serial port and set the device time"
     )
+
     parser.add_argument(
         "-p",
         "--port",
@@ -119,8 +98,83 @@ if __name__ == "__main__":
         default=1,
         help="Timeout (seconds), default is 1 second",
     )
+    parser.add_argument(
+        "-m",
+        "--mode",
+        type=str,
+        default="clock",
+        choices=["clock", "cpu-monitor", "mem-monitor"],
+        help="Choose from 'clock', 'cpu-monitor', 'mem-monitor'. Default is 'clock'.",
+    )
+    parser.add_argument(
+        "--motor-max",
+        type=int,
+        default=1000,
+        help="Maximum motor value, default is 1000",
+    )
+    parser.add_argument(
+        "--motor-min",
+        type=int,
+        default=0,
+        help="Minimum motor value, default is 0",
+    )
+    parser.add_argument(
+        "--period",
+        type=float,
+        default=1,
+        help="Period (seconds) between motor value updates, default is 1 second",
+    )
 
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def config_clock(ser):
+    # Get current system time
+    now = datetime.datetime.now()
+    year = now.year
+    month = now.month
+    day = now.day
+    hour = now.hour
+    minute = now.minute
+    second = now.second
+
+    # Create the command to set the time
+    command = f"clock -c SET -y {year} -m {month} -d {day} -H {hour} -M {minute} -S {second}\r\n"
+    serial_write(ser, command)
+
+
+def cpu_monitor(ser, motor_max, motor_min, period):
+    while True:
+        # Get system information
+        cpu_percent = psutil.cpu_percent()
+        print(f"CPU usage: {cpu_percent}%")
+
+        motor_value = (motor_max - motor_min) * cpu_percent / 100 + motor_min
+        command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
+        serial_write(ser, command, 0)
+        time.sleep(period)  # Adjust the sleep duration as needed
+
+
+def memory_monitor(ser, motor_max, motor_min, period):
+    while True:
+        # Get system information
+        mem_percent = psutil.virtual_memory().percent
+        print(f"Memory usage: {mem_percent}%")
+
+        motor_value = (motor_max - motor_min) * mem_percent / 100 + motor_min
+        command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
+        serial_write(ser, command, 0)
+        time.sleep(period)  # Adjust the sleep duration as needed
+
+
+if __name__ == "__main__":
+    available_ports = scan_serial_ports()
+
+    if not available_ports:
+        print("No serial ports found.")
+        exit(1)
+
+    args = parse_args()
 
     if args.port is None:
         # Automatically select the first available serial port
@@ -129,4 +183,15 @@ if __name__ == "__main__":
             f"No specific port was provided. Using the first available port: {args.port}"
         )
 
-    config_clock(args.port, args.baudrate, args.timeout)
+    ser = serial_open(args.port, args.baudrate, args.timeout)
+
+    if args.mode == "clock":
+        config_clock(ser)
+    elif args.mode == "cpu-monitor":
+        cpu_monitor(ser, args.motor_max, args.motor_min, args.period)
+    elif args.mode == "mem-monitor":
+        memory_monitor(ser, args.motor_max, args.motor_min, args.period)
+    else:
+        print(f"Invalid mode: {args.mode}")
+
+    ser.close()
