@@ -143,15 +143,19 @@ def config_clock(ser):
     serial_write(ser, command)
 
 
+def set_motor_percent(ser, motor_max, motor_min, percent):
+    motor_value = (motor_max - motor_min) * percent / 100 + motor_min
+    command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
+    serial_write(ser, command, 0)
+
+
 def cpu_monitor(ser, motor_max, motor_min, period):
     while True:
         # Get system information
         cpu_percent = psutil.cpu_percent()
         print(f"CPU usage: {cpu_percent}%")
 
-        motor_value = (motor_max - motor_min) * cpu_percent / 100 + motor_min
-        command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
-        serial_write(ser, command, 0)
+        set_motor_percent(ser, motor_max, motor_min, cpu_percent)
         time.sleep(period)  # Adjust the sleep duration as needed
 
 
@@ -161,9 +165,7 @@ def memory_monitor(ser, motor_max, motor_min, period):
         mem_percent = psutil.virtual_memory().percent
         print(f"Memory usage: {mem_percent}%")
 
-        motor_value = (motor_max - motor_min) * mem_percent / 100 + motor_min
-        command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
-        serial_write(ser, command, 0)
+        set_motor_percent(ser, motor_max, motor_min, mem_percent)
         time.sleep(period)  # Adjust the sleep duration as needed
 
 
