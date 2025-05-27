@@ -55,22 +55,31 @@ def serial_open(port, baudrate=115200, timeout=1):
 
 
 def serial_write(ser, command, sleep_duration=0.5):
-    print(f"Sending command: {command.strip()}")
+    try:
+        print(f"Sending command: {command.strip()}")
 
-    # Send the command to the serial port
-    ser.write(command.encode())
+        # Send the command to the serial port
+        ser.write(command.encode())
 
-    # Add a delay after writing to the serial port
-    time.sleep(sleep_duration)  # Adjust the sleep duration as needed
+        # Add a delay after writing to the serial port
+        time.sleep(sleep_duration)  # Adjust the sleep duration as needed
 
-    # Read and print all received data
-    print("Received data:")
-    while True:
-        response = ser.readline().decode().strip()
-        if response:
-            print(response)
-        else:
-            break  # Exit the loop if no more data is received
+        # Read and print all received data
+        print("Received data:")
+        while True:
+            response = ser.readline().decode().strip()
+            if response:
+                print(response)
+            else:
+                break  # Exit the loop if no more data is received
+    except serial.SerialException as e:
+        # Catch serial port exceptions and print the error message
+        print(f"Serial error: {e}")
+        exit(1)
+    except Exception as e:
+        # Catch other exceptions and print the error message
+        print(f"An error occurred: {e}")
+        exit(1)
 
 
 def parse_args():
