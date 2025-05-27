@@ -103,8 +103,8 @@ def parse_args():
         "--mode",
         type=str,
         default="clock",
-        choices=["clock", "cpu-monitor", "mem-monitor"],
-        help="Choose from 'clock', 'cpu-monitor', 'mem-monitor'. Default is 'clock'.",
+        choices=["clock", "cpu-usage", "mem-usage"],
+        help="Choose from 'clock', 'cpu-usage', 'mem-usage'. Default is 'clock'.",
     )
     parser.add_argument(
         "--motor-max",
@@ -149,23 +149,22 @@ def set_motor_percent(ser, motor_max, motor_min, percent):
     serial_write(ser, command, 0)
 
 
-def cpu_monitor(ser, motor_max, motor_min, period):
+def system_monitor(ser, motor_max, motor_min, period, mode):
     while True:
+        percent = 0
+
         # Get system information
-        cpu_percent = psutil.cpu_percent()
-        print(f"CPU usage: {cpu_percent}%")
+        if mode == "cpu-usage":
+            percent = psutil.cpu_percent()
+            print(f"CPU usage: {percent}%")
+        elif mode == "mem-usage":
+            percent = psutil.virtual_memory().percent
+            print(f"Memory usage: {percent}%")
+        else:
+            print(f"Invalid mode: {mode}")
+            exit(1)
 
-        set_motor_percent(ser, motor_max, motor_min, cpu_percent)
-        time.sleep(period)  # Adjust the sleep duration as needed
-
-
-def memory_monitor(ser, motor_max, motor_min, period):
-    while True:
-        # Get system information
-        mem_percent = psutil.virtual_memory().percent
-        print(f"Memory usage: {mem_percent}%")
-
-        set_motor_percent(ser, motor_max, motor_min, mem_percent)
+        set_motor_percent(ser, motor_max, motor_min, percent)
         time.sleep(period)  # Adjust the sleep duration as needed
 
 
@@ -189,11 +188,7 @@ if __name__ == "__main__":
 
     if args.mode == "clock":
         config_clock(ser)
-    elif args.mode == "cpu-monitor":
-        cpu_monitor(ser, args.motor_max, args.motor_min, args.period)
-    elif args.mode == "mem-monitor":
-        memory_monitor(ser, args.motor_max, args.motor_min, args.period)
     else:
-        print(f"Invalid mode: {args.mode}")
+        system_monitor(ser, args.motor_max, args.motor_min, args.period, args.mode)
 
     ser.close()
