@@ -27,6 +27,7 @@ import serial.tools.list_ports
 import datetime
 import time  # Add this import for the sleep function
 import psutil
+import GPUtil
 
 
 def scan_serial_ports():
@@ -112,8 +113,8 @@ def parse_args():
         "--mode",
         type=str,
         default="clock",
-        choices=["clock", "cpu-usage", "mem-usage"],
-        help="Choose from 'clock', 'cpu-usage', 'mem-usage'. Default is 'clock'.",
+        choices=["clock", "cpu-usage", "mem-usage", "gpu-usage"],
+        help="Choose from 'clock', 'cpu-usage', 'mem-usage', 'gpu-usage'. Default is 'clock'.",
     )
     parser.add_argument(
         "--motor-max",
@@ -181,6 +182,12 @@ def set_motor_percent(ser, motor_max, motor_min, percent):
     serial_write(ser, command, 0)
 
 
+def get_gpu_usage():
+    gpus = GPUtil.getGPUs()
+    gpu_load = gpus[0].load * 100  # Assuming you want the load of the first GPU
+    return gpu_load
+
+
 def system_monitor(ser, motor_max, motor_min, period, mode):
     while True:
         percent = 0
@@ -192,6 +199,9 @@ def system_monitor(ser, motor_max, motor_min, period, mode):
         elif mode == "mem-usage":
             percent = psutil.virtual_memory().percent
             print(f"Memory usage: {percent}%")
+        elif mode == "gpu-usage":
+            percent = get_gpu_usage()
+            print(f"GPU usage: {percent}%")
         else:
             print(f"Invalid mode: {mode}")
             exit(1)
