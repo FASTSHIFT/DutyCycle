@@ -172,7 +172,7 @@ New clock: 2025-04-25 14:15:10.0
 
 使用`config_clock.py`脚本自动配置时间，打开PC终端（非串口终端），使用脚本请确保安装`python3.x`及`pyserial`模块:
 ````shell
-pip install pyserial
+pip install -r Tools/requirements.txt
 ````
 
 运行以下命令自动设置时间：
