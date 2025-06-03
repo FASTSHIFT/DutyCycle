@@ -184,6 +184,11 @@ def set_motor_percent(ser, motor_max, motor_min, percent):
 
 def get_gpu_usage():
     gpus = GPUtil.getGPUs()
+
+    if not gpus:
+        print("No GPUs found.")
+        exit(1)
+
     gpu_load = gpus[0].load * 100  # Assuming you want the load of the first GPU
     return gpu_load
 
