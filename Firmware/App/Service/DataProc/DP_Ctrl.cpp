@@ -241,6 +241,10 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
         _displayState = DISPLAY_STATE::CLOCK_MAP;
         break;
 
+    case CTRL_CMD::LIST_CLOCK_MAP:
+        listHourMotorMap();
+        break;
+
     case CTRL_CMD::SET_MODE:
         _displayMode = info->displayMode;
         return KVDB_SET(_displayMode);

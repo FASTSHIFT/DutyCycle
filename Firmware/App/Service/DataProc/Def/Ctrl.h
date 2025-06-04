@@ -31,6 +31,7 @@ enum class CTRL_CMD {
     NONE,
     SWEEP_TEST,
     ENABLE_CLOCK_MAP,
+    LIST_CLOCK_MAP,
     SET_MOTOR_VALUE,
     SET_CLOCK_MAP,
     SET_MODE,

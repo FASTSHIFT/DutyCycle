@@ -444,6 +444,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
     static constexpr CMD_PAIR<CTRL_CMD> cmd_map[] = {
         CMD_PAIR_DEF(CTRL_CMD, SWEEP_TEST),
         CMD_PAIR_DEF(CTRL_CMD, ENABLE_CLOCK_MAP),
+        CMD_PAIR_DEF(CTRL_CMD, LIST_CLOCK_MAP),
         CMD_PAIR_DEF(CTRL_CMD, SET_MOTOR_VALUE),
         CMD_PAIR_DEF(CTRL_CMD, SET_CLOCK_MAP),
         CMD_PAIR_DEF(CTRL_CMD, SET_MODE),
