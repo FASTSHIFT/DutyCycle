@@ -87,6 +87,8 @@ private:
     void onHourChanged(int hour);
     void onMinuteChanged(int hour, int minute);
     int playAlarmMusic(int musicID);
+    int playAlarmHourlyMusic(int hour);
+    int playTone(uint32_t freq, uint32_t duration);
     void listAlarms();
 };
 
@@ -181,6 +183,12 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
     case ALARM_CMD::PLAY_ALARM_MUSIC:
         return playAlarmMusic(info->musicID);
 
+    case ALARM_CMD::PLAY_ALARM_HOURLY:
+        return playAlarmHourlyMusic(info->hour);
+
+    case ALARM_CMD::PLAY_TONE:
+        return playTone(info->frequency, info->duration);
+
     default:
         return DataNode::RES_UNSUPPORTED_REQUEST;
     }
@@ -204,29 +212,7 @@ void DP_Alarm::onHourChanged(int hour)
         return;
     }
 
-    static const uint16_t hourMap[] = {
-        ToneMap::L1,
-        ToneMap::L3,
-        ToneMap::L5,
-        ToneMap::M1,
-        ToneMap::M3,
-        ToneMap::M5,
-        ToneMap::H1,
-        ToneMap::H3,
-        ToneMap::H5,
-    };
-
-    const uint32_t hourIndexMax = sizeof(hourMap) / sizeof(hourMap[0]) - 1;
-
-    _seq[0].frequency = hourMap[hour / hourIndexMax];
-    _seq[0].duration = ToneMap::BEAT_1_4;
-    _seq[1].frequency = hourMap[hour % hourIndexMax + 1];
-    _seq[1].duration = ToneMap::BEAT_1_4;
-    _seq[2].frequency = hourMap[hour / hourIndexMax + 1];
-    _seq[2].duration = ToneMap::BEAT_1_4;
-    _seq[3].frequency = hourMap[hour % hourIndexMax];
-    _seq[3].duration = ToneMap::BEAT_1_4;
-    _audio.play(AUDIO_HELPER_SEQ_DEF(_seq));
+    playAlarmHourlyMusic(hour);
 }
 
 void DP_Alarm::onMinuteChanged(int hour, int minute)
@@ -249,7 +235,7 @@ void DP_Alarm::onMinuteChanged(int hour, int minute)
 int DP_Alarm::playAlarmMusic(int musicID)
 {
 #define TONE_DUTY_CYCLE 0.8f
-#define TONE_BEAT_MAKE(beat) ((uint32_t)((beat)*TONE_DUTY_CYCLE)), (beat)
+#define TONE_BEAT_MAKE(beat) ((uint32_t)((beat) * TONE_DUTY_CYCLE)), (beat)
 
     static constexpr Audio_Squence_t seq_mtag[] = {
         { ToneMap::M1, TONE_BEAT_MAKE(ToneMap::BEAT_1_4) },
@@ -321,6 +307,45 @@ int DP_Alarm::playAlarmMusic(int musicID)
     }
 
     return _audio.play(alarmMusics[musicID].sequence, alarmMusics[musicID].length, alarmMusics[musicID].bpm);
+}
+
+int DP_Alarm::playAlarmHourlyMusic(int hour)
+{
+    if (hour < 0 || hour >= 24) {
+        HAL_LOG_ERROR("Invalid hour: %d", hour);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    static const uint16_t hourMap[] = {
+        ToneMap::L1,
+        ToneMap::L3,
+        ToneMap::L5,
+        ToneMap::M1,
+        ToneMap::M3,
+        ToneMap::M5,
+        ToneMap::H1,
+        ToneMap::H3,
+        ToneMap::H5,
+    };
+
+    const uint32_t hourIndexMax = sizeof(hourMap) / sizeof(hourMap[0]) - 1;
+
+    _seq[0].frequency = hourMap[hour / hourIndexMax];
+    _seq[0].duration = ToneMap::BEAT_1_4;
+    _seq[1].frequency = hourMap[hour % hourIndexMax + 1];
+    _seq[1].duration = ToneMap::BEAT_1_4;
+    _seq[2].frequency = hourMap[hour / hourIndexMax + 1];
+    _seq[2].duration = ToneMap::BEAT_1_4;
+    _seq[3].frequency = hourMap[hour % hourIndexMax];
+    _seq[3].duration = ToneMap::BEAT_1_4;
+    return _audio.play(AUDIO_HELPER_SEQ_DEF(_seq));
+}
+
+int DP_Alarm::playTone(uint32_t freq, uint32_t duration)
+{
+    _seq[0].frequency = freq;
+    _seq[0].duration = duration;
+    return _audio.play(_seq, 1, 0, true);
 }
 
 void DP_Alarm::listAlarms()
