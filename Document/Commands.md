@@ -234,6 +234,7 @@ ctrl -c <cmd> [-H <hour>] [-M <motor>] [--mode <mode>]
 - `-c <cmd>`：控制命令，可选值包括：
     - `SWEEP_TEST`：执行指针扫动测试。
     - `ENABLE_CLOCK_MAP`：启用时钟映射。
+    - `LIST_CLOCK_MAP`：列出时钟映射。
     - `SET_MOTOR_VALUE`：设置电机值。
     - `SET_CLOCK_MAP`：设置时钟映射。
     - `SET_MODE`：设置显示模式。
@@ -271,11 +272,15 @@ alarm -c <cmd> [-i <ID>] [-H <hour>] [-M <minute>] [-m <music>] [-f <filter>]
     - `LIST`：列出所有闹钟。
     - `SET_FILTER`：设置小时过滤器。
     - `PLAY_ALARM_MUSIC`：播放闹钟音乐。
+    - `PLAY_ALARM_HOURLY`：播放正点报时音乐。
+    - `PLAY_TONE`：播放指定频率的音效。
 - `-i <ID>`：闹钟ID。范围为0~2。
 - `-H <hour>`：小时。
 - `-M <minute>`：分钟。
 - `-m <music>`：音乐ID。范围为0~2。
 - `-f <filter>`：正点报时小时过滤器，格式为 `1,2,3,4`。
+- `--freq <freq>`：音效频率（单位：赫兹），默认值为1000赫兹。
+- `--duration <duration>`：音效持续时间（单位：毫秒），默认值为1000毫秒。
 
 **示例1**：
 设置闹钟0的时间为7:30，音乐ID为1。
