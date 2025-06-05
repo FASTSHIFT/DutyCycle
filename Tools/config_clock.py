@@ -28,6 +28,7 @@ import datetime
 import time  # Add this import for the sleep function
 import psutil
 import GPUtil
+import os
 
 
 def scan_serial_ports():
@@ -134,6 +135,12 @@ def parse_args():
         default=1,
         help="Period (seconds) between motor value updates, default is 1 second",
     )
+    parser.add_argument(
+        "--cmd-file",
+        type=str,
+        default=None,
+        help="Path to a file containing a command to send to the device. The file should contain one command per line.",
+    )
 
     return parser.parse_args()
 
@@ -193,7 +200,22 @@ def get_gpu_usage():
     return gpu_load
 
 
-def system_monitor(ser, motor_max, motor_min, period, mode):
+def check_cmd_file(cmd_file):
+    if cmd_file is None:
+        return None
+
+    try:
+        with open(cmd_file, "r") as f:
+            file_line = f.readline()
+            command = f"{file_line.strip()}\r\n"
+            serial_write(ser, command, 0)
+            os.remove(cmd_file)
+            print(f"Command sent from file {cmd_file}, removing it.")
+    except FileNotFoundError:
+        pass
+
+
+def system_monitor(ser, motor_max, motor_min, period, mode, cmd_file):
     while True:
         percent = 0
 
@@ -212,6 +234,9 @@ def system_monitor(ser, motor_max, motor_min, period, mode):
             exit(1)
 
         set_motor_percent(ser, motor_max, motor_min, percent)
+
+        check_cmd_file(cmd_file)
+
         time.sleep(period)  # Adjust the sleep duration as needed
 
 
@@ -236,6 +261,8 @@ if __name__ == "__main__":
     if args.mode == "clock":
         config_clock(ser)
     else:
-        system_monitor(ser, args.motor_max, args.motor_min, args.period, args.mode)
+        system_monitor(
+            ser, args.motor_max, args.motor_min, args.period, args.mode, args.cmd_file
+        )
 
     ser.close()
