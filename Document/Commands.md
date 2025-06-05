@@ -175,14 +175,26 @@ New clock: 2025-04-25 14:15:10.0
 pip install -r Tools/requirements.txt
 ````
 
-运行以下命令自动设置时间：
+运行以下命令自动设置时间。脚本会自动扫描串口设备，找到第一个可用串口设备，并配置时间：
 ```shell
 python Tools/config_clock.py
 ```
 
-或者添加`-p`参数手动指定串口号：
+或者如果PC中有多个串口设备，可以添加`-p`参数手动指定串口号：
+
+Windows 系统:
 ```shell
 python Tools/config_clock.py -p COM3
+```
+
+Linux 系统:
+```shell
+python Tools/config_clock.py -p /dev/ttyUSB0
+```
+
+如果遇到权限不足无法打开串口设备，可以执行以下命令：
+```shell
+sudo chmod 666 /dev/ttyUSB0 # 替换为实际串口设备
 ```
 
 **输出**：
