@@ -25,10 +25,15 @@ import argparse
 import serial
 import serial.tools.list_ports
 import datetime
-import time  # Add this import for the sleep function
+import time
 import psutil
-import GPUtil
 import os
+
+try:
+    import GPUtil
+except ImportError:
+    GPUtil = None
+    print("GPUtil not found. GPU usage monitoring will not be available.")
 
 
 def scan_serial_ports():
@@ -190,6 +195,10 @@ def set_motor_percent(ser, motor_max, motor_min, percent):
 
 
 def get_gpu_usage():
+    if GPUtil is None:
+        print("GPUtil not found, abort.")
+        exit(1)
+
     gpus = GPUtil.getGPUs()
 
     if not gpus:
