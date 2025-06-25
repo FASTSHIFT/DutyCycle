@@ -39,8 +39,8 @@ static void Memory_DumpStackInfo()
 #if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB)
 
 #include <stdarg.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static int Memory_HeapPrint(void* param, char const* format, ...)
 {
@@ -65,6 +65,8 @@ static void Memory_DumpHeapInfo()
 }
 #endif
 
+#include "External/umm_malloc/src/umm_malloc_cfg.h"
+
 void HAL_MemoryDumpInfo()
 {
 #if CONFIG_MEMORY_STACK_INFO
@@ -73,5 +75,10 @@ void HAL_MemoryDumpInfo()
 
 #if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB)
     Memory_DumpHeapInfo();
+#endif
+
+#ifdef UMM_INFO
+    HAL_LOG_INFO("Heap: free: %d, max: %d",
+        (int)umm_free_heap_size(), (int)umm_max_free_block_size());
 #endif
 }
