@@ -29,6 +29,7 @@
 #define KVDB_SET(value) _kvdb.set(#value, &value, sizeof(value))
 
 #define HOUR_IS_VALID(h) ((h) >= -1 && (h) < 24)
+#define MUSIC_SEQ_MAX 8
 
 using namespace DataProc;
 
@@ -59,14 +60,11 @@ private:
     } Alarm_Param_t;
 
     typedef struct Alarm_Music {
-        constexpr Alarm_Music(const Audio_Squence_t* seq, uint16_t len = 0, uint16_t b = 0)
-            : sequence(seq)
-            , length(len)
-            , bpm(b)
+        Alarm_Music()
+            : bpm(0)
         {
         }
-        const Audio_Squence_t* sequence;
-        uint16_t length;
+        Audio_Squence_t sequence[MUSIC_SEQ_MAX];
         uint16_t bpm;
     } Alarm_Music_t;
 
@@ -79,6 +77,7 @@ private:
 
     Audio_Squence_t _seq[4];
     Alarm_Param_t _alarmParam;
+    Alarm_Music_t _alarmMusicCustom;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
@@ -86,10 +85,12 @@ private:
     void onGlobalEvent(const Global_Info_t* info);
     void onHourChanged(int hour);
     void onMinuteChanged(int hour, int minute);
+    int setAlarmMusic(const Alarm_Info_t* info);
     int playAlarmMusic(int musicID);
     int playAlarmHourlyMusic(int hour);
     int playTone(uint32_t freq, uint32_t duration);
     void listAlarms();
+    void listAlarmMusic();
 };
 
 DP_Alarm::DP_Alarm(DataNode* node)
@@ -180,6 +181,17 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
         HAL_LOG_INFO("Set hourly alarm filter: 0x%08X", _alarmParam.hourlyAlarmFilter);
         return KVDB_SET(_alarmParam);
 
+    case ALARM_CMD::SET_ALARM_MUSIC:
+        return setAlarmMusic(info);
+
+    case ALARM_CMD::LIST_ALARM_MUSIC:
+        listAlarmMusic();
+        break;
+
+    case ALARM_CMD::CLEAR_ALARM_MUSIC:
+        memset(&_alarmMusicCustom, 0, sizeof(_alarmMusicCustom));
+        break;
+
     case ALARM_CMD::PLAY_ALARM_MUSIC:
         return playAlarmMusic(info->musicID);
 
@@ -230,6 +242,24 @@ void DP_Alarm::onMinuteChanged(int hour, int minute)
             break;
         }
     }
+}
+
+int DP_Alarm::setAlarmMusic(const Alarm_Info_t* info)
+{
+    if (info->index < 0 || info->index >= CM_ARRAY_SIZE(_alarmMusicCustom.sequence)) {
+        HAL_LOG_ERROR("index: %d out of range: 0~%d", info->index, CM_ARRAY_SIZE(_alarmMusicCustom.sequence));
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    Audio_Squence_t* seq = &_alarmMusicCustom.sequence[info->index];
+    seq->frequency = info->frequency;
+    seq->duration = info->duration;
+    seq->time = info->time;
+
+    _alarmMusicCustom.bpm = info->bpm;
+
+    listAlarmMusic();
+    return DataNode::RES_OK;
 }
 
 int DP_Alarm::playAlarmMusic(int musicID)
@@ -295,18 +325,31 @@ int DP_Alarm::playAlarmMusic(int musicID)
         { ToneMap::H4, TONE_BEAT_MAKE(ToneMap::BEAT_1_4 + ToneMap::BEAT_1_8) },
     };
 
-    static constexpr Alarm_Music_t alarmMusics[] = {
+    typedef struct MusicGrp {
+        MusicGrp(const Audio_Squence_t* seq, uint16_t len = 0, uint16_t b = 0)
+            : sequence(seq)
+            , length(len)
+            , bpm(b)
+        {
+        }
+        const Audio_Squence_t* sequence;
+        uint16_t length;
+        uint16_t bpm;
+    } MusicGrp_t;
+
+    MusicGrp_t musics[] = {
         { seq_mtag, CM_ARRAY_SIZE(seq_mtag) },
         { seq_mc_bgm, CM_ARRAY_SIZE(seq_mc_bgm), 40 },
         { seq_gta4_phone, CM_ARRAY_SIZE(seq_gta4_phone), 50 },
+        { _alarmMusicCustom.sequence, CM_ARRAY_SIZE(_alarmMusicCustom.sequence), _alarmMusicCustom.bpm }
     };
 
-    if (musicID < 0 || musicID >= CM_ARRAY_SIZE(alarmMusics)) {
+    if (musicID < 0 || musicID >= CM_ARRAY_SIZE(musics)) {
         HAL_LOG_ERROR("Invalid music ID: %d", musicID);
         return DataNode::RES_PARAM_ERROR;
     }
 
-    return _audio.play(alarmMusics[musicID].sequence, alarmMusics[musicID].length, alarmMusics[musicID].bpm);
+    return _audio.play(musics[musicID].sequence, musics[musicID].length, musics[musicID].bpm);
 }
 
 int DP_Alarm::playAlarmHourlyMusic(int hour)
@@ -359,6 +402,17 @@ void DP_Alarm::listAlarms()
         HAL_LOG_INFO("Alarm %d: %02d:%02d, Music ID: %d",
             i, _alarmParam.alarms[i].hour, _alarmParam.alarms[i].minute, _alarmParam.alarms[i].musicID);
     }
+}
+
+void DP_Alarm::listAlarmMusic()
+{
+    for (int i = 0; i < CM_ARRAY_SIZE(_alarmMusicCustom.sequence); i++) {
+        HAL_LOG_INFO("[%d]: %d Hz, duration: %d ms, time: %d ms",
+            i, _alarmMusicCustom.sequence[i].frequency, _alarmMusicCustom.sequence[i].duration,
+            _alarmMusicCustom.sequence[i].time);
+    }
+
+    HAL_LOG_INFO("bpm: %d", _alarmMusicCustom.bpm);
 }
 
 DATA_PROC_DESCRIPTOR_DEF(Alarm)

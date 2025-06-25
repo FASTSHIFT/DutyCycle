@@ -501,8 +501,11 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
         OPT_INTEGER('M', "minute", &info.minute, "minute", nullptr, 0, 0),
         OPT_INTEGER('m', "music", &info.musicID, "music ID", nullptr, 0, 0),
         OPT_STRING('f', "filter", &filter_str, "hourly alarm filter, e.g. 1,2,3,4", nullptr, 0, 0),
-        OPT_INTEGER(0, "freq", &info.frequency, "play tone frequency(Hz)", nullptr, 0, 0),
-        OPT_INTEGER(0, "duration", &info.duration, "play tone duration(ms)", nullptr, 0, 0),
+        OPT_INTEGER(0, "index", &info.index, "tone index", nullptr, 0, 0),
+        OPT_INTEGER(0, "freq", &info.frequency, "tone frequency(Hz)", nullptr, 0, 0),
+        OPT_INTEGER(0, "duration", &info.duration, "tone duration(ms)", nullptr, 0, 0),
+        OPT_INTEGER(0, "time", &info.time, "tone time(ms)", nullptr, 0, 0),
+        OPT_INTEGER(0, "bpm", &info.bpm, "tone bpm", nullptr, 0, 0),
         OPT_END(),
     };
 
@@ -514,6 +517,9 @@ int DP_Shell::cmdAlarm(int argc, const char** argv)
         CMD_PAIR_DEF(ALARM_CMD, SET),
         CMD_PAIR_DEF(ALARM_CMD, LIST),
         CMD_PAIR_DEF(ALARM_CMD, SET_FILTER),
+        CMD_PAIR_DEF(ALARM_CMD, SET_ALARM_MUSIC),
+        CMD_PAIR_DEF(ALARM_CMD, LIST_ALARM_MUSIC),
+        CMD_PAIR_DEF(ALARM_CMD, CLEAR_ALARM_MUSIC),
         CMD_PAIR_DEF(ALARM_CMD, PLAY_ALARM_MUSIC),
         CMD_PAIR_DEF(ALARM_CMD, PLAY_ALARM_HOURLY),
         CMD_PAIR_DEF(ALARM_CMD, PLAY_TONE),
