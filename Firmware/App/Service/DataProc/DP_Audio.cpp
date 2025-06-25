@@ -181,6 +181,7 @@ void DP_Audio::onTimer()
 {
     if (_curIndex >= _info.length) {
         stop();
+        return;
     }
 
     auto cur = &_info.squence[_curIndex++];
