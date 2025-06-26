@@ -8,19 +8,19 @@ DutyCycle提供了一个命令行界面，用于与系统中的数据节点进�
 
 | 命令     | 注释                 |
 |----------|----------------------|
-| **help** | 显示帮助信息         |
-| **loglevel** | 设置日志级别       |
-| **ps** | 显示栈使用最大深度         |
-| **publish** | 发布消息（仅供调试使用） |
-| **clock** | 显示或设置系统时钟   |
-| **power** | 控制电源状态   |
-| **ctrl** | 控制设备功能         |
-| **alarm** | 闹钟设置       |
-| **kvdb** | 数据库操作（仅供调试使用）    |
+| [**help**](#help) | 显示帮助信息         |
+| [**loglevel**](#loglevel) | 设置日志级别       |
+| [**ps**](#ps) | 显示栈使用最大深度         |
+| [**publish**](#publish) | 发布消息（仅供调试使用） |
+| [**clock**](#clock) | 显示或设置系统时钟   |
+| [**power**](#power) | 控制电源状态   |
+| [**ctrl**](#ctrl) | 控制设备功能         |
+| [**alarm**](#alarm) | 闹钟设置       |
+| [**kvdb**](#kvdb) | 数据库操作（仅供调试使用）    |
 
 ---
 
-### 1. help
+### help
 **概述**：显示所有可用命令。
 
 **命令格式**：
@@ -49,7 +49,7 @@ kvdb
 
 ---
 
-### 2. loglevel
+### loglevel
 **概述**：设置系统的日志级别。
 
 **命令格式**：
@@ -76,7 +76,7 @@ loglevel 3
 
 ---
 
-### 3. ps
+### ps
 **概述**：显示系统栈最深使用量，需要确保日志等级为1(Info)及以下。
 
 **命令格式**：
@@ -97,7 +97,7 @@ ps
 
 ---
 
-### 4. publish
+### publish
 **概述**：向订阅`DP_Shell`的节点发布消息，仅供内部调试使用。
 
 **命令格式**：
@@ -122,7 +122,7 @@ publish finished: -3
 
 ---
 
-### 5. clock
+### clock
 **概述**：显示当前时钟，并可以设置新的时钟时间。
 
 **命令格式**：
@@ -210,7 +210,7 @@ Serial port closed
 
 ---
 
-### 6. power
+### power
 **概述**：电源控制。注意：关闭或重启系统后，RTC（实时时钟）也会关闭，再次启动后需要重新设置时间，系统启动的默认时间为固件编译时间。
 
 **命令格式**：
@@ -235,7 +235,7 @@ power -c SHUTDOWN
 
 ---
 
-### 7. ctrl
+### ctrl
 **概述**：发送控制命令。
 
 **命令格式**：
@@ -271,7 +271,7 @@ ctrl -c SET_MOTOR_VALUE -M 100
 
 ---
 
-### 8. alarm
+### alarm
 **概述**：设置闹钟和正点报时功能。
 
 **命令格式**：
@@ -283,16 +283,23 @@ alarm -c <cmd> [-i <ID>] [-H <hour>] [-M <minute>] [-m <music>] [-f <filter>]
     - `SET`：设置闹钟时间。
     - `LIST`：列出所有闹钟。
     - `SET_FILTER`：设置小时过滤器。
+    - `SET_ALARM_MUSIC`：编辑自定义闹钟音乐。
+    - `LIST_ALARM_MUSIC`：列出自定义闹钟音乐内容。
+    - `CLEAR_ALARM_MUSIC`：清除自定义闹钟音乐。
+    - `SAVE_ALARM_MUSIC`：保存自定义闹钟音乐。
     - `PLAY_ALARM_MUSIC`：播放闹钟音乐。
     - `PLAY_ALARM_HOURLY`：播放正点报时音乐。
     - `PLAY_TONE`：播放指定频率的音效。
-- `-i <ID>`：闹钟ID。范围为0~2。
+- `-i <ID>`：闹钟ID。范围为0~3。
 - `-H <hour>`：小时。
 - `-M <minute>`：分钟。
 - `-m <music>`：音乐ID。范围为0~2。
 - `-f <filter>`：正点报时小时过滤器，格式为 `1,2,3,4`。
-- `--freq <freq>`：音效频率（单位：赫兹），默认值为1000赫兹。
-- `--duration <duration>`：音效持续时间（单位：毫秒），默认值为1000毫秒。
+- `--index <index>`：音效索引。
+- `--freq <freq>`：音效频率（单位：赫兹）。
+- `--duration <duration>`：音效持续时间（单位：毫秒）。
+- `--time <time>`：音效播放时间（单位：毫秒），如果不设置则以duration为准。
+- `--bpm <bpm>`：音乐节拍（单位：拍）。
 
 **示例1**：
 设置闹钟0的时间为7:30，音乐ID为1。
@@ -304,6 +311,33 @@ alarm -c SET -i 0 -H 7 -M 30 -m 1
 无，使用`LIST`指令查看是否生效。
 
 **示例2**：
+设置正点报时的小时过滤器，过滤掉10\~12点和14\~23点以外的时间，防止打扰休息。
+
+```shell
+alarm -c SET_FILTER -f 10,11,12,14,15,16,17,18,19,20,21,22,23
+```
+
+**输出**：
+```
+add hour: 10 to filter
+add hour: 11 to filter
+add hour: 12 to filter
+add hour: 14 to filter
+add hour: 15 to filter
+add hour: 16 to filter
+add hour: 17 to filter
+add hour: 18 to filter
+add hour: 19 to filter
+add hour: 20 to filter
+add hour: 21 to filter
+add hour: 22 to filter
+add hour: 23 to filter
+[INFO] DP_Alarm::onNotify: Set hourly alarm filter: 0x00FFDC00
+```
+设置成功后自动打印出过滤器信息以及掩码。
+
+
+**示例3**：
 列出所有闹钟信息。
 ```shell
 alarm -c LIST
@@ -316,11 +350,11 @@ alarm -c LIST
 [INFO] DP_Alarm::listAlarms: Alarm 1: 18:20, Music ID: 1
 [INFO] DP_Alarm::listAlarms: Alarm 2: 21:00, Music ID: 2
 ```
-报时过滤器为`0x00FFDC00`；闹钟0为7:30，音乐ID为1；闹钟1为18:20，音乐ID为1；闹钟2为21:00，音乐ID为2。
+报时过滤器掩码为`0x00FFDC00`；闹钟0为7:30，音乐ID为1；闹钟1为18:20，音乐ID为1；闹钟2为21:00，音乐ID为2。
 
 ---
 
-### 9. kvdb
+### kvdb
 **概述**：数据库操作（仅供调试使用）。
 
 **命令格式**：
