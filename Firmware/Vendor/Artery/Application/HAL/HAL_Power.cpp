@@ -36,6 +36,7 @@ private:
     virtual int onInit();
     virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
     void setEnable(bool enable);
+    void goToISP();
 };
 
 int Power::onInit()
@@ -63,6 +64,10 @@ int Power::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
         NVIC_SystemReset();
         break;
 
+    case POWER_IOCMD_GOTO_ISP:
+        goToISP();
+        break;
+
     default:
         return DeviceObject::RES_UNSUPPORT;
     }
@@ -72,6 +77,21 @@ int Power::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
 void Power::setEnable(bool enable)
 {
     digitalWrite(CONFIG_PWR_EN_PIN, enable);
+}
+
+void Power::goToISP()
+{
+#define ISP_STACK_ADDRESS (0x1FFFE400)
+
+    uint32_t JumpAddress = *(__IO uint32_t*)(ISP_STACK_ADDRESS + 4u);
+    crm_reset();
+    __disable_irq();
+
+    SCB->VTOR = ISP_STACK_ADDRESS;
+    __set_MSP((*(__IO uint32_t*)ISP_STACK_ADDRESS));
+    __enable_irq();
+
+    ((void (*)(void))(JumpAddress))();
 }
 
 } /* namespace HAL */

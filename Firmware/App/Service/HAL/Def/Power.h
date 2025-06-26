@@ -34,6 +34,7 @@ namespace HAL {
 #define POWER_IOCMD_WFI         DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 0, 0)
 #define POWER_IOCMD_POWER_OFF   DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 1, 0)
 #define POWER_IOCMD_REBOOT      DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 2, 0)
+#define POWER_IOCMD_GOTO_ISP    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, 0, 3, 0)
 
 } // namespace HAL
 
