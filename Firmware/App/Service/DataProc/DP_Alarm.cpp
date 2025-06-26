@@ -190,7 +190,11 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
 
     case ALARM_CMD::CLEAR_ALARM_MUSIC:
         memset(&_alarmMusicCustom, 0, sizeof(_alarmMusicCustom));
+        HAL_LOG_INFO("Alarm music cleared");
         break;
+
+    case ALARM_CMD::SAVE_ALARM_MUSIC:
+        return KVDB_SET(_alarmMusicCustom);
 
     case ALARM_CMD::PLAY_ALARM_MUSIC:
         return playAlarmMusic(info->musicID);
@@ -213,6 +217,9 @@ void DP_Alarm::onGlobalEvent(const Global_Info_t* info)
     if (info->event == GLOBAL_EVENT::APP_STARTED) {
         KVDB_GET(_alarmParam);
         listAlarms();
+
+        KVDB_GET(_alarmMusicCustom);
+        listAlarmMusic();
     }
 }
 
@@ -246,17 +253,30 @@ void DP_Alarm::onMinuteChanged(int hour, int minute)
 
 int DP_Alarm::setAlarmMusic(const Alarm_Info_t* info)
 {
-    if (info->index < 0 || info->index >= CM_ARRAY_SIZE(_alarmMusicCustom.sequence)) {
-        HAL_LOG_ERROR("index: %d out of range: 0~%d", info->index, CM_ARRAY_SIZE(_alarmMusicCustom.sequence));
-        return DataNode::RES_PARAM_ERROR;
+    if (info->index >= 0) {
+        if (info->index >= CM_ARRAY_SIZE(_alarmMusicCustom.sequence)) {
+            HAL_LOG_ERROR("index: %d out of range: 0~%d", info->index, CM_ARRAY_SIZE(_alarmMusicCustom.sequence));
+            return DataNode::RES_PARAM_ERROR;
+        }
+
+        Audio_Squence_t* seq = &_alarmMusicCustom.sequence[info->index];
+
+        if (info->frequency >= 0) {
+            seq->frequency = info->frequency;
+        }
+
+        if (info->duration >= 0) {
+            seq->duration = info->duration;
+        }
+
+        if (info->time >= 0) {
+            seq->time = info->time;
+        }
     }
 
-    Audio_Squence_t* seq = &_alarmMusicCustom.sequence[info->index];
-    seq->frequency = info->frequency;
-    seq->duration = info->duration;
-    seq->time = info->time;
-
-    _alarmMusicCustom.bpm = info->bpm;
+    if (info->bpm >= 0) {
+        _alarmMusicCustom.bpm = info->bpm;
+    }
 
     listAlarmMusic();
     return DataNode::RES_OK;
@@ -326,7 +346,7 @@ int DP_Alarm::playAlarmMusic(int musicID)
     };
 
     typedef struct MusicGrp {
-        MusicGrp(const Audio_Squence_t* seq, uint16_t len = 0, uint16_t b = 0)
+        MusicGrp(const Audio_Squence_t* seq, uint16_t len, uint16_t b = 0)
             : sequence(seq)
             , length(len)
             , bpm(b)
@@ -371,7 +391,7 @@ int DP_Alarm::playAlarmHourlyMusic(int hour)
         ToneMap::H5,
     };
 
-    const uint32_t hourIndexMax = sizeof(hourMap) / sizeof(hourMap[0]) - 1;
+    const uint32_t hourIndexMax = CM_ARRAY_SIZE(hourMap) - 1;
 
     _seq[0].frequency = hourMap[hour / hourIndexMax];
     _seq[0].duration = ToneMap::BEAT_1_4;

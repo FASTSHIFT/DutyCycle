@@ -35,6 +35,7 @@ enum class ALARM_CMD {
     SET_ALARM_MUSIC,
     LIST_ALARM_MUSIC,
     CLEAR_ALARM_MUSIC,
+    SAVE_ALARM_MUSIC,
     PLAY_ALARM_MUSIC,
     PLAY_ALARM_HOURLY,
     PLAY_TONE,
@@ -48,11 +49,11 @@ typedef struct Alarm_Info {
         , minute(0)
         , musicID(0)
         , filter(0)
-        , index(0)
-        , frequency(1000)
-        , duration(1000)
-        , time(0)
-        , bpm(0)
+        , index(-1)
+        , frequency(-1)
+        , duration(-1)
+        , time(-1)
+        , bpm(-1)
     {
     }
     ALARM_CMD cmd;

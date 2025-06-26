@@ -248,7 +248,8 @@ void DP_Power::checkShutdown()
 void DP_Power::onShutdown()
 {
     if (_info.cmd == POWER_CMD::SHUTDOWN) {
-        HAL_LOG_WARN("Shutdown is already in progress");
+        HAL_LOG_WARN("Go to ISP mode...");
+        _devPower->ioctl(POWER_IOCMD_GOTO_ISP);
         return;
     }
 
