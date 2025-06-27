@@ -35,7 +35,7 @@ extern "C" {
 void HAL_Log_Init()
 {
     LOG_SERIAL.begin(115200);
-    LOG_SERIAL.setTimeout(20);
+//    LOG_SERIAL.setTimeout(20);
 }
 
 void HAL_Log_SetLevel(uint8_t level)
