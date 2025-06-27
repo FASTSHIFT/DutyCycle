@@ -25,40 +25,30 @@
 
 /* clang-format off */
 
-#define CONFIG_USE_V1_2_PIN 1
-
 /* Logger Serial */
-#define CONFIG_LOG_SERIAL         Serial
+#define CONFIG_LOG_SERIAL          Serial
 
 /* Motor */
-#define CONFIG_MOTOR_OUT1_PIN     PA2
-#define CONFIG_MOTOR_OUT2_PIN     PA3
-
-#if CONFIG_USE_V1_2_PIN
+#define CONFIG_MOTOR_OUT1_PIN      PA2
+#define CONFIG_MOTOR_OUT2_PIN      PA3
 
 /* Buzzer */
-#define CONFIG_BUZZ_PIN           PB1
+#define CONFIG_BUZZ_V1_2_PIN       PB1
+#define CONFIG_BUZZ_V1_1_PIN       PB2
+#define CONFIG_BUZZ_PIN            HAL_PinRemap(CONFIG_BUZZ_V1_2_PIN)
 
 /* Battery */
-#define CONFIG_BATT_DET_PIN       PB0
-#define CONFIG_PWR_EN_PIN         PA6
+#define CONFIG_BATT_DET_V1_2_PIN   PB0
+#define CONFIG_BATT_DET_V1_1_PIN   PB1
+#define CONFIG_BATT_DET_PIN        HAL_PinRemap(CONFIG_BATT_DET_V1_2_PIN)
+#define CONFIG_PWR_EN_V1_2_PIN     PA6
+#define CONFIG_PWR_EN_V1_1_PIN     PA7
+#define CONFIG_PWR_EN_PIN          HAL_PinRemap(CONFIG_PWR_EN_V1_2_PIN)
 
 /* Button */
-#define CONFIG_BUTTON_SEL_PIN     PA7
-
-#else
-
- /* Buzzer */
-#define CONFIG_BUZZ_PIN           PB2
- 
- /* Battery */
-#define CONFIG_BATT_DET_PIN       PB1
-#define CONFIG_PWR_EN_PIN         PA7
- 
- /* Button */
-#define CONFIG_BUTTON_SEL_PIN     PB0
-
-#endif
+#define CONFIG_BUTTON_SEL_V1_2_PIN PA7
+#define CONFIG_BUTTON_SEL_V1_1_PIN PB0
+#define CONFIG_BUTTON_SEL_PIN      HAL_PinRemap(CONFIG_BUTTON_SEL_V1_2_PIN)
 
 /* Memory */
 #define CONFIG_MEMORY_STACK_INFO  1 /* Reuqire MPU Disabled */

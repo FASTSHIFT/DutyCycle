@@ -1440,6 +1440,11 @@
               <FileType>8</FileType>
               <FilePath>..\..\..\Application\HAL\HAL_MPU.cpp</FilePath>
             </File>
+            <File>
+              <FileName>HAL_PinRemap.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\Application\HAL\HAL_PinRemap.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

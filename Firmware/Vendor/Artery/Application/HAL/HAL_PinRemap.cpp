@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2023 _VIFEXTech
+ * Copyright (c) 2025 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,17 +20,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_H
-#define __HAL_H
 
-#include "Arduino.h"
-#include "HAL_Config.h"
-#include "Service/HAL/HAL.h"
-#include "Service/HAL/HAL_Log.h"
-#include "Utils/CommonMacro/CommonMacro.h"
+#include "HAL.h"
 
-void HAL_MemoryDumpInfo();
-void HAL_MPU_Init();
-uint8_t HAL_PinRemap(uint8_t pin);
+uint8_t HAL_PinRemap(uint8_t pin)
+{
+    static int8_t is1V1board = -1;
+    if (is1V1board < 0) {
+        pinMode(CONFIG_BUZZ_V1_2_PIN, INPUT);
 
-#endif
+        /**
+         * For version v1.1, the hardware PB1 is connected to the battery level detection,
+         * while for higher versions, it is connected to the Buzzer.
+         * Through this pin, the hardware version can be distinguished
+         */
+        is1V1board = digitalRead(CONFIG_BUZZ_V1_2_PIN);
+
+        HAL_LOG_INFO("V1.1 Board detected: %d", is1V1board);
+    }
+
+    if (!is1V1board) {
+        return pin;
+    }
+
+    switch (pin) {
+    case CONFIG_BUZZ_V1_2_PIN:
+        return CONFIG_BUZZ_V1_1_PIN;
+
+    case CONFIG_BATT_DET_V1_2_PIN:
+        return CONFIG_BATT_DET_V1_1_PIN;
+
+    case CONFIG_PWR_EN_V1_2_PIN:
+        return CONFIG_PWR_EN_V1_1_PIN;
+
+    case CONFIG_BUTTON_SEL_V1_2_PIN:
+        return CONFIG_BUTTON_SEL_V1_1_PIN;
+
+    default:
+        break;
+    }
+
+    return pin;
+}
