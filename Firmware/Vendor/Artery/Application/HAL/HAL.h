@@ -30,5 +30,6 @@
 #include "Utils/CommonMacro/CommonMacro.h"
 
 void HAL_MemoryDumpInfo();
+void HAL_MPU_Init();
 
 #endif

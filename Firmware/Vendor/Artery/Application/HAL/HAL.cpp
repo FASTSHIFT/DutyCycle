@@ -44,6 +44,7 @@ void HAL::Init()
 {
     HAL_Log_Init();
     HAL_LOG_INFO("begin");
+    HAL_MPU_Init();
 
     Manager()->init([](DeviceManager* manager, DeviceObject* dev, int retval) {
         if (retval < 0) {

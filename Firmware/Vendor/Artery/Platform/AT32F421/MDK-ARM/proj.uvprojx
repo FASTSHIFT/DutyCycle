@@ -1435,6 +1435,11 @@
               <FileType>8</FileType>
               <FilePath>..\..\..\Application\HAL\HAL_Flash.cpp</FilePath>
             </File>
+            <File>
+              <FileName>HAL_MPU.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\Application\HAL\HAL_MPU.cpp</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
