@@ -197,6 +197,11 @@ python Tools/config_clock.py -p /dev/ttyUSB0
 sudo chmod 666 /dev/ttyUSB0 # 替换为实际串口设备
 ```
 
+或者执行以下命令将当前用户加入到此用户组，然后注销重新登录即可。
+```shell
+sudo usermod -a -G dialout $USER
+```
+
 **输出**：
 ```
 No specific port was provided. Using the first available port: COM3
