@@ -146,6 +146,13 @@ def parse_args():
         default=None,
         help="Path to a file containing a command to send to the device. The file should contain one command per line.",
     )
+    parser.add_argument(
+        "--auto-config-clock",
+        type=float,
+        default=True,
+        help="Set the device clock to the current system time. "
+        "The argument specifies the number of hours to wait before setting the clock again. Default is 24 hours.",
+    )
 
     return parser.parse_args()
 
@@ -224,29 +231,43 @@ def check_cmd_file(cmd_file):
         pass
 
 
-def system_monitor(ser, motor_max, motor_min, period, mode, cmd_file):
-    while True:
-        percent = 0
+def system_monitor(ser, mode, motor_max, motor_min):
+    percent = 0
 
-        # Get system information
-        if mode == "cpu-usage":
-            percent = psutil.cpu_percent()
-            print(f"CPU usage: {percent}%")
-        elif mode == "mem-usage":
-            percent = psutil.virtual_memory().percent
-            print(f"Memory usage: {percent}%")
-        elif mode == "gpu-usage":
-            percent = get_gpu_usage()
-            print(f"GPU usage: {percent}%")
-        else:
-            print(f"Invalid mode: {mode}")
-            exit(1)
+    # Get system information
+    if mode == "cpu-usage":
+        percent = psutil.cpu_percent()
+        print(f"CPU usage: {percent}%")
+    elif mode == "mem-usage":
+        percent = psutil.virtual_memory().percent
+        print(f"Memory usage: {percent}%")
+    elif mode == "gpu-usage":
+        percent = get_gpu_usage()
+        print(f"GPU usage: {percent}%")
+    else:
+        print(f"Invalid mode: {mode}")
+        exit(1)
 
-        set_motor_percent(ser, motor_max, motor_min, percent)
+    set_motor_percent(ser, motor_max, motor_min, percent)
 
-        check_cmd_file(cmd_file)
 
-        time.sleep(period)  # Adjust the sleep duration as needed
+def on_loop(args):
+    system_monitor(ser, args.mode, args.motor_max, args.motor_min)
+
+    check_cmd_file(args.cmd_file)
+
+    # Auto-config clock
+    if args.auto_config_clock > 0:
+        if not hasattr(on_loop, "last_clock_time"):
+            on_loop.last_clock_time = 0
+
+        auto_interval_seconds = args.auto_config_clock * 3600
+        current_time = time.time()
+        if current_time - on_loop.last_clock_time >= auto_interval_seconds:
+            config_clock(ser)
+            on_loop.last_clock_time = current_time
+
+    time.sleep(args.period)
 
 
 if __name__ == "__main__":
@@ -270,8 +291,7 @@ if __name__ == "__main__":
     if args.mode == "clock":
         config_clock(ser)
     else:
-        system_monitor(
-            ser, args.motor_max, args.motor_min, args.period, args.mode, args.cmd_file
-        )
+        while True:
+            on_loop(args)
 
     ser.close()
