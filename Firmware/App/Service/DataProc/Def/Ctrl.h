@@ -38,7 +38,7 @@ enum class CTRL_CMD {
     SHOW_BATTERY_USAGE,
 };
 
-enum class CTRL_DISPLAY_MODE {
+enum CTRL_DISPLAY_MODE {
     COS_PHI,
     LINEAR,
 };

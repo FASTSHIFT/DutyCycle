@@ -115,8 +115,8 @@ private:
 
     int16_t _hourMotorMap[25];
     int8_t _sweepValueIndex;
+    uint8_t _displayMode;
     DISPLAY_STATE _displayState : 4;
-    CTRL_DISPLAY_MODE _displayMode;
     easing_t _easing;
 
 private:
