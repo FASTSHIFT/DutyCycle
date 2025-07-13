@@ -24,7 +24,7 @@
 #include <stdint.h>
 
 #ifndef UMM_MALLOC_HEAP_SIZE
-#define UMM_MALLOC_HEAP_SIZE (10 * 1024)
+#define UMM_MALLOC_HEAP_SIZE (4 * 1024)
 #endif
 
 static uint32_t umm_heap[UMM_MALLOC_HEAP_SIZE / sizeof(uint32_t)];

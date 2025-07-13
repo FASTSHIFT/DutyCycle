@@ -22,4 +22,4 @@
  */
 
 #define UMM_BEST_FIT
-//#define UMM_INFO
+#define UMM_INFO
