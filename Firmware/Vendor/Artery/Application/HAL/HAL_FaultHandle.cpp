@@ -23,6 +23,7 @@
 #include "HAL.h"
 #include "Service/HAL/HAL_Assert.h"
 #include "Version.h"
+#include "cm_backtrace/cm_backtrace.h"
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -41,6 +42,10 @@ private:
 
 int FaultHandle::onInit()
 {
+    cm_backtrace_init(
+        VERSION_FIRMWARE_NAME,
+        VERSION_HARDWARE,
+        VERSION_SOFTWARE " " __DATE__ " " __TIME__);
     return DeviceObject::RES_OK;
 }
 
@@ -49,6 +54,38 @@ int FaultHandle::onInit()
 DEVICE_OBJECT_MAKE(FaultHandle);
 
 extern "C" {
+
+/* clang-format off */
+    
+#ifdef __CC_ARM
+    __asm void HardFault_Handler()
+    {
+        extern HAL_Panic
+        extern cm_backtrace_fault
+
+        mov r0, lr
+        mov r1, sp
+        bl cm_backtrace_fault
+        bl HAL_Panic
+fault_loop
+        b fault_loop
+    }
+#elif __GNUC__
+    [[noreturn]] void HardFault_Handler()
+    {
+        __asm volatile ("MOV     r0, lr             ");
+        __asm volatile ("MOV     r1, sp             ");
+        __asm volatile ("BL      cm_backtrace_fault ");
+        __asm volatile ("BL      HAL_Panic ");
+
+fault_loop:
+        goto fault_loop;
+    }
+#else
+#  warning "Unsupported platforms"
+#endif
+
+/* clang-format on */
 
 void cmb_printf(const char* __restrict __format, ...)
 {
@@ -70,6 +107,12 @@ void HAL_Assert(const char* file, int line, const char* func, const char* expr)
 
 void HAL_Panic(void)
 {
+    HAL_LOG_ERROR("FXXK PANIC !!!");
+    HAL_LOG_ERROR("Firmware: " VERSION_FIRMWARE_NAME);
+    HAL_LOG_ERROR("Software: " VERSION_SOFTWARE);
+    HAL_LOG_ERROR("Hardware: " VERSION_HARDWARE);
+    HAL_LOG_ERROR("Build Time: " __DATE__ " " __TIME__);
+    NVIC_SystemReset();
 }
 
 } /* extern "C" */
