@@ -139,6 +139,7 @@ private:
     int timestampToMotorValue(int timestamp);
 
     int32_t timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, int32_t min_out, int32_t max_out);
+    int32_t timestampMap(int32_t x, int32_t hour_start, int32_t hour_end);
     int32_t valueMap(int32_t x, int32_t max_in, int32_t min_in, int32_t min_out, int32_t max_out);
 };
 
@@ -475,17 +476,17 @@ int DP_Ctrl::timestampToMotorValue(int timestamp)
         int motorValue = 0;
 
         if (timestamp >= getTimestamp(5) && timestamp < getTimestamp(7)) {
-            motorValue = timestampMap(timestamp, 5, 7, MOTOR_VALUE_H5, MOTOR_VALUE_H7);
+            motorValue = timestampMap(timestamp, 5, 7);
         } else if (timestamp >= getTimestamp(7) && timestamp < getTimestamp(9)) {
-            motorValue = timestampMap(timestamp, 7, 9, MOTOR_VALUE_H7, MOTOR_VALUE_H9);
+            motorValue = timestampMap(timestamp, 7, 9);
         } else if (timestamp >= getTimestamp(9) && timestamp < getTimestamp(12)) {
-            motorValue = timestampMap(timestamp, 9, 12, MOTOR_VALUE_H9, MOTOR_VALUE_H12);
+            motorValue = timestampMap(timestamp, 9, 12);
         } else if (timestamp >= getTimestamp(12) && timestamp < getTimestamp(21)) {
-            motorValue = timestampMap(timestamp, 12, 21, MOTOR_VALUE_H12, MOTOR_VALUE_H21);
+            motorValue = timestampMap(timestamp, 12, 21);
         } else if (timestamp >= getTimestamp(21) && timestamp < getTimestamp(24)) {
             motorValue = timestampMap(timestamp, 21, 24, MOTOR_VALUE_H21, MOTOR_VALUE_H0);
         } else if (timestamp >= getTimestamp(0) && timestamp < getTimestamp(1)) {
-            motorValue = timestampMap(timestamp, 0, 1, MOTOR_VALUE_H0, MOTOR_VALUE_H1);
+            motorValue = timestampMap(timestamp, 0, 1);
         } else if (timestamp >= getTimestamp(1) && timestamp < getTimestamp(5)) {
             motorValue = timestampMap(timestamp, 1, 5, MOTOR_VALUE_H1, MOTOR_VALUE_H5_DOWN);
         }
@@ -494,19 +495,32 @@ int DP_Ctrl::timestampToMotorValue(int timestamp)
     }
 
     if (_displayMode == CTRL_DISPLAY_MODE::LINEAR) {
-        int motorValue = 0;
-        if (timestamp >= getTimestamp(0) && timestamp < getTimestamp(5)) {
-            motorValue = timestampMap(timestamp, 0, 5, MOTOR_VALUE_H0, MOTOR_VALUE_H5);
-        } else if (timestamp >= getTimestamp(5) && timestamp < getTimestamp(10)) {
-            motorValue = timestampMap(timestamp, 5, 10, MOTOR_VALUE_H5, MOTOR_VALUE_H10);
-        } else if (timestamp >= getTimestamp(10) && timestamp < getTimestamp(15)) {
-            motorValue = timestampMap(timestamp, 10, 15, MOTOR_VALUE_H10, MOTOR_VALUE_H15);
-        } else if (timestamp >= getTimestamp(15) && timestamp < getTimestamp(20)) {
-            motorValue = timestampMap(timestamp, 15, 20, MOTOR_VALUE_H15, MOTOR_VALUE_H20);
-        } else if (timestamp >= getTimestamp(20) && timestamp <= getTimestamp(24)) {
-            motorValue = timestampMap(timestamp, 20, 24, MOTOR_VALUE_H20, MOTOR_VALUE_H24);
+        const int currentHour = timestamp / 3600;
+
+        int prevHour = -1;
+        for (int i = currentHour; i >= 0; i--) {
+            if (_hourMotorMap[i] != MOTOR_VALUE_INVALID) {
+                prevHour = i;
+                break;
+            }
         }
-        return motorValue;
+
+        int nextHour = -1;
+        for (int i = currentHour + 1; i < CM_ARRAY_SIZE(_hourMotorMap); i++) {
+            if (_hourMotorMap[i] != MOTOR_VALUE_INVALID) {
+                nextHour = i;
+                break;
+            }
+        }
+
+        if (prevHour < 0 || nextHour < 0) {
+            HAL_LOG_ERROR("currentHour: %d not found in hourMotorMap", currentHour);
+            listHourMotorMap();
+            return 0;
+        }
+
+        HAL_LOG_TRACE("currentHour: %d, prevHour: %d, nextHour: %d", currentHour, prevHour, nextHour);
+        return timestampMap(timestamp, prevHour, nextHour);
     }
 
     return 0;
@@ -517,6 +531,18 @@ int32_t DP_Ctrl::timestampMap(int32_t x, int32_t hour_start, int32_t hour_end, i
     int32_t min_in = getTimestamp(hour_start);
     int32_t max_in = getTimestamp(hour_end);
     return valueMap(x, min_in, max_in, min_out, max_out);
+}
+
+int32_t DP_Ctrl::timestampMap(int32_t x, int32_t hour_start, int32_t hour_end)
+{
+    if (hour_start >= CM_ARRAY_SIZE(_hourMotorMap) || hour_end >= CM_ARRAY_SIZE(_hourMotorMap) || hour_start < 0 || hour_end < 0) {
+        HAL_LOG_ERROR("Invalid hour: %d, %d", hour_start, hour_end);
+        return 0;
+    }
+
+    int32_t min_in = getTimestamp(hour_start);
+    int32_t max_in = getTimestamp(hour_end);
+    return valueMap(x, min_in, max_in, _hourMotorMap[hour_start], _hourMotorMap[hour_end]);
 }
 
 int32_t DP_Ctrl::valueMap(int32_t x, int32_t min_in, int32_t max_in, int32_t min_out, int32_t max_out)
