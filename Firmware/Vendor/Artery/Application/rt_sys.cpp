@@ -26,8 +26,12 @@
 #include <time.h>
 #include "Arduino.h"
 
-#ifdef __MICROLIB
+#if defined(__MICROLIB)
+
+#if defined(__CC_ARM)
 #pragma import(__use_no_semihosting_swi)
+#endif
+
 #include <stdio.h>
 
 extern "C" int fputc(int ch, FILE *stream)
