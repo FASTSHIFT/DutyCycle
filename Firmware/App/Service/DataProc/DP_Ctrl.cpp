@@ -496,6 +496,9 @@ int DP_Ctrl::timestampToMotorValue(int timestamp)
 
     if (_displayMode == CTRL_DISPLAY_MODE::LINEAR) {
         const int currentHour = timestamp / 3600;
+        if (currentHour >= 24) {
+            return timestampMap(timestamp, 24, 24);
+        }
 
         int prevHour = -1;
         for (int i = currentHour; i >= 0; i--) {
