@@ -10,8 +10,8 @@
       <TargetName>AT32F421</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC</pCCUsed>
-      <uAC6>0</uAC6>
+      <pCCUsed>6160000::V6.16::ARMCLANG</pCCUsed>
+      <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>-AT32F421K8U7</Device>
@@ -312,7 +312,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>7</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -321,7 +321,7 @@
             <PlainCh>0</PlainCh>
             <Ropi>0</Ropi>
             <Rwpi>0</Rwpi>
-            <wLevel>2</wLevel>
+            <wLevel>3</wLevel>
             <uThumb>0</uThumb>
             <uSurpInc>0</uSurpInc>
             <uC99>1</uC99>
@@ -331,11 +331,11 @@
             <v6LangP>3</v6LangP>
             <vShortEn>1</vShortEn>
             <vShortWch>1</vShortWch>
-            <v6Lto>0</v6Lto>
+            <v6Lto>1</v6Lto>
             <v6WtE>0</v6WtE>
             <v6Rtti>0</v6Rtti>
             <VariousControls>
-              <MiscControls>--gnu --diag_warning=4017</MiscControls>
+              <MiscControls></MiscControls>
               <Define>ARDUINO=111</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\..\Application;..\..\..\ArduinoAPI;..\..\..\Libraries;..\Core;..\Config;..\..\..\..\..\App;..\..\..\..\..\..\Firmware;..\..\..\Application\flashdb_port;..\..\..\..\..\External\FlashDB\inc;..\..\..\..\..\External\FlashDB\port\fal\inc;..\..\..\Application\umm_malloc_port</IncludePath>
@@ -381,75 +381,6 @@
       <Groups>
         <Group>
           <GroupName>App</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>App.cpp</FileName>
@@ -470,75 +401,6 @@
         </Group>
         <Group>
           <GroupName>Service/DataProc</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>_DP_Template.cpp</FileName>
@@ -699,75 +561,6 @@
         </Group>
         <Group>
           <GroupName>Service/DataProc/Helper</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>_Template_Helper.cpp</FileName>
@@ -923,75 +716,6 @@
         </Group>
         <Group>
           <GroupName>Frameworks/DataBroker</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>DataBroker.cpp</FileName>
@@ -1032,75 +756,6 @@
         </Group>
         <Group>
           <GroupName>Frameworks/DeviceManager</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>DeviceManager.cpp</FileName>
@@ -1280,75 +935,6 @@
         </Group>
         <Group>
           <GroupName>Application/HAL</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>HAL.cpp</FileName>
@@ -1449,75 +1035,6 @@
         </Group>
         <Group>
           <GroupName>Application/flashdb_port</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>fal_cfg.h</FileName>
@@ -1627,75 +1144,6 @@
         </Group>
         <Group>
           <GroupName>Application</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>0</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>0</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls>--cpp11</MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
           <Files>
             <File>
               <FileName>main.cpp</FileName>
@@ -2144,127 +1592,127 @@
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="Startup" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_conf" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 CMSIS">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="adc" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="cmp" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="crc" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="crm" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS MISC">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="debug" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="dma" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="ertc" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="exint" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="flash" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="gpio" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="i2c" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="misc" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 CMSIS">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="pwc" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="scfg" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="spi" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="tmr" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="usart" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="wdt" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
       </component>
       <component Cclass="Device" Cgroup="at32f421_firmware_library" Csub="wwdt" Cvendor="ArteryTek" Cversion="2.0.0" condition="AT32F421 STDPERIPHERALS CRM">
-        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.0.7"/>
+        <package name="AT32F421_DFP" schemaVersion="1.2" url="" vendor="ArteryTek" version="2.1.7"/>
         <targetInfos>
           <targetInfo name="AT32F421"/>
         </targetInfos>
