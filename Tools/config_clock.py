@@ -149,7 +149,7 @@ def parse_args():
     parser.add_argument(
         "--auto-config-clock",
         type=float,
-        default=True,
+        default=24,
         help="Set the device clock to the current system time. "
         "The argument specifies the number of hours to wait before setting the clock again. Default is 24 hours.",
     )
@@ -278,6 +278,8 @@ if __name__ == "__main__":
         exit(1)
 
     args = parse_args()
+
+    print(f"User arguments: {args}")
 
     if args.port is None:
         # Automatically select the first available serial port
