@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Call-DutyCycle
+Comment=呼叫DutyCycle
+Exec=./socket_client.py --cmd "alarm -c PLAY_ALARM_MUSIC -m 3" 
+Icon=/usr/share/icons/hicolor/96x96/apps/org.remmina.Remmina.png
+Terminal=false
+Type=Application
