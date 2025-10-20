@@ -119,8 +119,8 @@ def parse_args():
         "--mode",
         type=str,
         default="clock",
-        choices=["clock", "cpu-usage", "mem-usage", "gpu-usage"],
-        help="Choose from 'clock', 'cpu-usage', 'mem-usage', 'gpu-usage'. Default is 'clock'.",
+        choices=["clock", "sync-clock", "cpu-usage", "mem-usage", "gpu-usage"],
+        help="Choose from 'clock', 'sync-clock', 'cpu-usage', 'mem-usage', 'gpu-usage'. Default is 'clock'.",
     )
     parser.add_argument(
         "--motor-max",
@@ -232,6 +232,10 @@ def check_cmd_file(cmd_file):
 
 
 def system_monitor(ser, mode, motor_max, motor_min):
+    if mode == "sync-clock":
+        # Synchronize clock only, no motor control
+        return
+
     percent = 0
 
     # Get system information
