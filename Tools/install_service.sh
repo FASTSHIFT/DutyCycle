@@ -32,9 +32,9 @@ echo "Parameters: $params"
 
 if [ "$cmd" == "install" ]; then
     PYTHON_BIN="$(command -v python3 || echo /usr/bin/python3)"
-    SCRIPT_PATH="$(pwd)/Tools/config_clock.py"
+    SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/config_clock.py"
     SERVICE_PATH=/etc/systemd/system/dutycycle.service
-    
+
     # Create systemd unit with absolute paths and safer settings
     cat > "$SERVICE_PATH" <<EOF
 [Unit]
