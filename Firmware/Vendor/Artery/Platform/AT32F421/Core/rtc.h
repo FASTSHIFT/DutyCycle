@@ -44,6 +44,7 @@ typedef struct
 void RTC_Init(void);
 bool RTC_SetAlarm(uint16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec);
 bool RTC_SetTime(uint16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec);
+bool RTC_SetCalibration(uint16_t period_sec, int16_t offset_clk);
 void RTC_GetCalendar(RTC_Calendar_TypeDef* calendar);
 uint8_t RTC_GetWeek(uint16_t year, uint8_t month, uint8_t day);
 

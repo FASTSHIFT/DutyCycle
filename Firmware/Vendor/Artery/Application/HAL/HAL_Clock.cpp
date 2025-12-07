@@ -38,7 +38,7 @@ private:
     virtual int onInit();
     virtual int onRead(void* buffer, size_t size);
     virtual int onIoctl(DeviceObject::IO_Cmd_t cmd, void* data);
-    void calibrate(const HAL::Clock_Info_t* info);
+    int calibrate(const HAL::Clock_Info_t* info);
     const char* convWeekString(uint8_t week);
 };
 
@@ -76,11 +76,7 @@ int Clock::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
 {
     switch (cmd.full) {
     case CLOCK_IOCMD_CALIBRATE:
-        calibrate((HAL::Clock_Info_t*)data);
-        break;
-
-    case CLOCK_IOCMD_SET_ALARM:
-        break;
+        return calibrate((HAL::Clock_Info_t*)data);
 
     default:
         return DeviceObject::RES_UNSUPPORT;
@@ -91,6 +87,8 @@ int Clock::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
 
 void Clock::getInfo(HAL::Clock_Info_t* info)
 {
+    memset(info, 0, sizeof(HAL::Clock_Info_t));
+
     RTC_Calendar_TypeDef calendar;
     RTC_GetCalendar(&calendar);
     info->year = calendar.year;
@@ -105,15 +103,23 @@ void Clock::getInfo(HAL::Clock_Info_t* info)
     info->millisecond = (sub_second_max - ertc_sub_second_get()) * 1000 / sub_second_max;
 }
 
-void Clock::calibrate(const HAL::Clock_Info_t* info)
+int Clock::calibrate(const HAL::Clock_Info_t* info)
 {
-    RTC_SetTime(
-        info->year,
-        info->month,
-        info->day,
-        info->hour,
-        info->minute,
-        info->second);
+    if (!RTC_SetTime(
+            info->year,
+            info->month,
+            info->day,
+            info->hour,
+            info->minute,
+            info->second)) {
+        return DeviceObject::RES_UNKNOWN;
+    }
+
+    if (!info->calPeriodSec) {
+        return DeviceObject::RES_OK;
+    }
+
+    return RTC_SetCalibration(info->calPeriodSec, info->calOffsetClk) ? DeviceObject::RES_OK : DeviceObject::RES_UNKNOWN;
 }
 
 const char* Clock::convWeekString(uint8_t week)

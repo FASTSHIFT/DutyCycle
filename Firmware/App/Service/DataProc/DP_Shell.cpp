@@ -320,13 +320,15 @@ int DP_Shell::cmdClock(int argc, const char** argv)
         info.second,
         info.millisecond);
 
+    const char* cmd = nullptr;
     int year = info.year;
     int month = info.month;
     int day = info.day;
     int hour = info.hour;
     int minute = info.minute;
     int second = info.second;
-    const char* cmd = nullptr;
+    int calPeriodSec = 0;
+    int calOffset = 0;
 
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -337,6 +339,8 @@ int DP_Shell::cmdClock(int argc, const char** argv)
         OPT_INTEGER('H', "hour", &hour, "hour", nullptr, 0, 0),
         OPT_INTEGER('M', "minute", &minute, "minute", nullptr, 0, 0),
         OPT_INTEGER('S', "second", &second, "second", nullptr, 0, 0),
+        OPT_INTEGER(0, "cal-period", &calPeriodSec, "calibration period in seconds", nullptr, 0, 0),
+        OPT_INTEGER(0, "cal-offset", &calOffset, "calibration offset in clock cycles", nullptr, 0, 0),
         OPT_END(),
     };
 
@@ -351,6 +355,25 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     clockInfo.base.hour = hour;
     clockInfo.base.minute = minute;
     clockInfo.base.second = second;
+    clockInfo.base.calPeriodSec = calPeriodSec;
+    clockInfo.base.calOffsetClk = calOffset;
+
+    switch (calPeriodSec) {
+    case 0:
+    case 8:
+    case 16:
+    case 32:
+        break;
+
+    default:
+        shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid calibration period, must be 8, 16, or 32 seconds");
+        return SHELL_RET_FAILURE;
+    }
+
+    if (calOffset < -511 || calOffset > 511) {
+        shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid calibration offset, must be between -511 and 511");
+        return SHELL_RET_FAILURE;
+    }
 
     static constexpr CMD_PAIR<CLOCK_CMD> cmd_map[] = {
         CMD_PAIR_DEF(CLOCK_CMD, SET),
@@ -374,6 +397,13 @@ int DP_Shell::cmdClock(int argc, const char** argv)
         clockInfo.base.minute,
         clockInfo.base.second,
         clockInfo.base.millisecond);
+
+    if (calPeriodSec > 0) {
+        shell_printf(
+            "Clock calibration set: period %d seconds, offset %d clocks\r\n",
+            clockInfo.base.calPeriodSec,
+            clockInfo.base.calOffsetClk);
+    }
 
     return SHELL_RET_SUCCESS;
 }

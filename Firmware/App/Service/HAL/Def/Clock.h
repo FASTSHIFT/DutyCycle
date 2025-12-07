@@ -41,6 +41,8 @@ typedef struct
     uint8_t minute;
     uint8_t second;
     uint16_t millisecond;
+    uint16_t calPeriodSec;
+    int16_t calOffsetClk;
 } Clock_Info_t;
 
 #define CLOCK_IOCMD_CALIBRATE       DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Clock_Info_t), 0, 0)

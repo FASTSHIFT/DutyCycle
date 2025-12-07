@@ -143,14 +143,58 @@ void RTC_Init(void)
 
 bool RTC_SetTime(uint16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec)
 {
-    ertc_date_set(year - 2000, mon, day, RTC_GetWeek(year, mon, day));
-    ertc_time_set(hour, min, sec, ERTC_AM);
+    if (ertc_date_set(year - 2000, mon, day, RTC_GetWeek(year, mon, day)) != SUCCESS)
+    {
+        return false;
+    }
+
+    if (ertc_time_set(hour, min, sec, ERTC_AM) != SUCCESS)
+    {
+        return false;
+    }
+
     return true;
 }
 
 bool RTC_SetAlarm(uint16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec)
 {
     return false;
+}
+
+bool RTC_SetCalibration(uint16_t period_sec, int16_t offset_clk)
+{
+    ertc_smooth_cal_period_type cal_period;
+    switch (period_sec)
+    {
+    case 8:
+        cal_period = ERTC_SMOOTH_CAL_PERIOD_8;
+        break;
+    case 16:
+        cal_period = ERTC_SMOOTH_CAL_PERIOD_16;
+        break;
+    case 32:
+        cal_period = ERTC_SMOOTH_CAL_PERIOD_32;
+        break;
+    default:
+        return false;
+    }
+
+    if (offset_clk >= 512 || offset_clk <= -512)
+    {
+        return false;
+    }
+
+    error_status status;
+    if (offset_clk > 0)
+    {
+        status = ertc_smooth_calibration_config(cal_period, ERTC_SMOOTH_CAL_CLK_ADD_512, 512 - offset_clk);
+    }
+    else
+    {
+        status = ertc_smooth_calibration_config(cal_period, ERTC_SMOOTH_CAL_CLK_ADD_0, -offset_clk);
+    }
+
+    return status == SUCCESS;
 }
 
 void RTC_GetCalendar(RTC_Calendar_TypeDef* calendar)
