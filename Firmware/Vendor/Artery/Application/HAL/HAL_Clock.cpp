@@ -105,21 +105,25 @@ void Clock::getInfo(HAL::Clock_Info_t* info)
 
 int Clock::calibrate(const HAL::Clock_Info_t* info)
 {
-    if (!RTC_SetTime(
-            info->year,
-            info->month,
-            info->day,
-            info->hour,
-            info->minute,
-            info->second)) {
-        return DeviceObject::RES_UNKNOWN;
+    if (info->year) {
+        if (!RTC_SetTime(
+                info->year,
+                info->month,
+                info->day,
+                info->hour,
+                info->minute,
+                info->second)) {
+            return DeviceObject::RES_UNKNOWN;
+        }
     }
 
-    if (!info->calPeriodSec) {
-        return DeviceObject::RES_OK;
+    if (info->calPeriodSec) {
+        if (!RTC_SetCalibration(info->calPeriodSec, info->calOffsetClk)) {
+            return DeviceObject::RES_UNKNOWN;
+        }
     }
 
-    return RTC_SetCalibration(info->calPeriodSec, info->calOffsetClk) ? DeviceObject::RES_OK : DeviceObject::RES_UNKNOWN;
+    return DeviceObject::RES_OK;
 }
 
 const char* Clock::convWeekString(uint8_t week)

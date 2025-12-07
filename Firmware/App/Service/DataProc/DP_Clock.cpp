@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define KVDB_GET(value) _kvdb.get(#value, &value, sizeof(value))
+#define KVDB_SET(value) _kvdb.set(#value, &value, sizeof(value))
+
 using namespace DataProc;
 
 class DP_Clock {
@@ -35,23 +38,32 @@ public:
 
 private:
     DataNode* _node;
+    const DataNode* _nodeGlobal;
+    KVDB_Helper _kvdb;
     DeviceObject* _dev;
-    int _timeZone;
+    uint16_t _calPeriod;
+    int16_t _calOffset;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
     int onNotify(const Clock_Info_t* info);
+    int onGlobalEvent(const Global_Info_t* info);
     void setCompileTimeToClock();
 };
 
 DP_Clock::DP_Clock(DataNode* node)
     : _node(node)
+    , _kvdb(node)
     , _dev(nullptr)
+    , _calPeriod(0)
+    , _calOffset(0)
 {
     _dev = HAL::Manager()->getDevice("Clock");
     if (!_dev) {
         return;
     }
+
+    _nodeGlobal = _node->subscribe("Global");
 
     setCompileTimeToClock();
 
@@ -59,8 +71,7 @@ DP_Clock::DP_Clock(DataNode* node)
         [](DataNode* n, DataNode::EventParam_t* param) {
             auto ctx = (DP_Clock*)n->getUserData();
             return ctx->onEvent(param);
-        },
-        DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY | DataNode::EVENT_TIMER);
+        });
 
     node->startTimer(2000);
 }
@@ -90,6 +101,12 @@ int DP_Clock::onEvent(DataNode::EventParam_t* param)
         return _node->publish(&clock, sizeof(clock));
     }
 
+    case DataNode::EVENT_PUBLISH: {
+        if (param->tran == _nodeGlobal) {
+            return onGlobalEvent((const Global_Info_t*)param->data_p);
+        }
+    } break;
+
     default:
         break;
     }
@@ -102,6 +119,14 @@ int DP_Clock::onNotify(const Clock_Info_t* info)
     switch (info->cmd) {
     case CLOCK_CMD::SET: {
         int retval = _dev->ioctl(CLOCK_IOCMD_CALIBRATE, (void*)&(info->base), sizeof(info->base));
+
+        if (info->base.calPeriodSec) {
+            _calPeriod = info->base.calPeriodSec;
+            _calOffset = info->base.calOffsetClk;
+            KVDB_SET(_calPeriod);
+            KVDB_SET(_calOffset);
+        }
+
         return retval == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
     }
 
@@ -110,6 +135,32 @@ int DP_Clock::onNotify(const Clock_Info_t* info)
     }
 
     return DataNode::RES_UNSUPPORTED_REQUEST;
+}
+
+int DP_Clock::onGlobalEvent(const Global_Info_t* info)
+{
+    if (info->event == GLOBAL_EVENT::APP_STARTED) {
+        KVDB_GET(_calPeriod);
+        KVDB_GET(_calOffset);
+
+        if (_calPeriod) {
+            HAL::Clock_Info_t clock = { 0 };
+            clock.calPeriodSec = _calPeriod;
+            clock.calOffsetClk = _calOffset;
+
+            int ret = _dev->ioctl(CLOCK_IOCMD_CALIBRATE, &clock, sizeof(clock));
+
+            HAL_LOG_INFO(
+                "Restoring clock calibration: period %d seconds, offset %d clocks, ret: %d",
+                clock.calPeriodSec,
+                clock.calOffsetClk,
+                ret);
+
+            return ret == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
+        }
+    }
+
+    return DataNode::RES_OK;
 }
 
 void DP_Clock::setCompileTimeToClock()
