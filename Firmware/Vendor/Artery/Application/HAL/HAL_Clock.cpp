@@ -113,14 +113,20 @@ int Clock::calibrate(const HAL::Clock_Info_t* info)
                 info->hour,
                 info->minute,
                 info->second)) {
+            HAL_LOG_ERROR("Set time failed");
             return DeviceObject::RES_UNKNOWN;
         }
     }
 
     if (info->calPeriodSec) {
         if (!RTC_SetCalibration(info->calPeriodSec, info->calOffsetClk)) {
+            HAL_LOG_ERROR("Set calibration failed: period %d seconds, offset %d clocks",
+                info->calPeriodSec,
+                info->calOffsetClk);
             return DeviceObject::RES_UNKNOWN;
         }
+    } else {
+        HAL_LOG_INFO("calPeriodSec is 0, skip calibration data");
     }
 
     return DeviceObject::RES_OK;
