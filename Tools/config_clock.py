@@ -28,6 +28,7 @@ import datetime
 import time
 import psutil
 import os
+import math
 
 try:
     import GPUtil
@@ -274,7 +275,17 @@ def get_audio_level():
             return 0
 
     try:
-        return get_audio_level.meter.GetPeakValue() * 100
+        peak = get_audio_level.meter.GetPeakValue()
+
+        # Logarithmic mapping (dB) with expansion
+        # Map -45dB ~ 0dB to 0% ~ 100% with quadratic curve for more dynamic visual
+        if peak <= 0.005:  # ~ -46dB
+            return 0
+
+        db = 20 * math.log10(peak)
+        normalized = max(0, (db + 45) / 45)
+        percent = (normalized ** 2) * 100
+        return max(0, min(100, percent))
     except Exception as e:
         print(f"Error getting audio level: {e}")
         # Reset meter on error to try re-initializing next time
