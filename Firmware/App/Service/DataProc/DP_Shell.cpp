@@ -457,6 +457,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
     int hour = -1;
     int motorValue = 0;
     int mode = 0;
+    int immediate = 0;
 
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -464,6 +465,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         OPT_INTEGER('H', "hour", &hour, "the hour to set", nullptr, 0, 0),
         OPT_INTEGER('M', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
         OPT_INTEGER(0, "mode", &mode, "display mode, 0: cos-phi, 1: linear", nullptr, 0, 0),
+        OPT_BOOLEAN('I', "immediate", &immediate, "immediately set the value", nullptr, 0, 0),
         OPT_END(),
     };
 
@@ -501,6 +503,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
 
     info.hour = hour;
     info.motorValue = motorValue;
+    info.immediate = immediate;
     if (!cmdMap.get(cmd, &info.cmd)) {
         return SHELL_RET_FAILURE;
     }

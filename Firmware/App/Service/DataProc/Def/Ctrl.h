@@ -49,12 +49,14 @@ typedef struct Ctrl_Info {
         , displayMode(CTRL_DISPLAY_MODE::COS_PHI)
         , hour(0)
         , motorValue(0)
+        , immediate(false)
     {
     }
     CTRL_CMD cmd;
     CTRL_DISPLAY_MODE displayMode;
     int hour;
     int motorValue;
+    bool immediate;
 } Ctrl_Info_t;
 
 } // namespace DataProc

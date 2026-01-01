@@ -127,7 +127,7 @@ private:
     void onGlobalEvent(const Global_Info_t* info);
     void onButtonEvent(const Button_Info_t* info);
     int setClockMap(int hour, int value);
-    void setMotorValue(int value, bool immediate = true);
+    void setMotorValue(int value, bool immediate = false);
     int getMotorValueRaw();
     int setMotorValueRaw(int value);
     void onMotorFinished();
@@ -232,7 +232,7 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 
     case CTRL_CMD::SET_MOTOR_VALUE:
         _displayState = DISPLAY_STATE::MOTOR_SET;
-        setMotorValue(info->motorValue);
+        setMotorValue(info->motorValue, info->immediate);
         break;
 
     case CTRL_CMD::SET_CLOCK_MAP:
@@ -341,7 +341,19 @@ void DP_Ctrl::onButtonEvent(const Button_Info_t* info)
 void DP_Ctrl::setMotorValue(int value, bool immediate)
 {
     const int currentValue = getMotorValueRaw();
+
+    /**
+     * When immediate is not set, it is necessary to force an update
+     * of the animated state machine even if it is with the current value
+     */
     if (immediate && value == currentValue) {
+        return;
+    }
+
+    if (immediate) {
+        easing_stop(&_easing, 0);
+        _node->stopTimer();
+        setMotorValueRaw(value);
         return;
     }
 
@@ -404,7 +416,7 @@ void DP_Ctrl::onMotorFinished()
         return;
     }
 
-    setMotorValue(testValues[_sweepValueIndex], false);
+    setMotorValue(testValues[_sweepValueIndex]);
     _sweepValueIndex++;
 }
 
@@ -422,7 +434,7 @@ void DP_Ctrl::sweepTest()
 {
     _displayState = DISPLAY_STATE::SWEEP_TEST;
     _sweepValueIndex = 0;
-    setMotorValue(0, false);
+    setMotorValue(0);
 }
 
 void DP_Ctrl::showBatteryUsage()
