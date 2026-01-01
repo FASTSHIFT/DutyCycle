@@ -35,6 +35,19 @@ except ImportError:
     GPUtil = None
     print("GPUtil not found. GPU usage monitoring will not be available.")
 
+try:
+    from ctypes import cast, POINTER
+    from comtypes import CLSCTX_ALL
+
+    try:
+        from pycaw.utils import AudioUtilities
+        from pycaw.interfaces.audiometer import IAudioMeterInformation
+    except ImportError:
+        from pycaw.pycaw import AudioUtilities, IAudioMeterInformation
+except ImportError:
+    AudioUtilities = None
+    print("pycaw or comtypes not found. Audio level monitoring will not be available.")
+
 
 def scan_serial_ports():
     """Scan for available serial ports and return a list of port names."""
@@ -119,8 +132,15 @@ def parse_args():
         "--mode",
         type=str,
         default="clock",
-        choices=["clock", "sync-clock", "cpu-usage", "mem-usage", "gpu-usage"],
-        help="Choose from 'clock', 'sync-clock', 'cpu-usage', 'mem-usage', 'gpu-usage'. Default is 'clock'.",
+        choices=[
+            "clock",
+            "sync-clock",
+            "cpu-usage",
+            "mem-usage",
+            "gpu-usage",
+            "audio-level",
+        ],
+        help="Choose from 'clock', 'sync-clock', 'cpu-usage', 'mem-usage', 'gpu-usage', 'audio-level'. Default is 'clock'.",
     )
     parser.add_argument(
         "--motor-max",
@@ -195,9 +215,12 @@ def map_value(value, in_min, in_max, out_min, out_max):
     return ((value - in_min) * delta_out) / delta_in + out_min
 
 
-def set_motor_percent(ser, motor_max, motor_min, percent):
+def set_motor_percent(ser, motor_max, motor_min, percent, immediate=False):
     motor_value = map_value(percent, 0, 100, motor_min, motor_max)
-    command = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}\r\n"
+    cmd_str = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}"
+    if immediate:
+        cmd_str += " -I"
+    command = f"{cmd_str}\r\n"
     serial_write(ser, command, 0)
 
 
@@ -214,6 +237,49 @@ def get_gpu_usage():
 
     gpu_load = gpus[0].load * 100  # Assuming you want the load of the first GPU
     return gpu_load
+
+
+def get_audio_level():
+    if AudioUtilities is None:
+        print("pycaw not found, abort.")
+        exit(1)
+
+    # Cache the meter object to avoid creating/destroying COM objects repeatedly
+    if not hasattr(get_audio_level, "meter"):
+        get_audio_level.meter = None
+
+    if get_audio_level.meter is None:
+        try:
+            speakers = AudioUtilities.GetSpeakers()
+            interface = speakers.Activate(
+                IAudioMeterInformation._iid_, CLSCTX_ALL, None
+            )
+            get_audio_level.meter = cast(interface, POINTER(IAudioMeterInformation))
+        except AttributeError:
+            try:
+                # Fallback for some pycaw versions where GetSpeakers returns a wrapper
+                enumerator = AudioUtilities.GetDeviceEnumerator()
+                speakers = enumerator.GetDefaultAudioEndpoint(
+                    0, 1
+                )  # eRender, eMultimedia
+                interface = speakers.Activate(
+                    IAudioMeterInformation._iid_, CLSCTX_ALL, None
+                )
+                get_audio_level.meter = cast(interface, POINTER(IAudioMeterInformation))
+            except Exception as e:
+                print(f"Error initializing audio level (fallback): {e}")
+                return 0
+        except Exception as e:
+            print(f"Error initializing audio level: {e}")
+            return 0
+
+    try:
+        return get_audio_level.meter.GetPeakValue() * 100
+    except Exception as e:
+        print(f"Error getting audio level: {e}")
+        # Reset meter on error to try re-initializing next time
+        get_audio_level.meter = None
+        return 0
 
 
 def check_cmd_file(cmd_file):
@@ -237,6 +303,7 @@ def system_monitor(ser, mode, motor_max, motor_min):
         return
 
     percent = 0
+    immediate = False
 
     # Get system information
     if mode == "cpu-usage":
@@ -248,11 +315,15 @@ def system_monitor(ser, mode, motor_max, motor_min):
     elif mode == "gpu-usage":
         percent = get_gpu_usage()
         print(f"GPU usage: {percent}%")
+    elif mode == "audio-level":
+        percent = get_audio_level()
+        print(f"Audio level: {percent:.2f}%")
+        immediate = True
     else:
         print(f"Invalid mode: {mode}")
         exit(1)
 
-    set_motor_percent(ser, motor_max, motor_min, percent)
+    set_motor_percent(ser, motor_max, motor_min, percent, immediate)
 
 
 def on_loop(args):

@@ -2,3 +2,5 @@ argparse
 pyserial
 psutil
 gputil
+pycaw
+comtypes
