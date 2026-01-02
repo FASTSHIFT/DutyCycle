@@ -32,3 +32,4 @@
 
 # Others
 /.vscode/
+__pycache__/
