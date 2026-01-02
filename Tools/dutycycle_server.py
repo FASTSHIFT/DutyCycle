@@ -28,9 +28,7 @@ A web-based control interface for DutyCycle device.
 
 import argparse
 import datetime
-import json
 import math
-import os
 import queue
 import threading
 import time
