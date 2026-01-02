@@ -30,6 +30,8 @@ import argparse
 import datetime
 import math
 import queue
+import socket
+import sys
 import threading
 import time
 from flask import Flask, jsonify, request, render_template_string
@@ -1614,6 +1616,23 @@ HTML_TEMPLATE = """
 # ===================== Main Entry =====================
 
 
+def check_port_available(host, port):
+    """Check if the port is available."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1)
+    try:
+        # Try to connect to the port
+        result = sock.connect_ex(('127.0.0.1', port))
+        if result == 0:
+            # Port is in use (connection succeeded)
+            return False
+        return True
+    except Exception:
+        return True
+    finally:
+        sock.close()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="DutyCycle Web Server")
     parser.add_argument(
@@ -1638,5 +1657,13 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    
+    # Check if port is already in use
+    if not check_port_available(args.host, args.port):
+        print(f"❌ 错误: 端口 {args.port} 已被占用！")
+        print(f"   可能已有另一个 DutyCycle 服务器在运行。")
+        print(f"   请先关闭占用该端口的程序，或使用 --port 指定其他端口。")
+        sys.exit(1)
+    
     print(f"Starting DutyCycle Web Server on http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, debug=args.debug, threaded=True)
