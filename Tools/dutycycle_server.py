@@ -1206,6 +1206,11 @@ HTML_TEMPLATE = """
                     // 未监控时，根据当前选择的模式设置默认周期
                     onMonitorModeChange();
                 }
+                
+                // 如果后端正在监控，恢复前端轮询循环
+                if (isMonitoring) {
+                    startMonitorLoop();
+                }
             }
         }
 
