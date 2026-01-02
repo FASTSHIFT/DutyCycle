@@ -27,11 +27,28 @@ async function api(endpoint, method = 'GET', data = null) {
 // ===================== Initialization =====================
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadCheckboxStates();
     refreshPorts();
     refreshStatus();
     startLogPolling();
     initComposer();
 });
+
+function loadCheckboxStates() {
+    // 恢复 autoSyncClock 状态
+    const autoSync = localStorage.getItem('autoSyncClock') === 'true';
+    document.getElementById('autoSyncClock').checked = autoSync;
+    if (autoSync) {
+        // 启动自动同步定时器
+        autoSyncInterval = setInterval(() => {
+            if (isConnected) syncClock();
+        }, 24 * 60 * 60 * 1000);
+    }
+
+    // 恢复 immediateMode 状态
+    const immediate = localStorage.getItem('immediateMode') === 'true';
+    document.getElementById('immediateMode').checked = immediate;
+}
 
 // ===================== Log Functions =====================
 
@@ -175,6 +192,9 @@ async function syncClock() {
 
 function onAutoSyncChange() {
     const checked = document.getElementById('autoSyncClock').checked;
+    // 保存状态到 localStorage
+    localStorage.setItem('autoSyncClock', checked);
+
     if (checked) {
         // 每24小时同步一次
         autoSyncInterval = setInterval(() => {
@@ -188,6 +208,11 @@ function onAutoSyncChange() {
             autoSyncInterval = null;
         }
     }
+}
+
+function onImmediateModeChange() {
+    const checked = document.getElementById('immediateMode').checked;
+    localStorage.setItem('immediateMode', checked);
 }
 
 // ===================== Motor Control Functions =====================

@@ -117,6 +117,12 @@ input {
     min-width: 80px;
 }
 
+input[type="checkbox"] {
+    flex: none;
+    min-width: auto;
+    width: auto;
+}
+
 select option {
     background: #1a1a2e;
 }

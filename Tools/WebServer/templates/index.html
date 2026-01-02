@@ -68,7 +68,7 @@
                     <input type="number" id="motorPercent" value="0" min="0" max="100" placeholder="%">
                     <button onclick="setMotor()">设置</button>
                     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
-                        <input type="checkbox" id="immediateMode" style="width:auto;">
+                        <input type="checkbox" id="immediateMode" style="width:auto;" onchange="onImmediateModeChange()">
                         <span>立即</span>
                     </label>
                 </div>
