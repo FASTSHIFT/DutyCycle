@@ -698,7 +698,7 @@ HTML_TEMPLATE = """
         }
         .grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
         }
         .card {
@@ -712,7 +712,7 @@ HTML_TEMPLATE = """
             grid-column: span 2;
         }
         .card.full {
-            grid-column: span 3;
+            grid-column: span 2;
         }
         .card h2 {
             font-size: 1em;
@@ -847,15 +847,7 @@ HTML_TEMPLATE = """
         .log-entry.rx {
             color: #2ed573;
         }
-        @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .card.wide, .card.full {
-                grid-column: span 2;
-            }
-        }
-        @media (max-width: 600px) {
+        @media (max-width: 700px) {
             .grid {
                 grid-template-columns: 1fr;
             }
@@ -925,26 +917,24 @@ HTML_TEMPLATE = """
             </div>
 
             <!-- Monitor Card -->
-            <div class="card wide">
-                <h2>📊 监控模式</h2>
-                <div class="row" style="align-items: center;">
-                    <div class="value-display" id="monitorValue" style="flex:1">0.00%</div>
-                    <div style="flex:2">
-                        <div class="meter">
-                            <div class="meter-fill" id="meterFill" style="width: 0%"></div>
-                        </div>
-                        <div class="row" style="margin-bottom:0">
-                            <select id="monitorMode" onchange="onMonitorModeChange()">
-                                <option value="cpu-usage">CPU</option>
-                                <option value="mem-usage">内存</option>
-                                <option value="gpu-usage">GPU</option>
-                                <option value="audio-level">音频</option>
-                            </select>
-                            <input type="number" id="period" value="100" min="1" max="5000" style="width:60px;flex:none" onchange="onPeriodChange()">
-                            <span style="font-size:11px;opacity:0.7;">ms</span>
-                            <button id="monitorStartBtn" onclick="toggleMonitor()" class="success">开始</button>
-                        </div>
-                    </div>
+            <div class="card">
+                <h2>📊 监控</h2>
+                <div class="value-display" id="monitorValue" style="font-size:1.5em;margin:4px 0">0.00%</div>
+                <div class="meter">
+                    <div class="meter-fill" id="meterFill" style="width: 0%"></div>
+                </div>
+                <div class="row">
+                    <select id="monitorMode" onchange="onMonitorModeChange()">
+                        <option value="cpu-usage">CPU</option>
+                        <option value="mem-usage">内存</option>
+                        <option value="gpu-usage">GPU</option>
+                        <option value="audio-level">音频</option>
+                    </select>
+                </div>
+                <div class="row" style="margin-bottom:0">
+                    <input type="number" id="period" value="100" min="1" max="5000" style="width:50px;flex:none" onchange="onPeriodChange()">
+                    <span style="font-size:11px;opacity:0.7;">ms</span>
+                    <button id="monitorStartBtn" onclick="toggleMonitor()" class="success">开始</button>
                 </div>
             </div>
 
