@@ -903,7 +903,15 @@ HTML_TEMPLATE = """
             <div class="card">
                 <h2>🕐 时钟设置</h2>
                 <div class="row">
-                    <button onclick="syncClock()" class="success" style="width:100%">同步系统时间</button>
+                    <button onclick="syncClock()" class="success" style="flex:1">同步时间</button>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+                        <input type="checkbox" id="autoSyncClock" style="width:auto;" onchange="onAutoSyncChange()">
+                        <span>自动</span>
+                    </label>
+                </div>
+                <div class="row" style="font-size:12px;opacity:0.8;margin-bottom:0">
+                    <span>已同步: </span>
+                    <span id="lastSyncTime">--</span>
                 </div>
             </div>
 
@@ -1115,8 +1123,35 @@ HTML_TEMPLATE = """
             updateUI();
         }
 
+        let autoSyncInterval = null;
+
         async function syncClock() {
-            await api('/clock', 'POST');
+            const result = await api('/clock', 'POST');
+            if (result.success) {
+                const now = new Date();
+                const timeStr = now.toLocaleString('zh-CN', { 
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+                document.getElementById('lastSyncTime').textContent = timeStr;
+            }
+        }
+
+        function onAutoSyncChange() {
+            const checked = document.getElementById('autoSyncClock').checked;
+            if (checked) {
+                // 每24小时同步一次
+                autoSyncInterval = setInterval(() => {
+                    if (isConnected) syncClock();
+                }, 24 * 60 * 60 * 1000);
+                // 立即同步一次
+                if (isConnected) syncClock();
+            } else {
+                if (autoSyncInterval) {
+                    clearInterval(autoSyncInterval);
+                    autoSyncInterval = null;
+                }
+            }
         }
 
         async function updateConfig() {
