@@ -4,3 +4,5 @@ psutil
 gputil
 pycaw
 comtypes
+flask
+flask-cors
