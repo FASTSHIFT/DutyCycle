@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DutyCycle Controller | _VIFEXTech</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 <a href="https://github.com/FASTSHIFT/DutyCycle" target="_blank" class="glow"
+                    style="text-decoration:none;">DutyCycle</a> Controller</h1>
+            <p class="author">Crafted with ⚡ by <a href="https://github.com/FASTSHIFT" target="_blank">_VIFEXTech</a>
+            </p>
+        </div>
+        <div class="grid">
+            <!-- Connection Card -->
+            <div class="card">
+                <h2>🔌 连接设置</h2>
+                <div class="row">
+                    <select id="portSelect">
+                        <option value="">选择串口...</option>
+                    </select>
+                    <button onclick="refreshPorts()">🔄</button>
+                </div>
+                <div class="row">
+                    <input type="number" id="baudrate" value="115200" placeholder="波特率">
+                    <button id="connectBtn" onclick="toggleConnect()">连接</button>
+                </div>
+                <div class="row">
+                    <span>状态: </span>
+                    <span id="connectionStatus" class="status disconnected">未连接</span>
+                </div>
+            </div>
+
+            <!-- Clock Card -->
+            <div class="card">
+                <h2>🕐 时钟设置</h2>
+                <div class="row">
+                    <button onclick="syncClock()" class="success" style="flex:1">同步时间</button>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+                        <input type="checkbox" id="autoSyncClock" style="width:auto;" onchange="onAutoSyncChange()">
+                        <span>自动</span>
+                    </label>
+                </div>
+                <div class="row" style="font-size:12px;opacity:0.8;margin-bottom:0">
+                    <span>已同步: </span>
+                    <span id="lastSyncTime">--</span>
+                </div>
+            </div>
+
+            <!-- Motor Control Card -->
+            <div class="card">
+                <h2>🎛️ 电机控制</h2>
+                <div class="row">
+                    <input type="number" id="motorMin" value="0" placeholder="最小值" style="width:60px;flex:none">
+                    <span>-</span>
+                    <input type="number" id="motorMax" value="1000" placeholder="最大值" style="width:60px;flex:none">
+                    <button onclick="updateConfig()">应用</button>
+                </div>
+                <div class="slider-container">
+                    <input type="range" id="motorSlider" min="0" max="100" value="0" oninput="onMotorSliderInput()">
+                </div>
+                <div class="row">
+                    <input type="number" id="motorPercent" value="0" min="0" max="100" placeholder="%">
+                    <button onclick="setMotor()">设置</button>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+                        <input type="checkbox" id="immediateMode" style="width:auto;">
+                        <span>立即</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Monitor Card -->
+            <div class="card">
+                <h2>📊 监控</h2>
+                <div class="value-display" id="monitorValue" style="font-size:1.5em;margin:4px 0">0.00%</div>
+                <div class="meter">
+                    <div class="meter-fill" id="meterFill" style="width: 0%"></div>
+                </div>
+                <div class="row">
+                    <select id="monitorMode" onchange="onMonitorModeChange()">
+                        <option value="cpu-usage">CPU</option>
+                        <option value="mem-usage">内存</option>
+                        <option value="gpu-usage">GPU</option>
+                        <option value="audio-level">音频</option>
+                    </select>
+                </div>
+                <div class="row" style="margin-bottom:0">
+                    <input type="number" id="period" value="100" min="1" max="5000" style="width:50px;flex:none"
+                        onchange="onPeriodChange()">
+                    <span style="font-size:11px;opacity:0.7;">ms</span>
+                    <button id="monitorStartBtn" onclick="toggleMonitor()" class="success">开始</button>
+                </div>
+            </div>
+
+            <!-- Alarm Card -->
+            <div class="card wide">
+                <h2>⏰ 闹钟设置</h2>
+                <!-- Alarm Settings -->
+                <div class="row">
+                    <span style="font-size:12px;width:40px;">闹钟:</span>
+                    <select id="alarmId" style="width:50px;flex:none">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                    <input type="number" id="alarmHour" min="0" max="23" value="8" style="width:45px;flex:none"
+                        placeholder="时">
+                    <span>:</span>
+                    <input type="number" id="alarmMinute" min="0" max="59" value="0" style="width:45px;flex:none"
+                        placeholder="分">
+                    <select id="alarmMusic" style="width:60px;flex:none">
+                        <option value="0">音乐0</option>
+                        <option value="1">音乐1</option>
+                        <option value="2">音乐2</option>
+                    </select>
+                    <button onclick="alarmSet()" class="success">设置</button>
+                    <button onclick="alarmList()">列表</button>
+                </div>
+                <!-- Hourly Chime Filter -->
+                <div class="row">
+                    <span style="font-size:12px;width:40px;">报时:</span>
+                    <input type="text" id="hourlyFilter" placeholder="整点过滤 如:8,9,10,11,12" style="flex:2">
+                    <button onclick="alarmSetFilter()" class="warning">设置过滤</button>
+                    <button onclick="alarmPlayHourly()">播放报时</button>
+                </div>
+                <!-- Music Control -->
+                <div class="row">
+                    <span style="font-size:12px;width:40px;">音乐:</span>
+                    <select id="musicId" style="width:60px;flex:none" onchange="loadMusicToEditor()">
+                        <option value="0">自定义</option>
+                    </select>
+                    <button onclick="alarmListMusic()">列表</button>
+                    <button onclick="alarmPlayMusic()" class="success">播放</button>
+                    <button onclick="alarmClearMusic()" class="danger">清除</button>
+                    <button onclick="alarmSaveMusic()">保存</button>
+                </div>
+            </div>
+
+            <!-- Music Composer Card -->
+            <div class="card wide">
+                <h2>🎵 编曲器 <span style="font-size:11px;opacity:0.7;">(8音符序列)</span></h2>
+                <div class="row">
+                    <span style="font-size:12px;">BPM:</span>
+                    <input type="number" id="composerBpm" min="20" max="300" value="80" style="width:60px;flex:none">
+                    <button onclick="composerClear()" class="danger">清空</button>
+                    <button onclick="composerUpload()" class="warning">上传到设备</button>
+                    <button onclick="composerPlayAll()" class="success">▶ 全部播放</button>
+                </div>
+                <!-- Piano Roll / Note Grid -->
+                <div style="display:flex;gap:4px;margin:8px 0;flex-wrap:wrap;" id="noteGrid">
+                </div>
+                <!-- Note Editor -->
+                <div class="row" style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
+                    <span style="font-size:12px;">音符#</span>
+                    <select id="editNoteIndex" style="width:50px;flex:none" onchange="loadNoteToEditor()">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                    </select>
+                    <select id="editNotePitch" style="width:70px;flex:none">
+                        <option value="0">休止</option>
+                        <optgroup label="低音">
+                            <option value="262">L1(Do)</option>
+                            <option value="277">L1#</option>
+                            <option value="294">L2(Re)</option>
+                            <option value="311">L2#</option>
+                            <option value="330">L3(Mi)</option>
+                            <option value="349">L4(Fa)</option>
+                            <option value="370">L4#</option>
+                            <option value="392">L5(So)</option>
+                            <option value="415">L5#</option>
+                            <option value="440">L6(La)</option>
+                            <option value="466">L6#</option>
+                            <option value="494">L7(Si)</option>
+                        </optgroup>
+                        <optgroup label="中音">
+                            <option value="523">M1(Do)</option>
+                            <option value="554">M1#</option>
+                            <option value="587">M2(Re)</option>
+                            <option value="622">M2#</option>
+                            <option value="659">M3(Mi)</option>
+                            <option value="698">M4(Fa)</option>
+                            <option value="740">M4#</option>
+                            <option value="784">M5(So)</option>
+                            <option value="831">M5#</option>
+                            <option value="880">M6(La)</option>
+                            <option value="932">M6#</option>
+                            <option value="988">M7(Si)</option>
+                        </optgroup>
+                        <optgroup label="高音">
+                            <option value="1046">H1(Do)</option>
+                            <option value="1109">H1#</option>
+                            <option value="1175">H2(Re)</option>
+                            <option value="1245">H2#</option>
+                            <option value="1318">H3(Mi)</option>
+                            <option value="1397">H4(Fa)</option>
+                            <option value="1480">H4#</option>
+                            <option value="1568">H5(So)</option>
+                            <option value="1661">H5#</option>
+                            <option value="1760">H6(La)</option>
+                            <option value="1865">H6#</option>
+                            <option value="1976">H7(Si)</option>
+                        </optgroup>
+                    </select>
+                    <select id="editNoteBeat" style="width:60px;flex:none">
+                        <option value="47">1/16</option>
+                        <option value="94">1/8</option>
+                        <option value="188" selected>1/4</option>
+                        <option value="375">1/2</option>
+                        <option value="750">1</option>
+                        <option value="1500">2</option>
+                    </select>
+                    <button onclick="updateNote()">✓ 更新</button>
+                    <button onclick="playNote()">🔊 试听</button>
+                </div>
+            </div>
+
+            <!-- Command Card -->
+            <div class="card full">
+                <h2>💻 命令行</h2>
+                <div class="row" style="margin-bottom:0">
+                    <input type="text" id="commandInput" placeholder="输入命令..."
+                        onkeypress="if(event.key==='Enter')sendCommand()" style="flex:3">
+                    <button onclick="sendCommand()">发送</button>
+                    <span style="margin-left:10px">📋 串口日志</span>
+                    <button onclick="clearLog()" class="danger">清空</button>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+                        <input type="checkbox" id="autoScroll" style="width:auto;" checked>
+                        <span>自动滚动</span>
+                    </label>
+                </div>
+                <div class="log" id="serialLog" style="margin-top:6px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
