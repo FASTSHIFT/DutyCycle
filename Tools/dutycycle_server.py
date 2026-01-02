@@ -959,6 +959,133 @@ HTML_TEMPLATE = """
                 </div>
             </div>
 
+            <!-- Alarm Card -->
+            <div class="card wide">
+                <h2>⏰ 闹钟设置</h2>
+                <!-- Alarm Settings -->
+                <div class="row">
+                    <span style="font-size:12px;width:40px;">闹钟:</span>
+                    <select id="alarmId" style="width:50px;flex:none">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                    </select>
+                    <input type="number" id="alarmHour" min="0" max="23" value="8" style="width:45px;flex:none" placeholder="时">
+                    <span>:</span>
+                    <input type="number" id="alarmMinute" min="0" max="59" value="0" style="width:45px;flex:none" placeholder="分">
+                    <select id="alarmMusic" style="width:60px;flex:none">
+                        <option value="0">音乐0</option>
+                        <option value="1">音乐1</option>
+                        <option value="2">音乐2</option>
+                    </select>
+                    <button onclick="alarmSet()" class="success">设置</button>
+                    <button onclick="alarmList()">列表</button>
+                </div>
+                <!-- Hourly Chime Filter -->
+                <div class="row">
+                    <span style="font-size:12px;width:40px;">报时:</span>
+                    <input type="text" id="hourlyFilter" placeholder="整点过滤 如:8,9,10,11,12" style="flex:2">
+                    <button onclick="alarmSetFilter()" class="warning">设置过滤</button>
+                    <button onclick="alarmPlayHourly()">播放报时</button>
+                </div>
+                <!-- Music Control -->
+                <div class="row">
+                    <span style="font-size:12px;width:40px;">音乐:</span>
+                    <select id="musicId" style="width:60px;flex:none" onchange="loadMusicToEditor()">
+                        <option value="0">自定义</option>
+                    </select>
+                    <button onclick="alarmListMusic()">列表</button>
+                    <button onclick="alarmPlayMusic()" class="success">播放</button>
+                    <button onclick="alarmClearMusic()" class="danger">清除</button>
+                    <button onclick="alarmSaveMusic()">保存</button>
+                </div>
+            </div>
+
+            <!-- Music Composer Card -->
+            <div class="card wide">
+                <h2>🎵 编曲器 <span style="font-size:11px;opacity:0.7;">(8音符序列)</span></h2>
+                <div class="row">
+                    <span style="font-size:12px;">BPM:</span>
+                    <input type="number" id="composerBpm" min="20" max="300" value="80" style="width:60px;flex:none">
+                    <button onclick="composerClear()" class="danger">清空</button>
+                    <button onclick="composerUpload()" class="warning">上传到设备</button>
+                    <button onclick="composerPlayAll()" class="success">▶ 全部播放</button>
+                </div>
+                <!-- Piano Roll / Note Grid -->
+                <div style="display:flex;gap:4px;margin:8px 0;flex-wrap:wrap;" id="noteGrid">
+                </div>
+                <!-- Note Editor -->
+                <div class="row" style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
+                    <span style="font-size:12px;">音符#</span>
+                    <select id="editNoteIndex" style="width:50px;flex:none" onchange="loadNoteToEditor()">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                    </select>
+                    <select id="editNotePitch" style="width:70px;flex:none">
+                        <option value="0">休止</option>
+                        <optgroup label="低音">
+                            <option value="262">L1(Do)</option>
+                            <option value="277">L1#</option>
+                            <option value="294">L2(Re)</option>
+                            <option value="311">L2#</option>
+                            <option value="330">L3(Mi)</option>
+                            <option value="349">L4(Fa)</option>
+                            <option value="370">L4#</option>
+                            <option value="392">L5(So)</option>
+                            <option value="415">L5#</option>
+                            <option value="440">L6(La)</option>
+                            <option value="466">L6#</option>
+                            <option value="494">L7(Si)</option>
+                        </optgroup>
+                        <optgroup label="中音">
+                            <option value="523">M1(Do)</option>
+                            <option value="554">M1#</option>
+                            <option value="587">M2(Re)</option>
+                            <option value="622">M2#</option>
+                            <option value="659">M3(Mi)</option>
+                            <option value="698">M4(Fa)</option>
+                            <option value="740">M4#</option>
+                            <option value="784">M5(So)</option>
+                            <option value="831">M5#</option>
+                            <option value="880">M6(La)</option>
+                            <option value="932">M6#</option>
+                            <option value="988">M7(Si)</option>
+                        </optgroup>
+                        <optgroup label="高音">
+                            <option value="1046">H1(Do)</option>
+                            <option value="1109">H1#</option>
+                            <option value="1175">H2(Re)</option>
+                            <option value="1245">H2#</option>
+                            <option value="1318">H3(Mi)</option>
+                            <option value="1397">H4(Fa)</option>
+                            <option value="1480">H4#</option>
+                            <option value="1568">H5(So)</option>
+                            <option value="1661">H5#</option>
+                            <option value="1760">H6(La)</option>
+                            <option value="1865">H6#</option>
+                            <option value="1976">H7(Si)</option>
+                        </optgroup>
+                    </select>
+                    <select id="editNoteBeat" style="width:60px;flex:none">
+                        <option value="47">1/16</option>
+                        <option value="94">1/8</option>
+                        <option value="188" selected>1/4</option>
+                        <option value="375">1/2</option>
+                        <option value="750">1</option>
+                        <option value="1500">2</option>
+                    </select>
+                    <button onclick="updateNote()">✓ 更新</button>
+                    <button onclick="playNote()">🔊 试听</button>
+                </div>
+            </div>
+
             <!-- Command Card -->
             <div class="card full">
                 <h2>💻 命令行</h2>
@@ -1262,6 +1389,219 @@ HTML_TEMPLATE = """
             await api('/command', 'POST', { command });
             input.value = '';
         }
+
+        // ===================== Alarm Functions =====================
+
+        async function alarmCmd(cmd, params = {}) {
+            let cmdStr = `alarm -c ${cmd}`;
+            for (const [key, value] of Object.entries(params)) {
+                if (value !== undefined && value !== null && value !== '') {
+                    cmdStr += ` ${key} ${value}`;
+                }
+            }
+            await api('/command', 'POST', { command: cmdStr });
+        }
+
+        async function alarmSet() {
+            const id = document.getElementById('alarmId').value;
+            const hour = document.getElementById('alarmHour').value;
+            const minute = document.getElementById('alarmMinute').value;
+            const music = document.getElementById('alarmMusic').value;
+            await alarmCmd('SET', { '-i': id, '-H': hour, '-M': minute, '-m': music });
+        }
+
+        async function alarmList() {
+            await alarmCmd('LIST');
+        }
+
+        async function alarmSetFilter() {
+            const filter = document.getElementById('hourlyFilter').value;
+            if (!filter) {
+                alert('请输入整点过滤器，如: 8,9,10,11,12');
+                return;
+            }
+            await alarmCmd('SET_FILTER', { '-f': filter });
+        }
+
+        async function alarmPlayHourly() {
+            await alarmCmd('PLAY_ALARM_HOURLY');
+        }
+
+        async function alarmListMusic() {
+            await alarmCmd('LIST_ALARM_MUSIC');
+        }
+
+        async function alarmPlayMusic() {
+            const music = document.getElementById('musicId').value;
+            await alarmCmd('PLAY_ALARM_MUSIC', { '-m': music });
+        }
+
+        async function alarmClearMusic() {
+            const music = document.getElementById('musicId').value;
+            if (confirm(`确定要清除音乐${music}吗？`)) {
+                await alarmCmd('CLEAR_ALARM_MUSIC', { '-m': music });
+            }
+        }
+
+        async function alarmSaveMusic() {
+            const music = document.getElementById('musicId').value;
+            await alarmCmd('SAVE_ALARM_MUSIC', { '-m': music });
+        }
+
+        async function alarmSetMusic() {
+            const music = document.getElementById('musicId').value;
+            const index = document.getElementById('toneIndex').value;
+            const freq = document.getElementById('toneFreq').value;
+            const duration = document.getElementById('toneDuration').value;
+            const bpm = document.getElementById('toneBpm').value;
+            await alarmCmd('SET_ALARM_MUSIC', { 
+                '-m': music, 
+                '--index': index, 
+                '--freq': freq, 
+                '--duration': duration,
+                '--bpm': bpm
+            });
+        }
+
+        async function alarmPlayTone() {
+            const freq = document.getElementById('toneFreq').value;
+            const duration = document.getElementById('toneDuration').value;
+            await alarmCmd('PLAY_TONE', { '--freq': freq, '--duration': duration });
+        }
+
+        // ===================== Music Composer =====================
+        
+        const PITCH_NAMES = {
+            0: '休止', 262: 'L1', 277: 'L1#', 294: 'L2', 311: 'L2#', 330: 'L3',
+            349: 'L4', 370: 'L4#', 392: 'L5', 415: 'L5#', 440: 'L6', 466: 'L6#', 494: 'L7',
+            523: 'M1', 554: 'M1#', 587: 'M2', 622: 'M2#', 659: 'M3',
+            698: 'M4', 740: 'M4#', 784: 'M5', 831: 'M5#', 880: 'M6', 932: 'M6#', 988: 'M7',
+            1046: 'H1', 1109: 'H1#', 1175: 'H2', 1245: 'H2#', 1318: 'H3',
+            1397: 'H4', 1480: 'H4#', 1568: 'H5', 1661: 'H5#', 1760: 'H6', 1865: 'H6#', 1976: 'H7'
+        };
+        
+        const BEAT_NAMES = { 47: '1/16', 94: '1/8', 188: '1/4', 375: '1/2', 750: '1', 1500: '2' };
+        
+        // 8个音符的序列数据
+        let composerNotes = [
+            { freq: 523, duration: 188 },  // M1, 1/4
+            { freq: 523, duration: 188 },  // M1, 1/4
+            { freq: 784, duration: 188 },  // M5, 1/4
+            { freq: 784, duration: 188 },  // M5, 1/4
+            { freq: 880, duration: 188 },  // M6, 1/4
+            { freq: 880, duration: 188 },  // M6, 1/4
+            { freq: 784, duration: 375 },  // M5, 1/2
+            { freq: 0, duration: 188 }     // 休止
+        ];
+        
+        function initComposer() {
+            renderNoteGrid();
+            loadNoteToEditor();
+        }
+        
+        function renderNoteGrid() {
+            const grid = document.getElementById('noteGrid');
+            grid.innerHTML = '';
+            composerNotes.forEach((note, i) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'background:rgba(0,212,255,0.2);border:1px solid rgba(0,212,255,0.5);border-radius:6px;padding:6px 10px;text-align:center;cursor:pointer;min-width:60px;';
+                div.onclick = () => selectNote(i);
+                div.id = 'noteBox' + i;
+                
+                const pitchName = PITCH_NAMES[note.freq] || note.freq + 'Hz';
+                const beatName = BEAT_NAMES[note.duration] || note.duration + 'ms';
+                
+                div.innerHTML = `<div style="font-size:14px;font-weight:bold;">${pitchName}</div><div style="font-size:10px;opacity:0.7;">${beatName}</div>`;
+                grid.appendChild(div);
+            });
+            highlightSelectedNote();
+        }
+        
+        function selectNote(index) {
+            document.getElementById('editNoteIndex').value = index;
+            loadNoteToEditor();
+            highlightSelectedNote();
+        }
+        
+        function highlightSelectedNote() {
+            const idx = parseInt(document.getElementById('editNoteIndex').value);
+            for (let i = 0; i < 8; i++) {
+                const box = document.getElementById('noteBox' + i);
+                if (box) {
+                    box.style.borderColor = (i === idx) ? '#00ff88' : 'rgba(0,212,255,0.5)';
+                    box.style.background = (i === idx) ? 'rgba(0,255,136,0.3)' : 'rgba(0,212,255,0.2)';
+                }
+            }
+        }
+        
+        function loadNoteToEditor() {
+            const idx = parseInt(document.getElementById('editNoteIndex').value);
+            const note = composerNotes[idx];
+            document.getElementById('editNotePitch').value = note.freq;
+            // 找到最接近的节拍
+            const beats = [47, 94, 188, 375, 750, 1500];
+            let closest = beats.reduce((a, b) => Math.abs(b - note.duration) < Math.abs(a - note.duration) ? b : a);
+            document.getElementById('editNoteBeat').value = closest;
+            highlightSelectedNote();
+        }
+        
+        function updateNote() {
+            const idx = parseInt(document.getElementById('editNoteIndex').value);
+            const freq = parseInt(document.getElementById('editNotePitch').value);
+            const duration = parseInt(document.getElementById('editNoteBeat').value);
+            composerNotes[idx] = { freq, duration };
+            renderNoteGrid();
+        }
+        
+        async function playNote() {
+            const freq = parseInt(document.getElementById('editNotePitch').value);
+            const duration = parseInt(document.getElementById('editNoteBeat').value);
+            if (freq > 0) {
+                await alarmCmd('PLAY_TONE', { '--freq': freq, '--duration': duration });
+            }
+        }
+        
+        function composerClear() {
+            if (confirm('确定要清空所有音符吗？')) {
+                composerNotes = Array(8).fill(null).map(() => ({ freq: 0, duration: 188 }));
+                renderNoteGrid();
+                loadNoteToEditor();
+            }
+        }
+        
+        async function composerUpload() {
+            const bpm = parseInt(document.getElementById('composerBpm').value);
+            // 先清除现有音乐
+            await alarmCmd('CLEAR_ALARM_MUSIC', { '-m': 0 });
+            // 设置BPM
+            await alarmCmd('SET_ALARM_MUSIC', { '-m': 0, '--bpm': bpm });
+            // 逐个上传音符
+            for (let i = 0; i < composerNotes.length; i++) {
+                const note = composerNotes[i];
+                await alarmCmd('SET_ALARM_MUSIC', { 
+                    '-m': 0, 
+                    '--index': i, 
+                    '--freq': note.freq, 
+                    '--duration': note.duration 
+                });
+            }
+            alert('音乐已上传到设备！');
+        }
+        
+        async function composerPlayAll() {
+            await composerUpload();
+            await alarmCmd('PLAY_ALARM_MUSIC', { '-m': 0 });
+        }
+        
+        function loadMusicToEditor() {
+            // 这个功能需要从设备读取，暂时只显示提示
+            alarmListMusic();
+        }
+        
+        // 初始化编曲器
+        document.addEventListener('DOMContentLoaded', () => {
+            initComposer();
+        });
     </script>
 </body>
 </html>
