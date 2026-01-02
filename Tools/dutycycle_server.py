@@ -536,13 +536,23 @@ def api_motor():
     """Set motor value."""
     data = request.json
     immediate = data.get("immediate", False)
+    async_mode = data.get("async", False)
+
+    # Start serial worker if async mode and not already running
+    if async_mode and (
+        state.serial_worker is None or not state.serial_worker.is_alive()
+    ):
+        start_serial_worker()
 
     if "value" in data:
-        responses, error = set_motor_value(data["value"], immediate)
+        responses, error = set_motor_value(data["value"], immediate, async_mode)
     elif "percent" in data:
-        responses, error = set_motor_percent(data["percent"], immediate)
+        responses, error = set_motor_percent(data["percent"], immediate, async_mode)
     else:
         return jsonify({"success": False, "error": "Missing value or percent"})
+
+    if async_mode:
+        return jsonify({"success": True, "async": True})
 
     if error:
         return jsonify({"success": False, "error": error})
@@ -907,12 +917,15 @@ HTML_TEMPLATE = """
                     <button onclick="updateConfig()">应用</button>
                 </div>
                 <div class="slider-container">
-                    <input type="range" id="motorSlider" min="0" max="100" value="0" oninput="updateMotorFromSlider()">
+                    <input type="range" id="motorSlider" min="0" max="100" value="0" oninput="onMotorSliderInput()">
                 </div>
                 <div class="row">
                     <input type="number" id="motorPercent" value="0" min="0" max="100" placeholder="%">
                     <button onclick="setMotor()">设置</button>
-                    <button onclick="setMotor(true)" class="warning">立即</button>
+                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
+                        <input type="checkbox" id="immediateMode" style="width:auto;">
+                        <span>立即</span>
+                    </label>
                 </div>
             </div>
 
@@ -1114,19 +1127,23 @@ HTML_TEMPLATE = """
             await api('/config', 'POST', { motor_min: motorMin, motor_max: motorMax, period });
         }
 
-        function updateMotorFromSlider() {
+        function onMotorSliderInput() {
             const value = document.getElementById('motorSlider').value;
             document.getElementById('motorPercent').value = value;
+            // 实时发送，跟手，使用异步模式
+            const immediate = document.getElementById('immediateMode').checked;
+            api('/motor', 'POST', { percent: parseFloat(value), immediate, async: true });
         }
 
-        async function setMotor(immediate = false) {
+        async function setMotor() {
             const percent = parseFloat(document.getElementById('motorPercent').value);
+            const immediate = document.getElementById('immediateMode').checked;
             document.getElementById('motorSlider').value = percent;
 
             await api('/motor', 'POST', { percent, immediate });
         }
 
-        function onMonitorModeChange() {
+        async function onMonitorModeChange() {
             const mode = document.getElementById('monitorMode').value;
             const periodInput = document.getElementById('period');
             // 音频模式默认10ms，其他模式默认100ms
@@ -1135,9 +1152,22 @@ HTML_TEMPLATE = """
             } else {
                 periodInput.value = 100;
             }
-            // 如果正在监控，实时更新周期
+            // 如果正在监控，实时切换模式
             if (isMonitoring) {
-                onPeriodChange();
+                await switchMonitorMode(mode);
+            }
+        }
+
+        async function switchMonitorMode(mode) {
+            // 先停止当前监控
+            await api('/monitor/stop', 'POST');
+            stopMonitorLoop();
+            // 更新周期配置
+            await onPeriodChange();
+            // 启动新模式
+            const result = await api('/monitor/start', 'POST', { mode });
+            if (result.success) {
+                startMonitorLoop();
             }
         }
 
