@@ -876,7 +876,7 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 <span class="glow">DutyCycle</span> Controller</h1>
+            <h1>🎯 <a href="https://github.com/FASTSHIFT/DutyCycle" target="_blank" class="glow" style="text-decoration:none;">DutyCycle</a> Controller</h1>
             <p class="author">Crafted with ⚡ by <a href="https://github.com/FASTSHIFT" target="_blank">_VIFEXTech</a></p>
         </div>
         <div class="grid">
