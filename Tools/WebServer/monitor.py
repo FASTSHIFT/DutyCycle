@@ -11,6 +11,7 @@ import logging
 import math
 import threading
 import time
+import gc
 
 import psutil
 
@@ -100,7 +101,14 @@ def init_audio_meter():
     try:
         speakers = AudioUtilities.GetSpeakers()
         interface = speakers.Activate(IAudioMeterInformation._iid_, CLSCTX_ALL, None)
-        state.audio_meter = cast(interface, POINTER(IAudioMeterInformation))
+        meter = cast(interface, POINTER(IAudioMeterInformation))
+        state.audio_meter = meter
+        # drop local references to avoid lingering COM objects
+        try:
+            del interface
+            del speakers
+        except Exception:
+            pass
         return True
     except AttributeError:
         try:
@@ -164,12 +172,28 @@ def monitor_loop():
     finally:
         # Clean up
         stop_serial_worker()
-        state.audio_meter = None
+        # Try to safely release audio meter COM object before uninitializing COM
+        if state.audio_meter is not None:
+            try:
+                rel = getattr(state.audio_meter, "Release", None)
+                if callable(rel):
+                    rel()
+            except Exception:
+                logger = logging.getLogger(__name__)
+                logger.exception("Error releasing audio meter COM object")
+            # remove reference and force garbage collection
+            state.audio_meter = None
+            try:
+                gc.collect()
+            except Exception:
+                pass
+
         if com_initialized and CoUninitialize is not None:
             try:
                 CoUninitialize()
-            except:
-                pass
+            except Exception:
+                logger = logging.getLogger(__name__)
+                logger.exception("CoUninitialize failed")
 
 
 def start_monitor(mode):
