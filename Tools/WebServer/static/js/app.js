@@ -1,4 +1,4 @@
-// DutyCycle Controller JavaScript
+// DutyCycle Configuration JavaScript
 
 let isConnected = false;
 let isMonitoring = false;
