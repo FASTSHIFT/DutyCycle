@@ -419,3 +419,11 @@ input[type="range"]::-webkit-slider-thumb:hover {
         width: 100%;
     }
 }
+
+/* Disabled State */
+.card.disabled-card {
+    opacity: 0.6;
+    pointer-events: none;
+    filter: grayscale(100%);
+    user-select: none;
+}

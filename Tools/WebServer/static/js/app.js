@@ -242,6 +242,19 @@ function updateUI() {
 
     monitorBtn.textContent = isMonitoring ? '停止监控' : '开始监控';
     monitorBtn.className = isMonitoring ? 'danger' : 'success';
+
+    // Disable other cards when not connected
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        // Skip connection card (identified by having connectBtn)
+        if (card.querySelector('#connectBtn')) return;
+
+        if (isConnected) {
+            card.classList.remove('disabled-card');
+        } else {
+            card.classList.add('disabled-card');
+        }
+    });
 }
 
 async function toggleConnect() {
