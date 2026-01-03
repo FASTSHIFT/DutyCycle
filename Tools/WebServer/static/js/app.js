@@ -354,11 +354,11 @@ async function setMotor() {
 async function onMonitorModeChange() {
     const mode = document.getElementById('monitorMode').value;
     const periodInput = document.getElementById('period');
-    // 音频模式默认10ms，其他模式默认100ms
+    // 音频模式默认10ms，其他模式默认1000ms
     if (mode === 'audio-level') {
         periodInput.value = 10;
     } else {
-        periodInput.value = 100;
+        periodInput.value = 1000;
     }
     // 如果正在监控，实时切换模式
     if (isMonitoring) {
@@ -622,14 +622,14 @@ async function playNoteLocal() {
 
     const freq = parseInt(document.getElementById('editNotePitch').value);
     const duration = parseInt(document.getElementById('editNoteBeat').value);
-    
+
     if (freq > 0) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        
+
         osc.type = 'square';
         osc.frequency.value = freq;
-        
+
         const now = ctx.currentTime;
         const durationSec = duration / 1000;
 
@@ -638,10 +638,10 @@ async function playNoteLocal() {
         gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
         gain.gain.setValueAtTime(0.15, now + durationSec - 0.01);
         gain.gain.linearRampToValueAtTime(0, now + durationSec);
-        
+
         osc.connect(gain);
         gain.connect(ctx.destination);
-        
+
         osc.start(now);
         osc.stop(now + durationSec);
     }
@@ -659,14 +659,14 @@ async function playAllLocal() {
 
     composerNotes.forEach(note => {
         const durationSec = note.duration / 1000;
-        
+
         if (note.freq > 0) {
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
 
             osc.type = 'square';
             osc.frequency.value = note.freq;
-            
+
             // 包络
             gain.gain.setValueAtTime(0, startTime);
             gain.gain.linearRampToValueAtTime(0.15, startTime + 0.01);
@@ -679,7 +679,7 @@ async function playAllLocal() {
             osc.start(startTime);
             osc.stop(startTime + durationSec);
         }
-        
+
         startTime += durationSec;
     });
 }
