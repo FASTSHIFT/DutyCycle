@@ -1,4 +1,4 @@
-// DutyCycle Configuration JavaScript
+// DutyCycle Studio JavaScript
 
 let isConnected = false;
 let isMonitoring = false;
