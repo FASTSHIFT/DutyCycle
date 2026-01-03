@@ -147,24 +147,30 @@
                         <option value="0">音乐0</option>
                         <option value="1">音乐1</option>
                         <option value="2">音乐2</option>
+                        <option value="3">自定义</option>
                     </select>
                     <button onclick="alarmSet()" class="success">设置</button>
-                    <button onclick="alarmList()">列表</button>
+                    <button onclick="alarmList()">列出所有闹钟</button>
                 </div>
                 <!-- Hourly Chime Filter -->
                 <div class="row">
                     <span style="font-size:12px;width:40px;">报时:</span>
                     <input type="text" id="hourlyFilter" placeholder="整点过滤 如:8,9,10,11,12" style="flex:2">
-                    <button onclick="alarmSetFilter()" class="warning">设置过滤</button>
-                    <button onclick="alarmPlayHourly()">播放报时</button>
+                    <button onclick="alarmSetFilter()" class="warning">应用小时过滤器</button>
+                    <input type="number" id="hourlyHour" min="0" max="23" value="12" style="width:50px;flex:none"
+                        placeholder="时">
+                    <button onclick="alarmPlayHourly()">预览报时</button>
                 </div>
                 <!-- Music Control -->
                 <div class="row">
                     <span style="font-size:12px;width:40px;">音乐:</span>
-                    <select id="musicId" style="width:60px;flex:none" onchange="loadMusicToEditor()">
-                        <option value="0">自定义</option>
+                    <select id="musicId" style="width:60px;flex:none" onchange="onMusicIdChange()">
+                        <option value="0">预设0</option>
+                        <option value="1">预设1</option>
+                        <option value="2">预设2</option>
+                        <option value="3" selected>自定义</option>
                     </select>
-                    <button onclick="alarmListMusic()">列表</button>
+                    <button onclick="alarmListMusic()">列出音乐信息</button>
                     <button onclick="alarmPlayMusic()" class="success">播放</button>
                     <button onclick="alarmClearMusic()" class="danger">清除</button>
                     <button onclick="alarmSaveMusic()">保存</button>
@@ -179,7 +185,7 @@
                     <input type="number" id="composerBpm" min="20" max="300" value="80" style="width:60px;flex:none">
                     <button onclick="composerClear()" class="danger">清空</button>
                     <button onclick="composerUpload()" class="warning">上传到设备</button>
-                    <button onclick="composerPlayAll()" class="success">▶ 全部播放</button>
+                    <button onclick="composerPlayAll()" class="success">▶ 上传并播放</button>
                 </div>
                 <!-- Piano Roll / Note Grid -->
                 <div style="display:flex;gap:4px;margin:8px 0;flex-wrap:wrap;" id="noteGrid">
@@ -197,7 +203,7 @@
                         <option value="6">6</option>
                         <option value="7">7</option>
                     </select>
-                    <select id="editNotePitch" style="width:70px;flex:none">
+                    <select id="editNotePitch" style="width:90px;flex:none" onchange="onNoteEditorChange()">
                         <option value="0">休止</option>
                         <optgroup label="低音">
                             <option value="262">L1(Do)</option>
@@ -242,7 +248,7 @@
                             <option value="1976">H7(Si)</option>
                         </optgroup>
                     </select>
-                    <select id="editNoteBeat" style="width:60px;flex:none">
+                    <select id="editNoteBeat" style="width:60px;flex:none" onchange="onNoteEditorChange()">
                         <option value="47">1/16</option>
                         <option value="94">1/8</option>
                         <option value="188" selected>1/4</option>
@@ -250,8 +256,8 @@
                         <option value="750">1</option>
                         <option value="1500">2</option>
                     </select>
-                    <button onclick="updateNote()">✓ 更新</button>
-                    <button onclick="playNote()">🔊 试听</button>
+                    <button onclick="playNoteLocal()">🔊 试听</button>
+                    <button onclick="playAllLocal()" class="success">▶ 预览</button>
                 </div>
             </div>
 

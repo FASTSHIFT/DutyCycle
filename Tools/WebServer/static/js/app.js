@@ -465,7 +465,8 @@ async function alarmSetFilter() {
 }
 
 async function alarmPlayHourly() {
-    await alarmCmd('PLAY_ALARM_HOURLY');
+    const hour = document.getElementById('hourlyHour').value;
+    await alarmCmd('PLAY_ALARM_HOURLY', { '-H': hour });
 }
 
 async function alarmListMusic() {
@@ -586,7 +587,8 @@ function loadNoteToEditor() {
     highlightSelectedNote();
 }
 
-function updateNote() {
+// 编辑器改变时直接更新音符
+function onNoteEditorChange() {
     const idx = parseInt(document.getElementById('editNoteIndex').value);
     const freq = parseInt(document.getElementById('editNotePitch').value);
     const duration = parseInt(document.getElementById('editNoteBeat').value);
@@ -594,6 +596,88 @@ function updateNote() {
     renderNoteGrid();
 }
 
+// Web Audio API 播放器
+let audioCtx = null;
+
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+}
+
+// 试听当前编辑的音符
+async function playNoteLocal() {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        await ctx.resume();
+    }
+
+    const freq = parseInt(document.getElementById('editNotePitch').value);
+    const duration = parseInt(document.getElementById('editNoteBeat').value);
+    
+    if (freq > 0) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        
+        const now = ctx.currentTime;
+        const durationSec = duration / 1000;
+
+        // 简单的包络，避免爆音
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        gain.gain.setValueAtTime(0.15, now + durationSec - 0.01);
+        gain.gain.linearRampToValueAtTime(0, now + durationSec);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(now);
+        osc.stop(now + durationSec);
+    }
+}
+
+// 预览全部音符 (使用精确调度)
+async function playAllLocal() {
+    const ctx = getAudioContext();
+    if (ctx.state === 'suspended') {
+        await ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    let startTime = now + 0.1; // 延迟100ms开始，确保不丢音
+
+    composerNotes.forEach(note => {
+        const durationSec = note.duration / 1000;
+        
+        if (note.freq > 0) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'square';
+            osc.frequency.value = note.freq;
+            
+            // 包络
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.15, startTime + 0.01);
+            gain.gain.setValueAtTime(0.15, startTime + durationSec - 0.01);
+            gain.gain.linearRampToValueAtTime(0, startTime + durationSec);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(startTime);
+            osc.stop(startTime + durationSec);
+        }
+        
+        startTime += durationSec;
+    });
+}
+
+// 保留旧的playNote用于设备播放
 async function playNote() {
     const freq = parseInt(document.getElementById('editNotePitch').value);
     const duration = parseInt(document.getElementById('editNoteBeat').value);
@@ -612,29 +696,38 @@ function composerClear() {
 
 async function composerUpload() {
     const bpm = parseInt(document.getElementById('composerBpm').value);
+    const musicId = 3;  // 编曲器只能编辑自定义音乐(ID:3)
     // 先清除现有音乐
-    await alarmCmd('CLEAR_ALARM_MUSIC', { '-m': 0 });
+    await alarmCmd('CLEAR_ALARM_MUSIC', { '-m': musicId });
     // 设置BPM
-    await alarmCmd('SET_ALARM_MUSIC', { '-m': 0, '--bpm': bpm });
+    await alarmCmd('SET_ALARM_MUSIC', { '-m': musicId, '--bpm': bpm });
     // 逐个上传音符
     for (let i = 0; i < composerNotes.length; i++) {
         const note = composerNotes[i];
         await alarmCmd('SET_ALARM_MUSIC', {
-            '-m': 0,
+            '-m': musicId,
             '--index': i,
             '--freq': note.freq,
             '--duration': note.duration
         });
     }
-    alert('音乐已上传到设备！');
+    alert('音乐已上传到设备(ID:3)！');
 }
 
 async function composerPlayAll() {
     await composerUpload();
-    await alarmCmd('PLAY_ALARM_MUSIC', { '-m': 0 });
+    await alarmCmd('PLAY_ALARM_MUSIC', { '-m': 3 });
 }
 
-function loadMusicToEditor() {
-    // 这个功能需要从设备读取，暂时只显示提示
-    alarmListMusic();
+function onMusicIdChange() {
+    const musicId = document.getElementById('musicId').value;
+    // 只有自定义音乐(ID:3)才能编辑
+    const composerCard = document.querySelector('.card.wide:has(#noteGrid)');
+    if (composerCard) {
+        if (musicId === '3') {
+            composerCard.classList.remove('disabled-card');
+        } else {
+            composerCard.classList.add('disabled-card');
+        }
+    }
 }
