@@ -104,6 +104,11 @@ async function refreshPorts() {
             opt.textContent = `${p.device} - ${p.description}`;
             select.appendChild(opt);
         });
+
+        // 如果检测到串口且当前未连接且没有选中端口，自动选中第一个
+        if (!isConnected && select.value === '' && result.ports.length > 0) {
+            select.value = result.ports[0].device;
+        }
     }
 }
 
