@@ -7,6 +7,12 @@ let logInterval = null;
 let lastLogIndex = 0;
 let autoSyncInterval = null;
 
+// xterm.js terminal instance
+let term = null;
+let fitAddon = null;
+let currentLine = '';
+let sendingCommand = false;  // 防止重复发送
+
 // ===================== API Helper =====================
 
 async function api(endpoint, method = 'GET', data = null) {
@@ -30,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCheckboxStates();
     refreshPorts();
     refreshStatus();
+    initTerminal();
     startLogPolling();
     initComposer();
 });
@@ -50,44 +57,127 @@ function loadCheckboxStates() {
     document.getElementById('immediateMode').checked = immediate;
 }
 
+// ===================== Terminal Functions (xterm.js) =====================
+
+function initTerminal() {
+    const container = document.getElementById('terminal-container');
+    if (!container || term) return;
+
+    term = new Terminal({
+        theme: {
+            background: '#1e1e1e',
+            foreground: '#d4d4d4',
+            cursor: '#00d4ff',
+            cursorAccent: '#1e1e1e',
+            cyan: '#00d4ff',
+            green: '#2ed573',
+            red: '#ff4757',
+            yellow: '#ffa502',
+        },
+        fontFamily: "'Consolas', 'Monaco', monospace",
+        fontSize: 14,
+        cursorBlink: true,
+        cursorStyle: 'bar',
+        scrollback: 1000,
+    });
+
+    fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(container);
+    fitAddon.fit();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        if (fitAddon) fitAddon.fit();
+    });
+
+    // Handle user input
+    term.onData(data => {
+        // Handle special keys
+        if (data === '\r') {
+            // Enter key - send command
+            term.write('\r\n');
+            if (currentLine.trim()) {
+                sendTerminalCommand(currentLine);
+            }
+            currentLine = '';
+        } else if (data === '\x7f' || data === '\b') {
+            // Backspace
+            if (currentLine.length > 0) {
+                currentLine = currentLine.slice(0, -1);
+                term.write('\b \b');
+            }
+        } else if (data === '\x03') {
+            // Ctrl+C
+            currentLine = '';
+            term.write('^C\r\n');
+        } else if (data >= ' ' || data === '\t') {
+            // Printable characters
+            currentLine += data;
+            term.write(data);
+        }
+    });
+
+    term.writeln('\x1b[36m[DutyCycle Terminal]\x1b[0m Ready.');
+    term.writeln('');
+}
+
+async function sendTerminalCommand(command) {
+    if (!command || sendingCommand) return;
+    sendingCommand = true;
+    try {
+        await api('/command', 'POST', { command });
+    } finally {
+        setTimeout(() => { sendingCommand = false; }, 50);
+    }
+}
+
+function clearTerminal() {
+    if (term) {
+        term.clear();
+        api('/log/clear', 'POST');
+        lastLogIndex = 0;
+    }
+}
+
 // ===================== Log Functions =====================
+
+let fetchingLogs = false;  // 防止重叠请求
 
 function startLogPolling() {
     if (logInterval) clearInterval(logInterval);
-    logInterval = setInterval(fetchLogs, 200);
+    logInterval = setInterval(fetchLogs, 50);  // 50ms轮询
 }
 
 async function fetchLogs() {
-    const result = await api('/log?since=' + lastLogIndex);
-    if (result.success && result.logs && result.logs.length > 0) {
-        const logEl = document.getElementById('serialLog');
-        const autoScroll = document.getElementById('autoScroll').checked;
+    if (fetchingLogs) return;  // 防止重叠请求
+    fetchingLogs = true;
 
-        result.logs.forEach(entry => {
-            const div = document.createElement('div');
-            div.className = 'log-entry ' + (entry.dir === 'TX' ? 'tx' : 'rx');
-            div.textContent = `[${entry.time}] [${entry.dir}] ${entry.data}`;
-            logEl.appendChild(div);
-        });
-
-        // Limit displayed entries
-        while (logEl.children.length > 200) {
-            logEl.removeChild(logEl.firstChild);
+    try {
+        const result = await api('/log?since=' + lastLogIndex);
+        if (result.success) {
+            if (result.logs && result.logs.length > 0) {
+                result.logs.forEach(entry => {
+                    if (term && entry.dir === 'RX') {
+                        let text = entry.data;
+                        // 过滤设备提示符（如 "device>"）
+                        text = text.replace(/^[a-zA-Z_][a-zA-Z0-9_]*>\\s*$/gm, '');
+                        // 只有非空内容才写入
+                        if (text && text.trim()) {
+                            term.write(text);
+                        }
+                    }
+                });
+            }
+            lastLogIndex = result.next_index;
         }
-
-        if (autoScroll) {
-            logEl.scrollTop = logEl.scrollHeight;
-        }
-    }
-    // Always update index to prevent re-fetching
-    if (result.success) {
-        lastLogIndex = result.next_index;
+    } finally {
+        fetchingLogs = false;
     }
 }
 
 async function clearLog() {
     await api('/log/clear', 'POST');
-    document.getElementById('serialLog').innerHTML = '';
     lastLogIndex = 0;
 }
 
@@ -326,14 +416,7 @@ function stopMonitorLoop() {
 
 // ===================== Command Functions =====================
 
-async function sendCommand() {
-    const input = document.getElementById('commandInput');
-    const command = input.value.trim();
-    if (!command) return;
-
-    await api('/command', 'POST', { command });
-    input.value = '';
-}
+// (Terminal commands handled by xterm.js initTerminal)
 
 // ===================== Alarm Functions =====================
 

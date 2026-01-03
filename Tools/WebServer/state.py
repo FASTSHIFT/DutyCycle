@@ -33,6 +33,9 @@ class DeviceState:
         self.serial_queue = None
         self.serial_worker = None
         self.serial_worker_running = False
+        # Async serial reader for continuous terminal output
+        self.serial_reader_thread = None
+        self.serial_reader_running = False
 
 
 # Global state instance

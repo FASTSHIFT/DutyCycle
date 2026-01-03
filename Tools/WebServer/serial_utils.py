@@ -11,11 +11,16 @@ import datetime
 import queue
 import threading
 import time
+import collections
 
 import serial
 import serial.tools.list_ports
 
 from state import state
+
+# Echo suppression queue
+pending_echoes = collections.deque()
+pending_lock = threading.Lock()
 
 
 def scan_serial_ports():
@@ -37,42 +42,20 @@ def serial_open(port, baudrate=115200, timeout=1):
         return None, f"Error: {e}"
 
 
-def serial_write(ser, command, sleep_duration=0.1):
-    """Write command to serial port and read response."""
+def serial_write(ser, command, sleep_duration=0.0):
+    """Write command to serial port (Fire and Forget)."""
     if ser is None:
         return None, "Serial port not opened"
 
     try:
+        # Register for echo suppression
+        with pending_lock:
+            pending_echoes.append(command.strip())
+
         ser.write(command.encode())
 
-        # Log TX
-        tx_display = command.replace("\r", "\\r").replace("\n", "\\n")
-        add_serial_log("TX", tx_display)
-
-        time.sleep(sleep_duration)
-
-        responses = []
-        raw_rx_list = []
-        while True:
-            raw_line = ser.readline()
-            if raw_line:
-                raw_rx_list.append(raw_line)
-                response = raw_line.decode().strip()
-                if response:
-                    responses.append(response)
-            else:
-                break
-
-        # Log RX
-        if raw_rx_list:
-            rx_display = (
-                "".join(line.decode(errors="replace") for line in raw_rx_list)
-                .replace("\r", "\\r")
-                .replace("\n", "\\n")
-            )
-            add_serial_log("RX", rx_display)
-
-        return responses, None
+        # TX is already shown by xterm.js, no need to log here
+        return [], None
     except serial.SerialException as e:
         return None, f"Serial error: {e}"
     except Exception as e:
@@ -99,34 +82,46 @@ def serial_worker_loop():
             if state.ser is not None:
                 with state.lock:
                     try:
+                        # Register for echo suppression
+                        with pending_lock:
+                            pending_echoes.append(command.strip())
                         state.ser.write(command.encode())
-                        # Log TX
-                        tx_display = command.replace("\r", "\\r").replace("\n", "\\n")
-                        add_serial_log("TX", tx_display)
-                        # Quick read without blocking
-                        state.ser.timeout = 0.01
-                        raw_rx_list = []
-                        while True:
-                            raw_line = state.ser.readline()
-                            if raw_line:
-                                raw_rx_list.append(raw_line)
-                            else:
-                                break
-                        state.ser.timeout = state.timeout
-                        if raw_rx_list:
-                            rx_display = (
-                                "".join(
-                                    line.decode(errors="replace")
-                                    for line in raw_rx_list
-                                )
-                                .replace("\r", "\\r")
-                                .replace("\n", "\\n")
-                            )
-                            add_serial_log("RX", rx_display)
+                        # TX shown by xterm.js, no need to log
                     except:
                         pass
         except queue.Empty:
             pass
+
+
+def serial_reader_loop():
+    """Background thread that continuously reads from serial port."""
+
+    while state.serial_reader_running:
+        if state.ser is None or not state.ser.isOpen():
+            time.sleep(0.05)
+            continue
+
+        try:
+            if state.ser.in_waiting > 0:
+                raw_line = state.ser.readline()
+                if raw_line:
+                    line_str = raw_line.decode(errors="replace")
+                    stripped = line_str.strip()
+
+                    # Echo suppression: skip if matches pending command
+                    is_echo = False
+                    with pending_lock:
+                        if stripped and pending_echoes:
+                            if stripped == pending_echoes[0]:
+                                pending_echoes.popleft()
+                                is_echo = True
+
+                    if not is_echo:
+                        add_serial_log("RX", line_str)
+            else:
+                time.sleep(0.005)  # 5ms
+        except Exception as e:
+            time.sleep(0.05)
 
 
 def start_serial_worker():
@@ -145,6 +140,28 @@ def stop_serial_worker():
         state.serial_worker.join(timeout=1)
         state.serial_worker = None
         state.serial_queue = None
+
+
+def start_serial_reader():
+    """Start the background serial reader thread."""
+    # 清空echo队列
+    with pending_lock:
+        pending_echoes.clear()
+
+    if state.serial_reader_thread is None or not state.serial_reader_thread.is_alive():
+        state.serial_reader_running = True
+        state.serial_reader_thread = threading.Thread(
+            target=serial_reader_loop, daemon=True
+        )
+        state.serial_reader_thread.start()
+
+
+def stop_serial_reader():
+    """Stop the background serial reader thread."""
+    state.serial_reader_running = False
+    if state.serial_reader_thread is not None:
+        state.serial_reader_thread.join(timeout=1)
+        state.serial_reader_thread = None
 
 
 def add_serial_log(direction, data):

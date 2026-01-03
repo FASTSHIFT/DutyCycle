@@ -15,6 +15,8 @@ from serial_utils import (
     serial_open,
     serial_write,
     start_serial_worker,
+    start_serial_reader,
+    stop_serial_reader,
 )
 from device import set_motor_value, set_motor_percent, config_clock
 from monitor import (
@@ -60,12 +62,17 @@ def register_routes(app):
         state.port = port
         state.baudrate = baudrate
         state.timeout = timeout
+
+        # Start background reader
+        start_serial_reader()
+
         return jsonify({"success": True, "port": port})
 
     @app.route("/api/disconnect", methods=["POST"])
     def api_disconnect():
         """Disconnect from serial port."""
         stop_monitor()
+        stop_serial_reader()
         if state.ser:
             state.ser.close()
             state.ser = None

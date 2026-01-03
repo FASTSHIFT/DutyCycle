@@ -308,30 +308,88 @@ input[type="range"]::-webkit-slider-thumb:hover {
     transform: scale(1.2);
 }
 
-/* Log */
-.log {
-    background: rgba(0, 0, 0, 0.3);
+/* Terminal Window */
+.terminal-window {
+    background: #1e1e1e;
     border-radius: var(--radius-md);
     padding: var(--space-xs);
-    height: 160px;
+    height: 320px;
     overflow-y: auto;
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.75rem;
-    /* 12px */
+    font-size: 0.875rem;
     border: 1px solid var(--card-border);
+    color: #d4d4d4;
+    line-height: 1.4;
+    cursor: text;
+    display: flex;
+    flex-direction: column;
 }
 
-.log-entry {
-    padding: 2px 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+/* Scrollbar for terminal */
+.terminal-window::-webkit-scrollbar {
+    width: 8px;
 }
 
-.log-entry.tx {
+.terminal-window::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.terminal-window::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.terminal-window::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+#serialLog {
+    flex: 0 0 auto;
+    /* Allow it to grow but not shrink below content */
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.terminal-input-line {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.term-prompt {
     color: var(--accent-color);
+    margin-right: 8px;
+    font-weight: bold;
+    user-select: none;
 }
 
-.log-entry.rx {
-    color: var(--success-color);
+#termInput {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+    height: auto;
+    outline: none;
+    box-shadow: none;
+    /* Remove any focus shadow */
+}
+
+#termInput:focus {
+    border: none;
+    outline: none;
+}
+
+.term-tx {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.term-rx {
+    color: #cccccc;
 }
 
 /* Glow Effect (Keep but subtle) */

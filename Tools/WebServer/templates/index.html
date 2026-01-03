@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DutyCycle Studio | _VIFEXTech</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <!-- xterm.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
 </head>
 
 <body>
@@ -32,9 +36,11 @@
                 <div class="row">
                     <label style="display:flex;align-items:center;gap:8px;cursor:default;font-size:12px;">
                         <span style="opacity:0.85;min-width:56px;">波特率: </span>
-                        <input type="number" id="baudrate" value="115200" placeholder="波特率" aria-label="波特率" title="输入串口波特率，例如 115200">
+                        <input type="number" id="baudrate" value="115200" placeholder="波特率" aria-label="波特率"
+                            title="输入串口波特率，例如 115200">
                     </label>
-                    <button id="connectBtn" onclick="toggleConnect()" aria-label="连接/断开" title="连接或断开当前选择的串口">连接</button>
+                    <button id="connectBtn" onclick="toggleConnect()" aria-label="连接/断开"
+                        title="连接或断开当前选择的串口">连接</button>
                 </div>
                 <div class="row">
                     <span>状态: </span>
@@ -64,9 +70,11 @@
                 <div class="row">
                     <label style="display:flex;align-items:center;gap:8px;cursor:default;font-size:12px;flex:1">
                         <span style="opacity:0.85;min-width:56px;">范围: </span>
-                        <input type="number" id="motorMin" value="0" placeholder="最小值" style="width:60px;flex:none" aria-label="电机最小值" title="电机的最小原始值">
+                        <input type="number" id="motorMin" value="0" placeholder="最小值" style="width:60px;flex:none"
+                            aria-label="电机最小值" title="电机的最小原始值">
                         <span>-</span>
-                        <input type="number" id="motorMax" value="1000" placeholder="最大值" style="width:60px;flex:none" aria-label="电机最大值" title="电机的最大原始值">
+                        <input type="number" id="motorMax" value="1000" placeholder="最大值" style="width:60px;flex:none"
+                            aria-label="电机最大值" title="电机的最大原始值">
                     </label>
                     <button onclick="updateConfig()">应用</button>
                 </div>
@@ -76,11 +84,13 @@
                 <div class="row">
                     <label style="display:flex;align-items:center;gap:8px;cursor:default;font-size:12px;">
                         <span style="opacity:0.85;min-width:56px;">占比: </span>
-                        <input type="number" id="motorPercent" value="0" min="0" max="100" placeholder="%" aria-label="电机占比" title="设置电机占空比百分比">
+                        <input type="number" id="motorPercent" value="0" min="0" max="100" placeholder="%"
+                            aria-label="电机占比" title="设置电机占空比百分比">
                     </label>
                     <button onclick="setMotor()">设置</button>
                     <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
-                            <input type="checkbox" id="immediateMode" style="width:auto;" onchange="onImmediateModeChange()" aria-label="立即模式" title="勾选后会立即应用设置">
+                        <input type="checkbox" id="immediateMode" style="width:auto;" onchange="onImmediateModeChange()"
+                            aria-label="立即模式" title="勾选后会立即应用设置">
                         <span>立即</span>
                     </label>
                 </div>
@@ -96,7 +106,8 @@
                 <div class="row">
                     <label style="display:flex;align-items:center;gap:8px;cursor:default;font-size:12px;">
                         <span style="opacity:0.85;min-width:56px;">模式: </span>
-                        <select id="monitorMode" onchange="onMonitorModeChange()" aria-label="监控模式" title="选择监控来源（CPU/内存/GPU/音频）">
+                        <select id="monitorMode" onchange="onMonitorModeChange()" aria-label="监控模式"
+                            title="选择监控来源（CPU/内存/GPU/音频）">
                             <option value="cpu-usage">CPU 占用率</option>
                             <option value="mem-usage">内存使用率</option>
                             <option value="gpu-usage">GPU 占用率</option>
@@ -244,21 +255,16 @@
                 </div>
             </div>
 
-            <!-- Command Card -->
+            <!-- Terminal Card -->
             <div class="card full">
-                <h2>💻 命令行</h2>
-                <div class="row" style="margin-bottom:0">
-                    <input type="text" id="commandInput" placeholder="输入命令..."
-                        onkeypress="if(event.key==='Enter')sendCommand()" style="flex:3">
-                    <button onclick="sendCommand()">发送</button>
-                    <span style="margin-left:10px">📋 串口日志</span>
-                    <button onclick="clearLog()" class="danger">清空</button>
-                    <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
-                        <input type="checkbox" id="autoScroll" style="width:auto;" checked>
-                        <span>自动滚动</span>
-                    </label>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <h2 style="margin:0;border:none;padding:0;">💻 终端</h2>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="clearTerminal()" class="danger"
+                            style="height:24px;font-size:12px;padding:0 8px;">清空</button>
+                    </div>
                 </div>
-                <div class="log" id="serialLog" style="margin-top:6px;"></div>
+                <div id="terminal-container" style="height:320px;"></div>
             </div>
         </div>
     </div>
