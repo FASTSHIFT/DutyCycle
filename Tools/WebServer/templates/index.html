@@ -151,6 +151,7 @@
                     </select>
                     <button onclick="alarmSet()" class="success">设置</button>
                     <button onclick="alarmList()">列出所有闹钟</button>
+                    <button onclick="alarmDelete()" class="danger">删除</button>
                 </div>
                 <!-- Hourly Chime Filter -->
                 <div class="row">
@@ -165,9 +166,9 @@
                 <div class="row">
                     <span style="font-size:12px;width:40px;">音乐:</span>
                     <select id="musicId" style="width:60px;flex:none" onchange="onMusicIdChange()">
-                        <option value="0">预设0</option>
-                        <option value="1">预设1</option>
-                        <option value="2">预设2</option>
+                        <option value="0">音乐0</option>
+                        <option value="1">音乐1</option>
+                        <option value="2">音乐2</option>
                         <option value="3" selected>自定义</option>
                     </select>
                     <button onclick="alarmListMusic()">列出音乐信息</button>

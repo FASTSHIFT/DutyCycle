@@ -490,6 +490,13 @@ async function alarmSaveMusic() {
     await alarmCmd('SAVE_ALARM_MUSIC', { '-m': music });
 }
 
+async function alarmDelete() {
+    const id = document.getElementById('alarmId').value;
+    if (confirm(`确定要删除闹钟 ${id} 吗？`)) {
+        await alarmCmd('SET', { '-i': id, '-H': -1 });
+    }
+}
+
 async function alarmSetMusic() {
     const music = document.getElementById('musicId').value;
     const index = document.getElementById('toneIndex').value;
