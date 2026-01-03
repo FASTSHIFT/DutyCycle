@@ -35,6 +35,7 @@ Module structure:
 """
 
 import argparse
+import logging
 import os
 import socket
 import sys
@@ -47,6 +48,9 @@ from routes import register_routes
 
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Module logger
+logger = logging.getLogger(__name__)
 
 
 def create_app():
@@ -105,15 +109,24 @@ def main():
     """Main entry point."""
     args = parse_args()
 
+    # Configure logging early
+    logging.basicConfig(
+        level=logging.DEBUG if args.debug else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    )
+
+    # Reduce verbosity of Flask/Werkzeug request logs
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
+
     # Check if port is already in use
     if not check_port_available(args.host, args.port):
-        print(f"❌ 错误: 端口 {args.port} 已被占用！")
-        print(f"   可能已有另一个 DutyCycle 服务器在运行。")
-        print(f"   请先关闭占用该端口的程序，或使用 --port 指定其他端口。")
+        logger.error(f"❌ 错误: 端口 {args.port} 已被占用！")
+        logger.error("   可能已有另一个 DutyCycle 服务器在运行。")
+        logger.error("   请先关闭占用该端口的程序，或使用 --port 指定其他端口。")
         sys.exit(1)
 
     app = create_app()
-    print(f"Starting DutyCycle Web Server on http://{args.host}:{args.port}")
+    logger.info(f"Starting DutyCycle Web Server on http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, debug=args.debug, threaded=True)
 
 

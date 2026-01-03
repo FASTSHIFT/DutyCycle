@@ -7,6 +7,7 @@
 System monitoring functions for DutyCycle Web Server.
 """
 
+import logging
 import math
 import threading
 import time
@@ -17,7 +18,8 @@ try:
     import GPUtil
 except ImportError:
     GPUtil = None
-    print("GPUtil not found. GPU usage monitoring will not be available.")
+    logger = logging.getLogger(__name__)
+    logger.warning("GPUtil not found. GPU usage monitoring will not be available.")
 
 try:
     from ctypes import cast, POINTER
@@ -34,7 +36,10 @@ except ImportError:
     CoUninitialize = None
     CLSCTX_ALL = None
     IAudioMeterInformation = None
-    print("pycaw or comtypes not found. Audio level monitoring will not be available.")
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "pycaw or comtypes not found. Audio level monitoring will not be available."
+    )
 
 from state import state
 from serial_utils import start_serial_worker, stop_serial_worker
@@ -107,10 +112,12 @@ def init_audio_meter():
             state.audio_meter = cast(interface, POINTER(IAudioMeterInformation))
             return True
         except Exception as e:
-            print(f"Error initializing audio meter (fallback): {e}")
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error initializing audio meter (fallback): {e}")
             return False
     except Exception as e:
-        print(f"Error initializing audio meter: {e}")
+        logger = logging.getLogger(__name__)
+        logger.exception(f"Error initializing audio meter: {e}")
         return False
 
 
