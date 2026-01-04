@@ -377,7 +377,7 @@ function updateUI() {
 
     // Monitor status
     monitorBtn.innerHTML = isMonitoring
-        ? '<span class="btn-icon-left">⏹</span> 停止监控'
+        ? '<span class="btn-icon-left" style="font-size:1.2em">■</span> 停止监控'
         : '<span class="btn-icon-left">▶</span> 开始监控';
     monitorBtn.className = isMonitoring ? 'btn btn-danger btn-block' : 'btn btn-success btn-block';
 
