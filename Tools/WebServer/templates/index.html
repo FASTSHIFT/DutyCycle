@@ -234,6 +234,14 @@
                                 <div class="card-body">
                                     <div class="form-row form-row-compact">
                                         <div class="form-group">
+                                            <label class="form-label">监控对象
+                                                <span class="form-hint" title="选择要监控的系统资源">ⓘ</span>
+                                            </label>
+                                            <select id="thresholdMonitorMode" class="form-control form-control-sm">
+                                                <!-- 选项由 JavaScript 动态加载（排除音频） -->
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
                                             <label class="form-label">触发阈值</label>
                                             <div class="input-with-unit">
                                                 <input type="number" id="thresholdValue"

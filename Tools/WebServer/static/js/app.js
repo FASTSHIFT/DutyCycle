@@ -102,13 +102,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function refreshMonitorModes() {
     const result = await api('/monitor/modes');
     const select = document.getElementById('monitorMode');
+    const thresholdSelect = document.getElementById('thresholdMonitorMode');
     if (result.success && result.modes) {
         select.innerHTML = '';
+        thresholdSelect.innerHTML = '';
         result.modes.forEach(m => {
+            // 主监控模式下拉列表
             const opt = document.createElement('option');
             opt.value = m.value;
             opt.textContent = m.label;
             select.appendChild(opt);
+            
+            // 阈值报警监控对象下拉列表（排除音频相关选项）
+            if (!m.value.includes('audio')) {
+                const thresholdOpt = document.createElement('option');
+                thresholdOpt.value = m.value;
+                thresholdOpt.textContent = m.label;
+                thresholdSelect.appendChild(thresholdOpt);
+            }
         });
     }
 }
@@ -522,15 +533,49 @@ function startMonitorLoop() {
             document.getElementById('motorSlider').value = value;
             document.getElementById('motorPercent').value = value.toFixed(2);
 
-            // 阈值报警检测
-            checkThresholdAlarm(value);
+            // 阈值报警检测（使用当前监控值）
+            checkThresholdAlarm(value, document.getElementById('monitorMode').value);
         }
     }, 100);
 }
 
-function checkThresholdAlarm(value) {
+// 阈值报警轮询（独立于主监控）
+let thresholdMonitorInterval = null;
+
+function startThresholdMonitor() {
+    stopThresholdMonitor();
+    const enabled = document.getElementById('thresholdEnable').checked;
+    if (!enabled || !isConnected) return;
+    
+    const thresholdMode = document.getElementById('thresholdMonitorMode').value;
+    const monitorMode = document.getElementById('monitorMode').value;
+    
+    // 如果阈值监控对象与主监控相同且正在监控，则不需要独立轮询（会从主监控中获取）
+    if (thresholdMode === monitorMode && isMonitoring) return;
+    
+    // 独立轮询阈值监控对象
+    thresholdMonitorInterval = setInterval(async () => {
+        const result = await api('/monitor/value?mode=' + thresholdMode);
+        if (result.success) {
+            checkThresholdAlarm(result.value, thresholdMode);
+        }
+    }, 1000);
+}
+
+function stopThresholdMonitor() {
+    if (thresholdMonitorInterval) {
+        clearInterval(thresholdMonitorInterval);
+        thresholdMonitorInterval = null;
+    }
+}
+
+function checkThresholdAlarm(value, currentMode) {
     const enabled = document.getElementById('thresholdEnable').checked;
     if (!enabled) return;
+    
+    const thresholdMode = document.getElementById('thresholdMonitorMode').value;
+    // 只有当值来自阈值监控对象时才检测
+    if (currentMode !== thresholdMode) return;
 
     const threshold = parseFloat(document.getElementById('thresholdValue').value);
     const freq = parseInt(document.getElementById('thresholdFreq').value);
@@ -546,7 +591,9 @@ function checkThresholdAlarm(value) {
 }
 
 function onThresholdChange() {
-    // 阈值设置变化时的处理（可选）
+    // 阈值设置变化时，重新启动阈值监控
+    stopThresholdMonitor();
+    startThresholdMonitor();
 }
 
 async function onCmdFileChange() {
