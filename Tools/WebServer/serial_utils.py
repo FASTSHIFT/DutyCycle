@@ -27,7 +27,9 @@ pending_lock = threading.Lock()
 def scan_serial_ports():
     """Scan for available serial ports."""
     ports = serial.tools.list_ports.comports()
-    result = [{"device": port.device, "description": port.description} for port in ports]
+    result = [
+        {"device": port.device, "description": port.description} for port in ports
+    ]
 
     # Also scan for CH341 USB serial devices which may not be detected by pyserial
     ch341_devices = glob.glob("/dev/ttyCH341USB*")
@@ -53,7 +55,7 @@ def serial_open(port, baudrate=115200, timeout=1):
 
 
 def serial_write(ser, command, sleep_duration=0.0):
-    """Write command to serial port (Fire and Forget)."""
+    """Write command to serial port and wait for transmission to complete."""
     if ser is None:
         return None, "Serial port not opened"
 
@@ -63,6 +65,7 @@ def serial_write(ser, command, sleep_duration=0.0):
             pending_echoes.append(command.strip())
 
         ser.write(command.encode())
+        ser.flush()  # Wait for all data to be written to the serial port
 
         # TX is already shown by xterm.js, no need to log here
         return [], None

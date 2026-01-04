@@ -13,6 +13,12 @@ let fitAddon = null;
 let currentLine = '';
 let sendingCommand = false;  // 防止重复发送
 
+// ===================== Utility Functions =====================
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ===================== API Helper =====================
 
 async function api(endpoint, method = 'GET', data = null) {
@@ -706,8 +712,10 @@ async function composerUpload() {
     const musicId = 3;  // 编曲器只能编辑自定义音乐(ID:3)
     // 先清除现有音乐
     await alarmCmd('CLEAR_ALARM_MUSIC', { '-m': musicId });
+    await sleep(200);  // 等待设备处理
     // 设置BPM
     await alarmCmd('SET_ALARM_MUSIC', { '-m': musicId, '--bpm': bpm });
+    await sleep(200);  // 等待设备处理
     // 逐个上传音符
     for (let i = 0; i < composerNotes.length; i++) {
         const note = composerNotes[i];
@@ -717,6 +725,7 @@ async function composerUpload() {
             '--freq': note.freq,
             '--duration': note.duration
         });
+        await sleep(200);  // 等待设备处理每个音符
     }
     alert('音乐已上传到设备(ID:3)！');
 }
