@@ -39,9 +39,16 @@ def run_command(command):
 def install_service(
     python_bin, service_name, script_path, service_path, params, working_dir
 ):
+    # Get actual user (not root when running with sudo)
+    user = os.environ.get("SUDO_USER") or os.getlogin()
+    # Get actual user's UID for PulseAudio access
+    import pwd
+    uid = pwd.getpwnam(user).pw_uid
+    
     service_content = f"""[Unit]
 Description=DutyCycle Script Service
-After=network.target
+After=network.target pulseaudio.service
+Wants=pulseaudio.service
 
 [Service]
 Type=simple
@@ -49,7 +56,10 @@ ExecStart={python_bin} {script_path} {params}
 WorkingDirectory={working_dir}
 Restart=on-failure
 RestartSec=5
-User={os.getlogin()}
+User={user}
+# PulseAudio access for audio monitoring
+Environment="XDG_RUNTIME_DIR=/run/user/{uid}"
+Environment="PULSE_SERVER=unix:/run/user/{uid}/pulse/native"
 StandardOutput=journal
 StandardError=journal
 
