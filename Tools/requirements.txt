@@ -2,7 +2,6 @@ argparse
 pyserial
 psutil
 gputil
-pycaw
-comtypes
+soundcard
 flask
 flask-cors

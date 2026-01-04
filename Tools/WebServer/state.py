@@ -25,7 +25,7 @@ class DeviceState:
         self.monitor_running = False
         self.period = 0.1
         self.last_percent = 0
-        self.audio_meter = None
+        self.audio_recorder = None
         self.lock = threading.Lock()
         self.serial_log = []  # Store serial communication logs
         self.log_max_size = 200  # Max log entries

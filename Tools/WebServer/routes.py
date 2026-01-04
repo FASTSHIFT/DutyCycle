@@ -27,7 +27,7 @@ from monitor import (
     get_gpu_usage,
     get_audio_level,
     GPUtil,
-    AudioUtilities,
+    sc,
 )
 
 
@@ -201,7 +201,7 @@ def register_routes(app):
         ]
         if GPUtil is not None:
             modes.append({"value": "gpu-usage", "label": "GPU 占用率"})
-        if AudioUtilities is not None:
+        if sc is not None:
             modes.append({"value": "audio-level", "label": "音频响度"})
         return jsonify({"success": True, "modes": modes})
 
@@ -214,7 +214,7 @@ def register_routes(app):
         valid_modes = ["cpu-usage", "mem-usage"]
         if GPUtil is not None:
             valid_modes.append("gpu-usage")
-        if AudioUtilities is not None:
+        if sc is not None:
             valid_modes.append("audio-level")
 
         if mode not in valid_modes:

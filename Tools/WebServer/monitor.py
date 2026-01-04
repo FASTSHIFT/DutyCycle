@@ -12,7 +12,6 @@ import math
 import os
 import threading
 import time
-import gc
 
 import psutil
 
@@ -24,23 +23,12 @@ except ImportError:
     logger.warning("GPUtil not found. GPU usage monitoring will not be available.")
 
 try:
-    from ctypes import cast, POINTER
-    from comtypes import CLSCTX_ALL, CoInitialize, CoUninitialize
-
-    try:
-        from pycaw.utils import AudioUtilities
-        from pycaw.interfaces.audiometer import IAudioMeterInformation
-    except ImportError:
-        from pycaw.pycaw import AudioUtilities, IAudioMeterInformation
-except ImportError:
-    AudioUtilities = None
-    CoInitialize = None
-    CoUninitialize = None
-    CLSCTX_ALL = None
-    IAudioMeterInformation = None
+    import soundcard as sc
+except (ImportError, AssertionError, OSError) as e:
+    sc = None
     logger = logging.getLogger(__name__)
     logger.warning(
-        "pycaw or comtypes not found. Audio level monitoring will not be available."
+        f"soundcard not available: {e}. Audio level monitoring will not be available."
     )
 
 from state import state
@@ -99,16 +87,21 @@ def get_gpu_usage():
 
 
 def get_audio_level():
-    """Get audio level percentage with logarithmic mapping."""
-    if AudioUtilities is None:
-        return None, "pycaw not available"
+    """Get audio level percentage with logarithmic mapping (cross-platform)."""
+    if sc is None:
+        return None, "soundcard not available"
 
-    # Use cached meter from monitor thread
-    if state.audio_meter is None:
-        return None, "Audio meter not initialized"
+    # Use cached recorder from state
+    if state.audio_recorder is None:
+        return None, "Audio recorder not initialized"
 
     try:
-        peak = state.audio_meter.GetPeakValue()
+        # Record a small chunk of audio
+        data = state.audio_recorder.record(numframes=1024)
+        
+        # Calculate peak value using standard library
+        # data is a 2D array (frames x channels), flatten and get max abs
+        peak = max(abs(sample) for frame in data for sample in frame)
 
         # Logarithmic mapping (dB) with expansion
         if peak <= 0.005:
@@ -123,53 +116,61 @@ def get_audio_level():
 
 
 def init_audio_meter():
-    """Initialize audio meter (must be called from monitor thread after CoInitialize)."""
-    if AudioUtilities is None:
+    """Initialize audio recorder for loopback capture (cross-platform)."""
+    if sc is None:
         return False
 
+    logger = logging.getLogger(__name__)
+    
     try:
-        speakers = AudioUtilities.GetSpeakers()
-        interface = speakers.Activate(IAudioMeterInformation._iid_, CLSCTX_ALL, None)
-        meter = cast(interface, POINTER(IAudioMeterInformation))
-        state.audio_meter = meter
-        # drop local references to avoid lingering COM objects
+        # Try Windows loopback first
+        speaker = sc.default_speaker()
+        if hasattr(speaker, 'loopback'):
+            loopback = speaker.loopback()
+            state.audio_recorder = loopback.recorder(samplerate=44100, blocksize=1024)
+            state.audio_recorder.__enter__()
+            logger.info(f"Audio loopback initialized (Windows): {speaker.name}")
+            return True
+    except Exception as e:
+        logger.debug(f"Windows loopback not available: {e}")
+
+    try:
+        # Linux: Find PulseAudio monitor device
+        # Monitor devices usually have "monitor" in their name
+        all_mics = sc.all_microphones(include_loopback=True)
+        monitor_mic = None
+        for mic in all_mics:
+            if "monitor" in mic.name.lower():
+                monitor_mic = mic
+                break
+        
+        if monitor_mic is None:
+            # Fallback: use default microphone
+            monitor_mic = sc.default_microphone()
+            logger.warning("No monitor device found, using default microphone")
+        
+        state.audio_recorder = monitor_mic.recorder(samplerate=44100, blocksize=1024)
+        state.audio_recorder.__enter__()
+        logger.info(f"Audio recorder initialized: {monitor_mic.name}")
+        return True
+    except Exception as e:
+        logger.exception(f"Error initializing audio recorder: {e}")
+        return False
+
+
+def cleanup_audio_meter():
+    """Cleanup audio recorder."""
+    if state.audio_recorder is not None:
         try:
-            del interface
-            del speakers
+            state.audio_recorder.__exit__(None, None, None)
         except Exception:
             pass
-        return True
-    except AttributeError:
-        try:
-            enumerator = AudioUtilities.GetDeviceEnumerator()
-            speakers = enumerator.GetDefaultAudioEndpoint(0, 1)
-            interface = speakers.Activate(
-                IAudioMeterInformation._iid_, CLSCTX_ALL, None
-            )
-            state.audio_meter = cast(interface, POINTER(IAudioMeterInformation))
-            return True
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.exception(f"Error initializing audio meter (fallback): {e}")
-            return False
-    except Exception as e:
-        logger = logging.getLogger(__name__)
-        logger.exception(f"Error initializing audio meter: {e}")
-        return False
+        state.audio_recorder = None
 
 
 def monitor_loop():
     """Background monitoring loop."""
-    # Initialize COM for this thread (required for audio on Windows)
-    com_initialized = False
-    if CoInitialize is not None:
-        try:
-            CoInitialize()
-            com_initialized = True
-        except:
-            pass
-
-    # Initialize audio meter once for this thread if needed
+    # Initialize audio recorder if needed
     is_audio_mode = state.monitor_mode == "audio-level"
     if is_audio_mode:
         init_audio_meter()
@@ -204,28 +205,7 @@ def monitor_loop():
     finally:
         # Clean up
         stop_serial_worker()
-        # Try to safely release audio meter COM object before uninitializing COM
-        if state.audio_meter is not None:
-            try:
-                rel = getattr(state.audio_meter, "Release", None)
-                if callable(rel):
-                    rel()
-            except Exception:
-                logger = logging.getLogger(__name__)
-                logger.exception("Error releasing audio meter COM object")
-            # remove reference and force garbage collection
-            state.audio_meter = None
-            try:
-                gc.collect()
-            except Exception:
-                pass
-
-        if com_initialized and CoUninitialize is not None:
-            try:
-                CoUninitialize()
-            except Exception:
-                logger = logging.getLogger(__name__)
-                logger.exception("CoUninitialize failed")
+        cleanup_audio_meter()
 
 
 def start_monitor(mode):
