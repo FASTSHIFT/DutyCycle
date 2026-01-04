@@ -454,6 +454,15 @@ a:hover {
     grid-column: span 2;
 }
 
+/* Standalone wide cards (outside grid) need top margin */
+.section-body > .card-wide {
+    margin-top: var(--space-4);
+}
+
+.section-body > .card-wide:first-child {
+    margin-top: 0;
+}
+
 .card-header {
     display: flex;
     align-items: center;
