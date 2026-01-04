@@ -87,7 +87,7 @@ def get_gpu_usage():
 
 
 def get_audio_level():
-    """Get audio level percentage with logarithmic mapping (cross-platform)."""
+    """Get audio level percentage with RMS-based mapping (cross-platform)."""
     if sc is None:
         return None, "soundcard not available"
 
@@ -99,18 +99,27 @@ def get_audio_level():
         # Record a small chunk of audio
         data = state.audio_recorder.record(numframes=1024)
         
-        # Calculate peak value using standard library
-        # data is a 2D array (frames x channels), flatten and get max abs
-        peak = max(abs(sample) for frame in data for sample in frame)
+        # Calculate RMS (Root Mean Square) - better for perceived loudness
+        # data is a 2D array (frames x channels)
+        sum_sq = sum(sample * sample for frame in data for sample in frame)
+        count = sum(1 for frame in data for _ in frame)
+        rms = math.sqrt(sum_sq / count) if count > 0 else 0
 
-        # Logarithmic mapping (dB) with expansion
-        if peak <= 0.005:
+        if rms <= 0.001:
             return 0, None
 
-        db = 20 * math.log10(peak)
-        normalized = max(0, (db + 45) / 45)
-        percent = (normalized**2) * 100
-        return max(0, min(100, percent)), None
+        # RMS to dB
+        db = 20 * math.log10(rms)
+        
+        # Map -20dB ~ -5dB to 0% ~ 100%
+        # This narrower range makes typical music (around -10dB RMS) 
+        # fall in the middle with more dynamic movement
+        db_min = -20
+        db_max = -5
+        normalized = (db - db_min) / (db_max - db_min)
+        percent = max(0, min(100, normalized * 100))
+        
+        return percent, None
     except Exception as e:
         return None, f"Error getting audio level: {e}"
 
