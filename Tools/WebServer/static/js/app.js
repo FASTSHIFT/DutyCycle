@@ -39,14 +39,29 @@ async function api(endpoint, method = 'GET', data = null) {
 
 // ===================== Initialization =====================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     loadCheckboxStates();
     refreshPorts();
+    await refreshMonitorModes();
     refreshStatus();
     initTerminal();
     startLogPolling();
     initComposer();
 });
+
+async function refreshMonitorModes() {
+    const result = await api('/monitor/modes');
+    const select = document.getElementById('monitorMode');
+    if (result.success && result.modes) {
+        select.innerHTML = '';
+        result.modes.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.value;
+            opt.textContent = m.label;
+            select.appendChild(opt);
+        });
+    }
+}
 
 function loadCheckboxStates() {
     // 恢复 autoSyncClock 状态

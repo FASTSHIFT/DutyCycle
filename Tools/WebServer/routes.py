@@ -26,6 +26,8 @@ from monitor import (
     get_mem_usage,
     get_gpu_usage,
     get_audio_level,
+    GPUtil,
+    AudioUtilities,
 )
 
 
@@ -190,13 +192,31 @@ def register_routes(app):
         state.serial_log = []
         return jsonify({"success": True})
 
+    @app.route("/api/monitor/modes", methods=["GET"])
+    def api_monitor_modes():
+        """Get available monitoring modes."""
+        modes = [
+            {"value": "cpu-usage", "label": "CPU 占用率"},
+            {"value": "mem-usage", "label": "内存使用率"},
+        ]
+        if GPUtil is not None:
+            modes.append({"value": "gpu-usage", "label": "GPU 占用率"})
+        if AudioUtilities is not None:
+            modes.append({"value": "audio-level", "label": "音频响度"})
+        return jsonify({"success": True, "modes": modes})
+
     @app.route("/api/monitor/start", methods=["POST"])
     def api_monitor_start():
         """Start monitoring mode."""
         data = request.json
         mode = data.get("mode")
 
-        valid_modes = ["cpu-usage", "mem-usage", "gpu-usage", "audio-level"]
+        valid_modes = ["cpu-usage", "mem-usage"]
+        if GPUtil is not None:
+            valid_modes.append("gpu-usage")
+        if AudioUtilities is not None:
+            valid_modes.append("audio-level")
+
         if mode not in valid_modes:
             return jsonify(
                 {
