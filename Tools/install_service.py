@@ -131,13 +131,12 @@ def main():
     )
     install_parser.add_argument(
         "--service-name",
-        default="dutycycle",
-        required=True,
+        default="web_server",
         help="Custom service name",
     )
     install_parser.add_argument(
         "--config-script",
-        required=True,
+        default="WebServer/main.py",
         help="Custom config script path",
     )
 
@@ -145,11 +144,11 @@ def main():
     uninstall_parser = subparsers.add_parser("uninstall", help="Uninstall the service")
     uninstall_parser.add_argument(
         "--service-name",
-        required=True,
+        default="web_server",
         help="Custom service name",
     )
 
-    # Check command
+     # Check command
     check_parser = subparsers.add_parser(
         "check", help="Check the DutyCycle service status"
     )
