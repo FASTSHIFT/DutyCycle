@@ -9,6 +9,7 @@ System monitoring functions for DutyCycle Web Server.
 
 import logging
 import math
+import os
 import threading
 import time
 import gc
@@ -43,8 +44,36 @@ except ImportError:
     )
 
 from state import state
-from serial_utils import start_serial_worker, stop_serial_worker
+from serial_utils import start_serial_worker, stop_serial_worker, serial_write
 from device import set_motor_percent
+
+
+def check_cmd_file():
+    """Check for command file and execute commands from it."""
+    if not state.cmd_file_enabled or not state.cmd_file:
+        return
+
+    try:
+        if os.path.exists(state.cmd_file):
+            with open(state.cmd_file, "r") as f:
+                for line in f:
+                    command = line.strip()
+                    if command:
+                        # Add CRLF if not present
+                        if not command.endswith("\r\n"):
+                            command += "\r\n"
+                        with state.lock:
+                            if state.ser:
+                                serial_write(state.ser, command)
+            # Remove the file after processing
+            os.remove(state.cmd_file)
+            logger = logging.getLogger(__name__)
+            logger.info(f"Command file {state.cmd_file} processed and removed")
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.exception(f"Error processing command file: {e}")
 
 
 def get_cpu_usage():
@@ -167,6 +196,9 @@ def monitor_loop():
             if error is None and percent is not None:
                 state.last_percent = percent
                 set_motor_percent(percent, immediate, async_mode=True)
+
+            # Check command file
+            check_cmd_file()
 
             time.sleep(state.period)
     finally:

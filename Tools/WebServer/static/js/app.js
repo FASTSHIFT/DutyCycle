@@ -230,6 +230,12 @@ async function refreshStatus() {
             onMonitorModeChange();
         }
 
+        // 恢复命令文件监控状态
+        if (result.cmd_file) {
+            document.getElementById('cmdFilePath').value = result.cmd_file;
+        }
+        document.getElementById('cmdFileEnable').checked = result.cmd_file_enabled;
+
         // 如果后端正在监控，恢复前端轮询循环
         if (isMonitoring) {
             startMonitorLoop();
@@ -423,7 +429,7 @@ function startMonitorLoop() {
             document.getElementById('meterFill').style.width = value + '%';
             document.getElementById('motorSlider').value = value;
             document.getElementById('motorPercent').value = value.toFixed(2);
-            
+
             // 阈值报警检测
             checkThresholdAlarm(value);
         }
@@ -433,12 +439,12 @@ function startMonitorLoop() {
 function checkThresholdAlarm(value) {
     const enabled = document.getElementById('thresholdEnable').checked;
     if (!enabled) return;
-    
+
     const threshold = parseFloat(document.getElementById('thresholdValue').value);
     const freq = parseInt(document.getElementById('thresholdFreq').value);
     const duration = parseInt(document.getElementById('thresholdDuration').value);
     const now = Date.now();
-    
+
     // 超过阈值且距离上次报警超过1秒
     if (value > threshold && (now - lastAlarmTime) >= 1000) {
         lastAlarmTime = now;
@@ -449,6 +455,12 @@ function checkThresholdAlarm(value) {
 
 function onThresholdChange() {
     // 阈值设置变化时的处理（可选）
+}
+
+async function onCmdFileChange() {
+    const enabled = document.getElementById('cmdFileEnable').checked;
+    const filePath = document.getElementById('cmdFilePath').value;
+    await api('/config', 'POST', { cmd_file: filePath, cmd_file_enabled: enabled });
 }
 
 function stopMonitorLoop() {

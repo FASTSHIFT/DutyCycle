@@ -36,6 +36,9 @@ class DeviceState:
         # Async serial reader for continuous terminal output
         self.serial_reader_thread = None
         self.serial_reader_running = False
+        # Command file monitoring
+        self.cmd_file = None
+        self.cmd_file_enabled = False
 
 
 # Global state instance

@@ -94,6 +94,8 @@ def register_routes(app):
                 "monitor_running": state.monitor_running,
                 "period": state.period,
                 "last_percent": round(state.last_percent, 2),
+                "cmd_file": state.cmd_file,
+                "cmd_file_enabled": state.cmd_file_enabled,
             }
         )
 
@@ -107,6 +109,10 @@ def register_routes(app):
             state.motor_min = int(data["motor_min"])
         if "period" in data:
             state.period = float(data["period"])
+        if "cmd_file" in data:
+            state.cmd_file = data["cmd_file"] if data["cmd_file"] else None
+        if "cmd_file_enabled" in data:
+            state.cmd_file_enabled = bool(data["cmd_file_enabled"])
         return jsonify({"success": True})
 
     @app.route("/api/clock", methods=["POST"])

@@ -128,15 +128,24 @@
                     <label style="display:flex;align-items:center;gap:8px;cursor:default;font-size:12px;flex:1">
                         <input type="checkbox" id="thresholdEnable" style="width:auto;" onchange="onThresholdChange()">
                         <span style="opacity:0.85;">报警阈值: </span>
-                        <input type="number" id="thresholdValue" value="80" min="0" max="100" style="width:40px;flex:none"
-                            aria-label="报警阈值" title="超过此阈值时触发报警">
+                        <input type="number" id="thresholdValue" value="80" min="0" max="100"
+                            style="width:40px;flex:none" aria-label="报警阈值" title="超过此阈值时触发报警">
                         <span style="font-size:11px;opacity:0.7;">%</span>
-                        <input type="number" id="thresholdFreq" value="1046" min="100" max="5000" style="width:55px;flex:none"
-                            aria-label="报警频率" title="报警音频率(Hz)">
+                        <input type="number" id="thresholdFreq" value="1046" min="100" max="5000"
+                            style="width:55px;flex:none" aria-label="报警频率" title="报警音频率(Hz)">
                         <span style="font-size:11px;opacity:0.7;">Hz</span>
-                        <input type="number" id="thresholdDuration" value="100" min="10" max="2000" style="width:50px;flex:none"
-                            aria-label="报警时长" title="报警音持续时间(ms)">
+                        <input type="number" id="thresholdDuration" value="100" min="10" max="2000"
+                            style="width:50px;flex:none" aria-label="报警时长" title="报警音持续时间(ms)">
                         <span style="font-size:11px;opacity:0.7;">ms</span>
+                    </label>
+                </div>
+                <div class="row" style="margin-bottom:0">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:default;font-size:12px;flex:1">
+                        <input type="checkbox" id="cmdFileEnable" style="width:auto;" onchange="onCmdFileChange()">
+                        <span style="opacity:0.85;">文件监控: </span>
+                        <input type="text" id="cmdFilePath" value="/tmp/dutycycle_cmd.txt"
+                            style="flex:1;min-width:100px" aria-label="命令文件路径" title="监控此文件，当文件存在时读取命令发送到设备"
+                            onchange="onCmdFileChange()">
                     </label>
                 </div>
             </div>
