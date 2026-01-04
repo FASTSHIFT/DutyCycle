@@ -579,7 +579,11 @@ async function toggleMonitor() {
 
 function startMonitorLoop() {
     stopMonitorLoop();
-    monitorInterval = setInterval(async () => {
+
+    // 递归轮询：等上次请求完成再发下次，防止请求堆积
+    const poll = async () => {
+        if (!isMonitoring) return;
+
         const result = await api('/status');
         if (result.success) {
             const value = result.last_percent;
@@ -595,7 +599,14 @@ function startMonitorLoop() {
             // 阈值报警检测（使用当前监控值）
             checkThresholdAlarm(value, document.getElementById('monitorMode').value);
         }
-    }, 100);
+
+        // 下次轮询
+        if (isMonitoring) {
+            monitorInterval = setTimeout(poll, 100);
+        }
+    };
+
+    poll();
 }
 
 // 阈值报警轮询（独立于主监控）
@@ -665,7 +676,7 @@ async function onCmdFileChange() {
 
 function stopMonitorLoop() {
     if (monitorInterval) {
-        clearInterval(monitorInterval);
+        clearTimeout(monitorInterval);
         monitorInterval = null;
     }
 }

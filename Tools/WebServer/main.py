@@ -126,7 +126,10 @@ def main():
         sys.exit(1)
 
     app = create_app()
-    logger.info(f"Starting DutyCycle Web Server on http://{args.host}:{args.port}")
+    logger.info(f"Starting DutyCycle Web Server on http://127.0.0.1:{args.port}")
+    logger.info(
+        f"⚠️  建议使用 http://127.0.0.1:{args.port} 访问（避免 localhost IPv6 延迟）"
+    )
     app.run(host=args.host, port=args.port, debug=args.debug, threaded=True)
 
 
