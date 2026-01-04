@@ -8,6 +8,7 @@ Serial communication utilities for DutyCycle Web Server.
 """
 
 import datetime
+import glob
 import queue
 import threading
 import time
@@ -26,7 +27,16 @@ pending_lock = threading.Lock()
 def scan_serial_ports():
     """Scan for available serial ports."""
     ports = serial.tools.list_ports.comports()
-    return [{"device": port.device, "description": port.description} for port in ports]
+    result = [{"device": port.device, "description": port.description} for port in ports]
+
+    # Also scan for CH341 USB serial devices which may not be detected by pyserial
+    ch341_devices = glob.glob("/dev/ttyCH341USB*")
+    existing_devices = {item["device"] for item in result}
+    for dev in ch341_devices:
+        if dev not in existing_devices:
+            result.append({"device": dev, "description": "CH341 USB Serial"})
+
+    return result
 
 
 def serial_open(port, baudrate=115200, timeout=1):
