@@ -20,6 +20,54 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// ===================== Section Toggle =====================
+
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.toggle('collapsed');
+        // 保存折叠状态
+        const collapsed = section.classList.contains('collapsed');
+        localStorage.setItem('section_' + sectionId, collapsed ? 'collapsed' : 'expanded');
+    }
+}
+
+function loadSectionStates() {
+    const sections = document.querySelectorAll('.section-collapsible');
+    sections.forEach(section => {
+        const state = localStorage.getItem('section_' + section.id);
+        if (state === 'collapsed') {
+            section.classList.add('collapsed');
+        }
+    });
+}
+
+// ===================== Advanced Mode Toggle =====================
+
+function onAdvancedModeChange() {
+    const checked = document.getElementById('advancedMode').checked;
+    const advancedSection = document.getElementById('sectionAdvanced');
+
+    localStorage.setItem('advancedMode', checked);
+
+    if (advancedSection) {
+        advancedSection.style.display = checked ? 'block' : 'none';
+        // 如果切换到高级模式，需要重新fit终端
+        if (checked && fitAddon) {
+            setTimeout(() => fitAddon.fit(), 100);
+        }
+    }
+}
+
+function loadAdvancedModeState() {
+    const advanced = localStorage.getItem('advancedMode') === 'true';
+    document.getElementById('advancedMode').checked = advanced;
+    const advancedSection = document.getElementById('sectionAdvanced');
+    if (advancedSection) {
+        advancedSection.style.display = advanced ? 'block' : 'none';
+    }
+}
+
 // ===================== API Helper =====================
 
 async function api(endpoint, method = 'GET', data = null) {
@@ -41,6 +89,8 @@ async function api(endpoint, method = 'GET', data = null) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     loadCheckboxStates();
+    loadAdvancedModeState();
+    loadSectionStates();
     refreshPorts();
     await refreshMonitorModes();
     refreshStatus();
@@ -262,25 +312,48 @@ function updateUI() {
     const statusEl = document.getElementById('connectionStatus');
     const connectBtn = document.getElementById('connectBtn');
     const monitorBtn = document.getElementById('monitorStartBtn');
+    const statusIndicator = document.getElementById('connectionIndicator');
+    const monitorBadge = document.getElementById('monitorBadge');
 
+    // Connection status
     statusEl.textContent = isConnected ? '已连接' : '未连接';
-    statusEl.className = 'status ' + (isConnected ? 'connected' : 'disconnected');
-    connectBtn.textContent = isConnected ? '断开' : '连接';
-    connectBtn.className = isConnected ? 'danger' : '';
+    statusEl.className = 'status-text ' + (isConnected ? 'connected' : 'disconnected');
 
-    monitorBtn.textContent = isMonitoring ? '停止监控' : '开始监控';
-    monitorBtn.className = isMonitoring ? 'danger' : 'success';
+    if (statusIndicator) {
+        statusIndicator.className = 'status-indicator ' + (isConnected ? 'connected' : '');
+    }
+
+    connectBtn.innerHTML = isConnected
+        ? '<span class="btn-icon-left">⏏</span> 断开'
+        : '<span class="btn-icon-left">⚡</span> 连接';
+    connectBtn.className = isConnected ? 'btn btn-danger btn-block' : 'btn btn-primary btn-block';
+
+    // Monitor status
+    monitorBtn.innerHTML = isMonitoring
+        ? '<span class="btn-icon-left">⏹</span> 停止监控'
+        : '<span class="btn-icon-left">▶</span> 开始监控';
+    monitorBtn.className = isMonitoring ? 'btn btn-danger btn-block' : 'btn btn-success btn-block';
+
+    if (monitorBadge) {
+        monitorBadge.textContent = isMonitoring ? '运行中' : '停止';
+        monitorBadge.className = 'panel-badge ' + (isMonitoring ? 'active' : '');
+    }
 
     // Disable other cards when not connected
-    const cards = document.querySelectorAll('.card');
-    cards.forEach(card => {
-        // Skip connection card (identified by having connectBtn)
-        if (card.querySelector('#connectBtn')) return;
+    const disableTargets = [
+        '#panelQuickStatus', '#panelClock',
+        '#cardMotor', '#cardMonitor',
+        '#sectionAutomation', '#sectionAdvanced'
+    ];
 
-        if (isConnected) {
-            card.classList.remove('disabled-card');
-        } else {
-            card.classList.add('disabled-card');
+    disableTargets.forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el) {
+            if (isConnected) {
+                el.classList.remove('disabled-card');
+            } else {
+                el.classList.add('disabled-card');
+            }
         }
     });
 }
@@ -440,7 +513,11 @@ function startMonitorLoop() {
         const result = await api('/status');
         if (result.success) {
             const value = result.last_percent;
-            document.getElementById('monitorValue').textContent = value.toFixed(2) + '%';
+            // 更新监控显示（新UI格式）
+            const monitorValueEl = document.getElementById('monitorValue');
+            if (monitorValueEl) {
+                monitorValueEl.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
+            }
             document.getElementById('meterFill').style.width = value + '%';
             document.getElementById('motorSlider').value = value;
             document.getElementById('motorPercent').value = value.toFixed(2);
@@ -611,7 +688,6 @@ function renderNoteGrid() {
     grid.innerHTML = '';
     composerNotes.forEach((note, i) => {
         const div = document.createElement('div');
-        div.style.cssText = 'background:rgba(0,212,255,0.2);border:1px solid rgba(0,212,255,0.5);border-radius:6px;padding:6px 10px;text-align:center;cursor:pointer;min-width:60px;';
         div.onclick = () => selectNote(i);
         div.id = 'noteBox' + i;
 
@@ -635,8 +711,11 @@ function highlightSelectedNote() {
     for (let i = 0; i < 8; i++) {
         const box = document.getElementById('noteBox' + i);
         if (box) {
-            box.style.borderColor = (i === idx) ? '#00ff88' : 'rgba(0,212,255,0.5)';
-            box.style.background = (i === idx) ? 'rgba(0,255,136,0.3)' : 'rgba(0,212,255,0.2)';
+            if (i === idx) {
+                box.classList.add('selected');
+            } else {
+                box.classList.remove('selected');
+            }
         }
     }
 }
