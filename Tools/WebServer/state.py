@@ -39,6 +39,9 @@ class DeviceState:
         # Command file monitoring
         self.cmd_file = None
         self.cmd_file_enabled = False
+        # Audio level mapping range (dB)
+        self.audio_db_min = -40
+        self.audio_db_max = 0
 
 
 # Global state instance

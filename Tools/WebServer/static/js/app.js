@@ -335,8 +335,21 @@ async function refreshStatus() {
         document.getElementById('motorMax').value = result.motor_max;
         document.getElementById('period').value = Math.round(result.period * 1000);
 
+        // 恢复音频dB范围配置
+        if (result.audio_db_min !== undefined) {
+            document.getElementById('audioDbMin').value = result.audio_db_min;
+        }
+        if (result.audio_db_max !== undefined) {
+            document.getElementById('audioDbMax').value = result.audio_db_max;
+        }
+
         if (result.monitor_mode) {
             document.getElementById('monitorMode').value = result.monitor_mode;
+            // 根据模式显示/隐藏dB范围设置
+            const audioDbRangeRow = document.getElementById('audioDbRangeRow');
+            if (audioDbRangeRow) {
+                audioDbRangeRow.style.display = result.monitor_mode === 'audio-level' ? '' : 'none';
+            }
         } else {
             // 未监控时，根据当前选择的模式设置默认周期
             onMonitorModeChange();
@@ -502,16 +515,26 @@ async function setMotor() {
 async function onMonitorModeChange() {
     const mode = document.getElementById('monitorMode').value;
     const periodInput = document.getElementById('period');
+    const audioDbRangeRow = document.getElementById('audioDbRangeRow');
+
     // 音频模式默认10ms，其他模式默认1000ms
     if (mode === 'audio-level') {
         periodInput.value = 10;
+        if (audioDbRangeRow) audioDbRangeRow.style.display = '';
     } else {
         periodInput.value = 1000;
+        if (audioDbRangeRow) audioDbRangeRow.style.display = 'none';
     }
     // 如果正在监控，实时切换模式
     if (isMonitoring) {
         await switchMonitorMode(mode);
     }
+}
+
+async function onAudioDbRangeChange() {
+    const dbMin = parseFloat(document.getElementById('audioDbMin').value);
+    const dbMax = parseFloat(document.getElementById('audioDbMax').value);
+    await api('/config', 'POST', { audio_db_min: dbMin, audio_db_max: dbMax });
 }
 
 async function switchMonitorMode(mode) {

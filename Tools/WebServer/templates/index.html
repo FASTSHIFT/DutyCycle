@@ -201,6 +201,21 @@
                                                 <span class="input-unit">ms</span>
                                             </div>
                                         </div>
+                                        <div class="form-group" id="audioDbRangeRow" style="display:none;">
+                                            <label class="form-label">dB映射
+                                                <span class="form-hint" title="将此dB范围映射到0%~100%">ⓘ</span>
+                                            </label>
+                                            <div class="range-inputs">
+                                                <input type="number" id="audioDbMin"
+                                                    class="form-control form-control-sm" value="-40" placeholder="最小dB"
+                                                    title="最小dB值(映射到0%)" onchange="onAudioDbRangeChange()">
+                                                <span class="range-separator">~</span>
+                                                <input type="number" id="audioDbMax"
+                                                    class="form-control form-control-sm" value="0" placeholder="最大dB"
+                                                    title="最大dB值(映射到100%)" onchange="onAudioDbRangeChange()">
+                                                <span class="input-unit">dB</span>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div style="margin-top: 16px;">
                                         <button id="monitorStartBtn" onclick="toggleMonitor()"
@@ -285,7 +300,8 @@
                                 <div class="card-body">
                                     <div class="form-group">
                                         <label class="form-label">命令文件路径
-                                            <span class="form-hint" title="监控此文件，存在时读取命令并发送到设备。注意：需要先启动监控才能使用此功能">ⓘ</span>
+                                            <span class="form-hint"
+                                                title="监控此文件，存在时读取命令并发送到设备。注意：需要先启动监控才能使用此功能">ⓘ</span>
                                         </label>
                                         <input type="text" id="cmdFilePath" class="form-control"
                                             value="/tmp/dutycycle_cmd.txt" onchange="onCmdFileChange()">

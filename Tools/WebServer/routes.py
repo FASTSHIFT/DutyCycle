@@ -98,6 +98,8 @@ def register_routes(app):
                 "last_percent": round(state.last_percent, 2),
                 "cmd_file": state.cmd_file,
                 "cmd_file_enabled": state.cmd_file_enabled,
+                "audio_db_min": state.audio_db_min,
+                "audio_db_max": state.audio_db_max,
             }
         )
 
@@ -115,6 +117,10 @@ def register_routes(app):
             state.cmd_file = data["cmd_file"] if data["cmd_file"] else None
         if "cmd_file_enabled" in data:
             state.cmd_file_enabled = bool(data["cmd_file_enabled"])
+        if "audio_db_min" in data:
+            state.audio_db_min = float(data["audio_db_min"])
+        if "audio_db_max" in data:
+            state.audio_db_max = float(data["audio_db_max"])
         return jsonify({"success": True})
 
     @app.route("/api/clock", methods=["POST"])

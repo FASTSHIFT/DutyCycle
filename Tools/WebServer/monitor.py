@@ -12,6 +12,7 @@ import math
 import os
 import threading
 import time
+import warnings
 
 import psutil
 
@@ -24,6 +25,9 @@ except ImportError:
 
 try:
     import soundcard as sc
+
+    # Suppress soundcard's "data discontinuity" warnings
+    warnings.filterwarnings("ignore", message="data discontinuity", module="soundcard")
 except (ImportError, AssertionError, OSError) as e:
     sc = None
     logger = logging.getLogger(__name__)
@@ -96,29 +100,28 @@ def get_audio_level():
         return None, "Audio recorder not initialized"
 
     try:
-        # Record a small chunk of audio
-        data = state.audio_recorder.record(numframes=1024)
-        
+        # Record a small chunk of audio (smaller = faster response)
+        data = state.audio_recorder.record(numframes=512)
+
         # Calculate RMS (Root Mean Square) - better for perceived loudness
         # data is a 2D array (frames x channels)
         sum_sq = sum(sample * sample for frame in data for sample in frame)
         count = sum(1 for frame in data for _ in frame)
         rms = math.sqrt(sum_sq / count) if count > 0 else 0
 
-        if rms <= 0.001:
+        if rms <= 0.0001:
             return 0, None
 
         # RMS to dB
         db = 20 * math.log10(rms)
-        
-        # Map -20dB ~ -5dB to 0% ~ 100%
-        # This narrower range makes typical music (around -10dB RMS) 
-        # fall in the middle with more dynamic movement
-        db_min = -20
-        db_max = -5
+
+        # Map dB range to 0% ~ 100%
+        # Use configurable range from state
+        db_min = state.audio_db_min
+        db_max = state.audio_db_max
         normalized = (db - db_min) / (db_max - db_min)
         percent = max(0, min(100, normalized * 100))
-        
+
         return percent, None
     except Exception as e:
         return None, f"Error getting audio level: {e}"
@@ -130,13 +133,16 @@ def init_audio_meter():
         return False
 
     logger = logging.getLogger(__name__)
-    
+
     try:
         # Try Windows loopback first
         speaker = sc.default_speaker()
-        if hasattr(speaker, 'loopback'):
-            loopback = speaker.loopback()
-            state.audio_recorder = loopback.recorder(samplerate=44100, blocksize=1024)
+        # On Windows, get_microphone with loopback=True captures system audio
+        loopback_mic = sc.get_microphone(speaker.id, include_loopback=True)
+        if loopback_mic is not None:
+            state.audio_recorder = loopback_mic.recorder(
+                samplerate=44100, blocksize=1024
+            )
             state.audio_recorder.__enter__()
             logger.info(f"Audio loopback initialized (Windows): {speaker.name}")
             return True
@@ -152,12 +158,12 @@ def init_audio_meter():
             if "monitor" in mic.name.lower():
                 monitor_mic = mic
                 break
-        
+
         if monitor_mic is None:
             # Fallback: use default microphone
             monitor_mic = sc.default_microphone()
             logger.warning("No monitor device found, using default microphone")
-        
+
         state.audio_recorder = monitor_mic.recorder(samplerate=44100, blocksize=1024)
         state.audio_recorder.__enter__()
         logger.info(f"Audio recorder initialized: {monitor_mic.name}")
