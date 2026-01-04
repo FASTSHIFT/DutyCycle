@@ -6,6 +6,7 @@ let monitorInterval = null;
 let logInterval = null;
 let lastLogIndex = 0;
 let autoSyncInterval = null;
+let lastAlarmTime = 0;  // 上次报警时间，用于限制报警频率
 
 // xterm.js terminal instance
 let term = null;
@@ -422,8 +423,32 @@ function startMonitorLoop() {
             document.getElementById('meterFill').style.width = value + '%';
             document.getElementById('motorSlider').value = value;
             document.getElementById('motorPercent').value = value.toFixed(2);
+            
+            // 阈值报警检测
+            checkThresholdAlarm(value);
         }
     }, 100);
+}
+
+function checkThresholdAlarm(value) {
+    const enabled = document.getElementById('thresholdEnable').checked;
+    if (!enabled) return;
+    
+    const threshold = parseFloat(document.getElementById('thresholdValue').value);
+    const freq = parseInt(document.getElementById('thresholdFreq').value);
+    const duration = parseInt(document.getElementById('thresholdDuration').value);
+    const now = Date.now();
+    
+    // 超过阈值且距离上次报警超过1秒
+    if (value > threshold && (now - lastAlarmTime) >= 1000) {
+        lastAlarmTime = now;
+        // 发送报警音
+        alarmCmd('PLAY_TONE', { '--freq': freq, '--duration': duration });
+    }
+}
+
+function onThresholdChange() {
+    // 阈值设置变化时的处理（可选）
 }
 
 function stopMonitorLoop() {
