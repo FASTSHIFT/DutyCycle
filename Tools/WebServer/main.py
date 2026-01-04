@@ -88,8 +88,8 @@ def parse_args():
     parser.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",
-        help="Host to bind the server (default: 0.0.0.0)",
+        default="::",
+        help="Host to bind the server (default: ::)",
     )
     parser.add_argument(
         "--port",
@@ -127,9 +127,6 @@ def main():
 
     app = create_app()
     logger.info(f"Starting DutyCycle Web Server on http://127.0.0.1:{args.port}")
-    logger.info(
-        f"⚠️  建议使用 http://127.0.0.1:{args.port} 访问（避免 localhost IPv6 延迟）"
-    )
     app.run(host=args.host, port=args.port, debug=args.debug, threaded=True)
 
 
