@@ -237,7 +237,8 @@
                                             <label class="form-label">监控对象
                                                 <span class="form-hint" title="选择要监控的系统资源">ⓘ</span>
                                             </label>
-                                            <select id="thresholdMonitorMode" class="form-control form-control-sm">
+                                            <select id="thresholdMonitorMode" class="form-control form-control-sm"
+                                                onchange="onThresholdChange()">
                                                 <!-- 选项由 JavaScript 动态加载（排除音频） -->
                                             </select>
                                         </div>
@@ -246,7 +247,7 @@
                                             <div class="input-with-unit">
                                                 <input type="number" id="thresholdValue"
                                                     class="form-control form-control-sm" value="80" min="0" max="100"
-                                                    title="超过此值触发报警">
+                                                    title="超过此值触发报警" onchange="onThresholdChange()">
                                                 <span class="input-unit">%</span>
                                             </div>
                                         </div>
@@ -255,7 +256,7 @@
                                             <div class="input-with-unit">
                                                 <input type="number" id="thresholdFreq"
                                                     class="form-control form-control-sm" value="1046" min="100"
-                                                    max="5000" title="报警蜂鸣器频率">
+                                                    max="5000" title="报警蜂鸣器频率" onchange="onThresholdChange()">
                                                 <span class="input-unit">Hz</span>
                                             </div>
                                         </div>
@@ -264,7 +265,7 @@
                                             <div class="input-with-unit">
                                                 <input type="number" id="thresholdDuration"
                                                     class="form-control form-control-sm" value="100" min="10" max="2000"
-                                                    title="报警音持续时间">
+                                                    title="报警音持续时间" onchange="onThresholdChange()">
                                                 <span class="input-unit">ms</span>
                                             </div>
                                         </div>

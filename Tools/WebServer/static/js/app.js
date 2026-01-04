@@ -93,6 +93,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSectionStates();
     refreshPorts();
     await refreshMonitorModes();
+    // 在监控模式加载完成后，恢复阈值报警的监控对象选择
+    loadThresholdSettings();
     refreshStatus();
     initTerminal();
     startLogPolling();
@@ -112,7 +114,7 @@ async function refreshMonitorModes() {
             opt.value = m.value;
             opt.textContent = m.label;
             select.appendChild(opt);
-            
+
             // 阈值报警监控对象下拉列表（排除音频相关选项）
             if (!m.value.includes('audio')) {
                 const thresholdOpt = document.createElement('option');
@@ -138,6 +140,40 @@ function loadCheckboxStates() {
     // 恢复 immediateMode 状态
     const immediate = localStorage.getItem('immediateMode') === 'true';
     document.getElementById('immediateMode').checked = immediate;
+
+    // 恢复阈值报警设置
+    loadThresholdSettings();
+}
+
+function loadThresholdSettings() {
+    const thresholdEnable = localStorage.getItem('thresholdEnable') === 'true';
+    const thresholdMode = localStorage.getItem('thresholdMonitorMode');
+    const thresholdValue = localStorage.getItem('thresholdValue');
+    const thresholdFreq = localStorage.getItem('thresholdFreq');
+    const thresholdDuration = localStorage.getItem('thresholdDuration');
+
+    document.getElementById('thresholdEnable').checked = thresholdEnable;
+
+    if (thresholdMode) {
+        document.getElementById('thresholdMonitorMode').value = thresholdMode;
+    }
+    if (thresholdValue) {
+        document.getElementById('thresholdValue').value = thresholdValue;
+    }
+    if (thresholdFreq) {
+        document.getElementById('thresholdFreq').value = thresholdFreq;
+    }
+    if (thresholdDuration) {
+        document.getElementById('thresholdDuration').value = thresholdDuration;
+    }
+}
+
+function saveThresholdSettings() {
+    localStorage.setItem('thresholdEnable', document.getElementById('thresholdEnable').checked);
+    localStorage.setItem('thresholdMonitorMode', document.getElementById('thresholdMonitorMode').value);
+    localStorage.setItem('thresholdValue', document.getElementById('thresholdValue').value);
+    localStorage.setItem('thresholdFreq', document.getElementById('thresholdFreq').value);
+    localStorage.setItem('thresholdDuration', document.getElementById('thresholdDuration').value);
 }
 
 // ===================== Terminal Functions (xterm.js) =====================
@@ -546,13 +582,13 @@ function startThresholdMonitor() {
     stopThresholdMonitor();
     const enabled = document.getElementById('thresholdEnable').checked;
     if (!enabled || !isConnected) return;
-    
+
     const thresholdMode = document.getElementById('thresholdMonitorMode').value;
     const monitorMode = document.getElementById('monitorMode').value;
-    
+
     // 如果阈值监控对象与主监控相同且正在监控，则不需要独立轮询（会从主监控中获取）
     if (thresholdMode === monitorMode && isMonitoring) return;
-    
+
     // 独立轮询阈值监控对象
     thresholdMonitorInterval = setInterval(async () => {
         const result = await api('/monitor/value?mode=' + thresholdMode);
@@ -572,7 +608,7 @@ function stopThresholdMonitor() {
 function checkThresholdAlarm(value, currentMode) {
     const enabled = document.getElementById('thresholdEnable').checked;
     if (!enabled) return;
-    
+
     const thresholdMode = document.getElementById('thresholdMonitorMode').value;
     // 只有当值来自阈值监控对象时才检测
     if (currentMode !== thresholdMode) return;
@@ -591,6 +627,8 @@ function checkThresholdAlarm(value, currentMode) {
 }
 
 function onThresholdChange() {
+    // 保存阈值设置到 localStorage
+    saveThresholdSettings();
     // 阈值设置变化时，重新启动阈值监控
     stopThresholdMonitor();
     startThresholdMonitor();
