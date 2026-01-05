@@ -861,12 +861,25 @@ function onNoteEditorChange() {
 
 // Web Audio API 播放器
 let audioCtx = null;
+let activeOscillators = []; // 用于追踪正在播放的振荡器
 
 function getAudioContext() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     return audioCtx;
+}
+
+// 停止所有正在播放的音符
+function stopAllOscillators() {
+    activeOscillators.forEach(osc => {
+        try {
+            osc.stop();
+        } catch (e) {
+            // 忽略已停止的振荡器
+        }
+    });
+    activeOscillators = [];
 }
 
 // 试听当前编辑的音符
@@ -905,6 +918,9 @@ async function playNoteLocal() {
 
 // 预览全部音符 (使用精确调度)
 async function playAllLocal() {
+    // 先停止之前的播放
+    stopAllOscillators();
+
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') {
         await ctx.resume();
@@ -937,6 +953,13 @@ async function playAllLocal() {
 
             osc.start(startTime);
             osc.stop(startTime + durationSec);
+
+            // 追踪振荡器以便停止
+            activeOscillators.push(osc);
+            osc.onended = () => {
+                const idx = activeOscillators.indexOf(osc);
+                if (idx > -1) activeOscillators.splice(idx, 1);
+            };
         }
 
         startTime += durationSec;
