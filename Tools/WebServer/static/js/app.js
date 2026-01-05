@@ -497,6 +497,14 @@ async function updateConfig() {
 function onMotorSliderInput() {
     const value = document.getElementById('motorSlider').value;
     document.getElementById('motorPercent').value = value;
+
+    // 同步更新实时状态显示
+    const monitorValueEl = document.getElementById('monitorValue');
+    if (monitorValueEl) {
+        monitorValueEl.innerHTML = parseFloat(value).toFixed(2) + '<span class="stat-unit">%</span>';
+    }
+    document.getElementById('meterFill').style.width = value + '%';
+
     // 实时发送，跟手，使用异步模式
     const immediate = document.getElementById('immediateMode').checked;
     api('/motor', 'POST', { percent: parseFloat(value), immediate, async: true });
