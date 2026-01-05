@@ -910,11 +910,14 @@ async function playAllLocal() {
         await ctx.resume();
     }
 
+    const bpm = parseInt(document.getElementById('composerBpm').value) || 80;
+    const bpmScale = 80 / bpm; // Firmware logic: duration * 80 / bpm
+
     const now = ctx.currentTime;
     let startTime = now + 0.1; // 延迟100ms开始，确保不丢音
 
     composerNotes.forEach(note => {
-        const durationSec = note.duration / 1000;
+        const durationSec = (note.duration / 1000) * bpmScale;
 
         if (note.freq > 0) {
             const osc = ctx.createOscillator();
