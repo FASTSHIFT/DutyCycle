@@ -44,6 +44,9 @@ from flask import Flask
 from flask_cors import CORS
 
 from routes import register_routes
+from state import state
+from serial_utils import serial_open, start_serial_reader
+from monitor import start_monitor
 
 
 # Get the directory where this script is located
@@ -105,6 +108,29 @@ def parse_args():
     return parser.parse_args()
 
 
+def restore_state():
+    """Restore serial connection and monitor state from config."""
+    # Auto-connect to serial port
+    if state.auto_connect and state.port:
+        logger.info(f"Auto-connecting to {state.port}...")
+        ser, error = serial_open(state.port, state.baudrate, state.timeout)
+        if error:
+            logger.warning(f"Auto-connect failed: {error}")
+        else:
+            state.ser = ser
+            start_serial_reader()
+            logger.info(f"Auto-connected to {state.port}")
+
+            # Auto-start monitor (only if connected)
+            if state.auto_monitor and state.auto_monitor_mode:
+                logger.info(f"Auto-starting monitor: {state.auto_monitor_mode}")
+                success, error = start_monitor(state.auto_monitor_mode)
+                if error:
+                    logger.warning(f"Auto-start monitor failed: {error}")
+                else:
+                    logger.info(f"Monitor started: {state.auto_monitor_mode}")
+
+
 def main():
     """Main entry point."""
     args = parse_args()
@@ -126,6 +152,10 @@ def main():
         sys.exit(1)
 
     app = create_app()
+
+    # Restore previous state (auto-connect, auto-monitor)
+    restore_state()
+
     logger.info(f"Starting DutyCycle Web Server on http://127.0.0.1:{args.port}")
     logger.info(
         f"⚠️  建议使用 http://127.0.0.1:{args.port} 访问（避免 localhost IPv6 延迟）"

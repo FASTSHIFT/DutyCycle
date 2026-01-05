@@ -68,6 +68,10 @@ def register_routes(app):
         # Start background reader
         start_serial_reader()
 
+        # Save auto-connect state
+        state.auto_connect = True
+        state.save_config()
+
         return jsonify({"success": True, "port": port})
 
     @app.route("/api/disconnect", methods=["POST"])
@@ -78,7 +82,12 @@ def register_routes(app):
         if state.ser:
             state.ser.close()
             state.ser = None
-            state.port = None
+
+        # Save auto-connect state (keep port for next time)
+        state.auto_connect = False
+        state.auto_monitor = False
+        state.save_config()
+
         return jsonify({"success": True})
 
     @app.route("/api/status", methods=["GET"])
@@ -121,6 +130,10 @@ def register_routes(app):
             state.audio_db_min = float(data["audio_db_min"])
         if "audio_db_max" in data:
             state.audio_db_max = float(data["audio_db_max"])
+
+        # Save config to file
+        state.save_config()
+
         return jsonify({"success": True})
 
     @app.route("/api/clock", methods=["POST"])
@@ -234,6 +247,12 @@ def register_routes(app):
         success, error = start_monitor(mode)
         if error:
             return jsonify({"success": False, "error": error})
+
+        # Save auto-monitor state
+        state.auto_monitor = True
+        state.auto_monitor_mode = mode
+        state.save_config()
+
         return jsonify({"success": True, "mode": mode})
 
     @app.route("/api/monitor/stop", methods=["POST"])
@@ -242,6 +261,11 @@ def register_routes(app):
         success, error = stop_monitor()
         if error:
             return jsonify({"success": False, "error": error})
+
+        # Save auto-monitor state
+        state.auto_monitor = False
+        state.save_config()
+
         return jsonify({"success": True})
 
     @app.route("/api/monitor/value", methods=["GET"])
