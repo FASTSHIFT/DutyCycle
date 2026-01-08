@@ -14,7 +14,6 @@ from serial_utils import (
     scan_serial_ports,
     serial_open,
     serial_write,
-    start_serial_worker,
     start_serial_reader,
     stop_serial_reader,
 )
@@ -130,6 +129,12 @@ def register_routes(app):
                 "audio_db_max": state.audio_db_max,
                 "auto_sync_clock": state.auto_sync_clock,
                 "last_sync_time": state.last_sync_time,
+                # Threshold alarm settings
+                "threshold_enable": state.threshold_enable,
+                "threshold_mode": state.threshold_mode,
+                "threshold_value": state.threshold_value,
+                "threshold_freq": state.threshold_freq,
+                "threshold_duration": state.threshold_duration,
             }
         )
 
@@ -153,6 +158,17 @@ def register_routes(app):
             state.audio_db_max = float(data["audio_db_max"])
         if "auto_sync_clock" in data:
             state.auto_sync_clock = bool(data["auto_sync_clock"])
+        # Threshold alarm settings
+        if "threshold_enable" in data:
+            state.threshold_enable = bool(data["threshold_enable"])
+        if "threshold_mode" in data:
+            state.threshold_mode = data["threshold_mode"]
+        if "threshold_value" in data:
+            state.threshold_value = float(data["threshold_value"])
+        if "threshold_freq" in data:
+            state.threshold_freq = int(data["threshold_freq"])
+        if "threshold_duration" in data:
+            state.threshold_duration = int(data["threshold_duration"])
 
         # Save config to file
         state.save_config()
@@ -180,12 +196,6 @@ def register_routes(app):
         immediate = data.get("immediate", False)
         async_mode = data.get("async", False)
 
-        # Start serial worker if async mode and not already running
-        if async_mode and (
-            state.serial_worker is None or not state.serial_worker.is_alive()
-        ):
-            start_serial_worker()
-
         if "value" in data:
             responses, error = set_motor_value(data["value"], immediate, async_mode)
         elif "percent" in data:
@@ -209,14 +219,13 @@ def register_routes(app):
         if not command:
             return jsonify({"success": False, "error": "Missing command"})
 
-        with state.lock:
-            if state.ser is None:
-                return jsonify({"success": False, "error": "Serial port not opened"})
+        if state.ser is None:
+            return jsonify({"success": False, "error": "Serial port not opened"})
 
-            if not command.endswith("\r\n"):
-                command += "\r\n"
+        if not command.endswith("\r\n"):
+            command += "\r\n"
 
-            responses, error = serial_write(state.ser, command)
+        responses, error = serial_write(state.ser, command)
 
         if error:
             return jsonify({"success": False, "error": error})

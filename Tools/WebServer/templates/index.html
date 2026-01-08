@@ -267,13 +267,11 @@
                                             </div>
                                         </div>
                                         <div class="form-group">
-                                            <label class="form-label">报警频率</label>
-                                            <div class="input-with-unit">
-                                                <input type="number" id="thresholdFreq"
-                                                    class="form-control form-control-sm" value="1046" min="100"
-                                                    max="5000" title="报警蜂鸣器频率" onchange="onThresholdChange()">
-                                                <span class="input-unit">Hz</span>
-                                            </div>
+                                            <label class="form-label">报警音高</label>
+                                            <select id="thresholdFreq" class="form-control form-control-sm"
+                                                onchange="onThresholdChange()">
+                                                <!-- 由 JavaScript 动态填充 -->
+                                            </select>
                                         </div>
                                         <div class="form-group">
                                             <label class="form-label">持续时间</label>
@@ -454,49 +452,7 @@
                                         <label class="form-label">音高</label>
                                         <select id="editNotePitch" class="form-control form-control-sm"
                                             onchange="onNoteEditorChange()">
-                                            <option value="0">休止</option>
-                                            <optgroup label="低音">
-                                                <option value="262">L1(Do)</option>
-                                                <option value="277">L1#</option>
-                                                <option value="294">L2(Re)</option>
-                                                <option value="311">L2#</option>
-                                                <option value="330">L3(Mi)</option>
-                                                <option value="349">L4(Fa)</option>
-                                                <option value="370">L4#</option>
-                                                <option value="392">L5(So)</option>
-                                                <option value="415">L5#</option>
-                                                <option value="440">L6(La)</option>
-                                                <option value="466">L6#</option>
-                                                <option value="494">L7(Si)</option>
-                                            </optgroup>
-                                            <optgroup label="中音">
-                                                <option value="523">M1(Do)</option>
-                                                <option value="554">M1#</option>
-                                                <option value="587">M2(Re)</option>
-                                                <option value="622">M2#</option>
-                                                <option value="659">M3(Mi)</option>
-                                                <option value="698">M4(Fa)</option>
-                                                <option value="740">M4#</option>
-                                                <option value="784">M5(So)</option>
-                                                <option value="831">M5#</option>
-                                                <option value="880">M6(La)</option>
-                                                <option value="932">M6#</option>
-                                                <option value="988">M7(Si)</option>
-                                            </optgroup>
-                                            <optgroup label="高音">
-                                                <option value="1046">H1(Do)</option>
-                                                <option value="1109">H1#</option>
-                                                <option value="1175">H2(Re)</option>
-                                                <option value="1245">H2#</option>
-                                                <option value="1318">H3(Mi)</option>
-                                                <option value="1397">H4(Fa)</option>
-                                                <option value="1480">H4#</option>
-                                                <option value="1568">H5(So)</option>
-                                                <option value="1661">H5#</option>
-                                                <option value="1760">H6(La)</option>
-                                                <option value="1865">H6#</option>
-                                                <option value="1976">H7(Si)</option>
-                                            </optgroup>
+                                            <!-- 由 JavaScript 动态填充 -->
                                         </select>
                                     </div>
                                     <div class="form-group">

@@ -42,10 +42,9 @@ def set_motor_value(motor_value, immediate=False, async_mode=False):
         serial_write_async(command)
         return None, None
     else:
-        with state.lock:
-            if state.ser is None:
-                return None, "Serial port not opened"
-            return serial_write(state.ser, command, 0)
+        if state.ser is None:
+            return None, "Serial port not opened"
+        return serial_write(state.ser, command, 0)
 
 
 def set_motor_percent(percent, immediate=False, async_mode=False):
@@ -56,10 +55,9 @@ def set_motor_percent(percent, immediate=False, async_mode=False):
 
 def config_clock():
     """Set device clock to current system time."""
-    with state.lock:
-        if state.ser is None:
-            return None, "Serial port not opened"
+    if state.ser is None:
+        return None, "Serial port not opened"
 
-        now = datetime.datetime.now()
-        command = f"clock -c SET -y {now.year} -m {now.month} -d {now.day} -H {now.hour} -M {now.minute} -S {now.second}\r\n"
-        return serial_write(state.ser, command)
+    now = datetime.datetime.now()
+    command = f"clock -c SET -y {now.year} -m {now.month} -d {now.day} -H {now.hour} -M {now.minute} -S {now.second}\r\n"
+    return serial_write(state.ser, command)

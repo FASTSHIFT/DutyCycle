@@ -5,7 +5,6 @@ let isMonitoring = false;
 let monitorInterval = null;
 let logInterval = null;
 let lastLogIndex = 0;
-let lastAlarmTime = 0;  // 上次报警时间，用于限制报警频率
 
 // xterm.js terminal instance
 let term = null;
@@ -92,9 +91,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSectionStates();
     refreshPorts();
     await refreshMonitorModes();
-    // 在监控模式加载完成后，恢复阈值报警的监控对象选择
-    loadThresholdSettings();
-    refreshStatus();
+    // 初始化音高下拉菜单
+    populatePitchSelect('editNotePitch', true);  // 编曲器，含休止符
+    populatePitchSelect('thresholdFreq', false, 1046);  // 阈值报警，不含休止符，默认H1
+    // 阈值设置会在 refreshStatus 中从后端加载
+    await refreshStatus();
     initTerminal();
     startLogPolling();
     initComposer();
@@ -132,39 +133,37 @@ function loadCheckboxStates() {
     const immediate = localStorage.getItem('immediateMode') === 'true';
     document.getElementById('immediateMode').checked = immediate;
 
-    // 恢复阈值报警设置
-    loadThresholdSettings();
+    // 阈值报警设置从后端获取，在 refreshStatus 中处理
 }
 
-function loadThresholdSettings() {
-    const thresholdEnable = localStorage.getItem('thresholdEnable') === 'true';
-    const thresholdMode = localStorage.getItem('thresholdMonitorMode');
-    const thresholdValue = localStorage.getItem('thresholdValue');
-    const thresholdFreq = localStorage.getItem('thresholdFreq');
-    const thresholdDuration = localStorage.getItem('thresholdDuration');
-
-    document.getElementById('thresholdEnable').checked = thresholdEnable;
-
-    if (thresholdMode) {
-        document.getElementById('thresholdMonitorMode').value = thresholdMode;
+function loadThresholdSettings(result) {
+    // 从后端结果加载阈值设置
+    if (result.threshold_enable !== undefined) {
+        document.getElementById('thresholdEnable').checked = result.threshold_enable;
     }
-    if (thresholdValue) {
-        document.getElementById('thresholdValue').value = thresholdValue;
+    if (result.threshold_mode) {
+        document.getElementById('thresholdMonitorMode').value = result.threshold_mode;
     }
-    if (thresholdFreq) {
-        document.getElementById('thresholdFreq').value = thresholdFreq;
+    if (result.threshold_value !== undefined) {
+        document.getElementById('thresholdValue').value = result.threshold_value;
     }
-    if (thresholdDuration) {
-        document.getElementById('thresholdDuration').value = thresholdDuration;
+    if (result.threshold_freq !== undefined) {
+        document.getElementById('thresholdFreq').value = result.threshold_freq;
+    }
+    if (result.threshold_duration !== undefined) {
+        document.getElementById('thresholdDuration').value = result.threshold_duration;
     }
 }
 
-function saveThresholdSettings() {
-    localStorage.setItem('thresholdEnable', document.getElementById('thresholdEnable').checked);
-    localStorage.setItem('thresholdMonitorMode', document.getElementById('thresholdMonitorMode').value);
-    localStorage.setItem('thresholdValue', document.getElementById('thresholdValue').value);
-    localStorage.setItem('thresholdFreq', document.getElementById('thresholdFreq').value);
-    localStorage.setItem('thresholdDuration', document.getElementById('thresholdDuration').value);
+async function saveThresholdSettings() {
+    // 保存阈值设置到后端
+    await api('/config', 'POST', {
+        threshold_enable: document.getElementById('thresholdEnable').checked,
+        threshold_mode: document.getElementById('thresholdMonitorMode').value,
+        threshold_value: parseFloat(document.getElementById('thresholdValue').value),
+        threshold_freq: parseInt(document.getElementById('thresholdFreq').value),
+        threshold_duration: parseInt(document.getElementById('thresholdDuration').value)
+    });
 }
 
 // ===================== Terminal Functions (xterm.js) =====================
@@ -355,6 +354,9 @@ async function refreshStatus() {
         // 恢复自动同步时钟状态（从后端获取）
         document.getElementById('autoSyncClock').checked = result.auto_sync_clock || false;
         updateLastSyncTime(result.last_sync_time);
+
+        // 恢复阈值报警设置（从后端获取）
+        loadThresholdSettings(result);
 
         // 如果后端正在监控，恢复前端轮询循环
         if (isMonitoring) {
@@ -597,9 +599,7 @@ function startMonitorLoop() {
             document.getElementById('meterFill').style.width = value + '%';
             document.getElementById('motorSlider').value = value;
             document.getElementById('motorPercent').value = value.toFixed(2);
-
-            // 阈值报警检测（使用当前监控值）
-            checkThresholdAlarm(value, document.getElementById('monitorMode').value);
+            // 阈值报警已移到后端处理
         }
 
         // 下次轮询
@@ -611,63 +611,9 @@ function startMonitorLoop() {
     poll();
 }
 
-// 阈值报警轮询（独立于主监控）
-let thresholdMonitorInterval = null;
-
-function startThresholdMonitor() {
-    stopThresholdMonitor();
-    const enabled = document.getElementById('thresholdEnable').checked;
-    if (!enabled || !isConnected) return;
-
-    const thresholdMode = document.getElementById('thresholdMonitorMode').value;
-    const monitorMode = document.getElementById('monitorMode').value;
-
-    // 如果阈值监控对象与主监控相同且正在监控，则不需要独立轮询（会从主监控中获取）
-    if (thresholdMode === monitorMode && isMonitoring) return;
-
-    // 独立轮询阈值监控对象
-    thresholdMonitorInterval = setInterval(async () => {
-        const result = await api('/monitor/value?mode=' + thresholdMode);
-        if (result.success) {
-            checkThresholdAlarm(result.value, thresholdMode);
-        }
-    }, 1000);
-}
-
-function stopThresholdMonitor() {
-    if (thresholdMonitorInterval) {
-        clearInterval(thresholdMonitorInterval);
-        thresholdMonitorInterval = null;
-    }
-}
-
-function checkThresholdAlarm(value, currentMode) {
-    const enabled = document.getElementById('thresholdEnable').checked;
-    if (!enabled) return;
-
-    const thresholdMode = document.getElementById('thresholdMonitorMode').value;
-    // 只有当值来自阈值监控对象时才检测
-    if (currentMode !== thresholdMode) return;
-
-    const threshold = parseFloat(document.getElementById('thresholdValue').value);
-    const freq = parseInt(document.getElementById('thresholdFreq').value);
-    const duration = parseInt(document.getElementById('thresholdDuration').value);
-    const now = Date.now();
-
-    // 超过阈值且距离上次报警超过1秒
-    if (value > threshold && (now - lastAlarmTime) >= 1000) {
-        lastAlarmTime = now;
-        // 发送报警音
-        alarmCmd('PLAY_TONE', { '--freq': freq, '--duration': duration });
-    }
-}
-
-function onThresholdChange() {
-    // 保存阈值设置到 localStorage
-    saveThresholdSettings();
-    // 阈值设置变化时，重新启动阈值监控
-    stopThresholdMonitor();
-    startThresholdMonitor();
+async function onThresholdChange() {
+    // 保存阈值设置到后端
+    await saveThresholdSettings();
 }
 
 async function onCmdFileChange() {
@@ -776,14 +722,90 @@ async function alarmPlayTone() {
 
 // ===================== Music Composer =====================
 
-const PITCH_NAMES = {
-    0: '休止', 262: 'L1', 277: 'L1#', 294: 'L2', 311: 'L2#', 330: 'L3',
-    349: 'L4', 370: 'L4#', 392: 'L5', 415: 'L5#', 440: 'L6', 466: 'L6#', 494: 'L7',
-    523: 'M1', 554: 'M1#', 587: 'M2', 622: 'M2#', 659: 'M3',
-    698: 'M4', 740: 'M4#', 784: 'M5', 831: 'M5#', 880: 'M6', 932: 'M6#', 988: 'M7',
-    1046: 'H1', 1109: 'H1#', 1175: 'H2', 1245: 'H2#', 1318: 'H3',
-    1397: 'H4', 1480: 'H4#', 1568: 'H5', 1661: 'H5#', 1760: 'H6', 1865: 'H6#', 1976: 'H7'
-};
+// 音符数据：[频率, 显示名, 唱名]
+const PITCH_DATA = [
+    { freq: 0, name: '休止', solfege: '' },
+    // 低音
+    { freq: 262, name: 'L1', solfege: 'Do', group: '低音' },
+    { freq: 277, name: 'L1#', solfege: '', group: '低音' },
+    { freq: 294, name: 'L2', solfege: 'Re', group: '低音' },
+    { freq: 311, name: 'L2#', solfege: '', group: '低音' },
+    { freq: 330, name: 'L3', solfege: 'Mi', group: '低音' },
+    { freq: 349, name: 'L4', solfege: 'Fa', group: '低音' },
+    { freq: 370, name: 'L4#', solfege: '', group: '低音' },
+    { freq: 392, name: 'L5', solfege: 'So', group: '低音' },
+    { freq: 415, name: 'L5#', solfege: '', group: '低音' },
+    { freq: 440, name: 'L6', solfege: 'La', group: '低音' },
+    { freq: 466, name: 'L6#', solfege: '', group: '低音' },
+    { freq: 494, name: 'L7', solfege: 'Si', group: '低音' },
+    // 中音
+    { freq: 523, name: 'M1', solfege: 'Do', group: '中音' },
+    { freq: 554, name: 'M1#', solfege: '', group: '中音' },
+    { freq: 587, name: 'M2', solfege: 'Re', group: '中音' },
+    { freq: 622, name: 'M2#', solfege: '', group: '中音' },
+    { freq: 659, name: 'M3', solfege: 'Mi', group: '中音' },
+    { freq: 698, name: 'M4', solfege: 'Fa', group: '中音' },
+    { freq: 740, name: 'M4#', solfege: '', group: '中音' },
+    { freq: 784, name: 'M5', solfege: 'So', group: '中音' },
+    { freq: 831, name: 'M5#', solfege: '', group: '中音' },
+    { freq: 880, name: 'M6', solfege: 'La', group: '中音' },
+    { freq: 932, name: 'M6#', solfege: '', group: '中音' },
+    { freq: 988, name: 'M7', solfege: 'Si', group: '中音' },
+    // 高音
+    { freq: 1046, name: 'H1', solfege: 'Do', group: '高音' },
+    { freq: 1109, name: 'H1#', solfege: '', group: '高音' },
+    { freq: 1175, name: 'H2', solfege: 'Re', group: '高音' },
+    { freq: 1245, name: 'H2#', solfege: '', group: '高音' },
+    { freq: 1318, name: 'H3', solfege: 'Mi', group: '高音' },
+    { freq: 1397, name: 'H4', solfege: 'Fa', group: '高音' },
+    { freq: 1480, name: 'H4#', solfege: '', group: '高音' },
+    { freq: 1568, name: 'H5', solfege: 'So', group: '高音' },
+    { freq: 1661, name: 'H5#', solfege: '', group: '高音' },
+    { freq: 1760, name: 'H6', solfege: 'La', group: '高音' },
+    { freq: 1865, name: 'H6#', solfege: '', group: '高音' },
+    { freq: 1976, name: 'H7', solfege: 'Si', group: '高音' },
+];
+
+// 生成频率到名称的映射（用于显示）
+const PITCH_NAMES = {};
+PITCH_DATA.forEach(p => { PITCH_NAMES[p.freq] = p.name; });
+
+// 填充音高下拉菜单
+function populatePitchSelect(selectId, includeRest = true, defaultFreq = null) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    select.innerHTML = '';
+
+    let currentGroup = null;
+    let optgroup = null;
+
+    PITCH_DATA.forEach(p => {
+        if (p.freq === 0) {
+            if (includeRest) {
+                const opt = document.createElement('option');
+                opt.value = p.freq;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            }
+            return;
+        }
+
+        if (p.group !== currentGroup) {
+            currentGroup = p.group;
+            optgroup = document.createElement('optgroup');
+            optgroup.label = currentGroup;
+            select.appendChild(optgroup);
+        }
+
+        const opt = document.createElement('option');
+        opt.value = p.freq;
+        opt.textContent = p.solfege ? `${p.name}(${p.solfege})` : p.name;
+        if (defaultFreq !== null && p.freq === defaultFreq) {
+            opt.selected = true;
+        }
+        optgroup.appendChild(opt);
+    });
+}
 
 const BEAT_NAMES = { 47: '1/16', 94: '1/8', 188: '1/4', 375: '1/2', 750: '1', 1500: '2' };
 

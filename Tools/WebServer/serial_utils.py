@@ -5,23 +5,29 @@
 
 """
 Serial communication utilities for DutyCycle Web Server.
+
+All serial I/O is handled by a single worker thread via queue,
+eliminating the need for locks on serial port access.
 """
 
 import datetime
 import glob
+import logging
 import queue
 import threading
 import time
-import collections
 
 import serial
 import serial.tools.list_ports
 
 from state import state
 
-# Echo suppression queue
-pending_echoes = collections.deque()
-pending_lock = threading.Lock()
+# Command queue for serial worker
+serial_cmd_queue = None
+
+# Worker thread
+serial_io_thread = None
+serial_io_running = False
 
 
 def scan_serial_ports():
@@ -55,126 +61,131 @@ def serial_open(port, baudrate=115200, timeout=1):
 
 
 def serial_write(ser, command, sleep_duration=0.0):
-    """Write command to serial port and wait for transmission to complete."""
+    """Queue command for serial write. Thread-safe, non-blocking."""
     if ser is None:
         return None, "Serial port not opened"
 
-    try:
-        # Register for echo suppression
-        with pending_lock:
-            pending_echoes.append(command.strip())
+    if serial_cmd_queue is None:
+        return None, "Serial worker not started"
 
-        ser.write(command.encode())
-        ser.flush()  # Wait for all data to be written to the serial port
-
-        # TX is already shown by xterm.js, no need to log here
-        return [], None
-    except serial.SerialException as e:
-        return None, f"Serial error: {e}"
-    except Exception as e:
-        return None, f"Error: {e}"
+    # Queue the command (will be processed by worker thread)
+    serial_cmd_queue.put(("write", command, False))
+    return [], None
 
 
 def serial_write_async(command):
-    """Queue a command for async serial write (fire and forget)."""
-    if state.serial_queue is not None:
-        # Only keep latest command, discard old ones for high-frequency updates
-        try:
-            while not state.serial_queue.empty():
-                state.serial_queue.get_nowait()
-        except:
-            pass
-        state.serial_queue.put(command)
+    """Queue a command for async serial write (high-frequency, drops old commands)."""
+    if serial_cmd_queue is None:
+        return
+
+    # Queue with high-priority flag (worker will drop older high-freq commands)
+    serial_cmd_queue.put(("write_hf", command, True))
 
 
-def serial_worker_loop():
-    """Background worker for async serial writes."""
-    while state.serial_worker_running:
+def serial_io_loop():
+    """
+    Single worker thread handling all serial I/O.
+    - Processes write commands from queue
+    - Reads incoming data and logs it
+    """
+    global serial_io_running
+    logger = logging.getLogger(__name__)
+
+    # For high-frequency writes, keep only the latest command
+    pending_hf_cmd = None
+
+    while serial_io_running:
+        ser = state.ser
+
+        # Process commands from queue (non-blocking)
         try:
-            command = state.serial_queue.get(timeout=0.1)
-            if state.ser is not None:
-                with state.lock:
-                    try:
-                        # Register for echo suppression
-                        with pending_lock:
-                            pending_echoes.append(command.strip())
-                        state.ser.write(command.encode())
-                        # TX shown by xterm.js, no need to log
-                    except:
-                        pass
+            while True:
+                cmd_type, cmd_data, is_hf = serial_cmd_queue.get_nowait()
+
+                if cmd_type == "write":
+                    # Normal write: execute immediately
+                    if ser is not None and ser.isOpen():
+                        try:
+                            ser.write(cmd_data.encode())
+                            ser.flush()
+                        except Exception as e:
+                            logger.warning(f"Serial write error: {e}")
+
+                elif cmd_type == "write_hf":
+                    # High-frequency write: keep only latest
+                    pending_hf_cmd = cmd_data
+
         except queue.Empty:
             pass
 
+        # Execute pending high-frequency command (only the latest)
+        if pending_hf_cmd is not None and ser is not None and ser.isOpen():
+            try:
+                ser.write(pending_hf_cmd.encode())
+                # No flush for high-frequency (faster)
+            except Exception as e:
+                logger.warning(f"Serial HF write error: {e}")
+            pending_hf_cmd = None
 
-def serial_reader_loop():
-    """Background thread that continuously reads from serial port."""
-
-    while state.serial_reader_running:
-        if state.ser is None or not state.ser.isOpen():
-            time.sleep(0.05)
-            continue
-
-        try:
-            if state.ser.in_waiting > 0:
-                raw_line = state.ser.readline()
-                if raw_line:
-                    line_str = raw_line.decode(errors="replace")
-                    stripped = line_str.strip()
-
-                    # Echo suppression: skip if matches pending command
-                    is_echo = False
-                    with pending_lock:
-                        if stripped and pending_echoes:
-                            if stripped == pending_echoes[0]:
-                                pending_echoes.popleft()
-                                is_echo = True
-
-                    if not is_echo:
+        # Read incoming data - simple passthrough
+        if ser is not None and ser.isOpen():
+            try:
+                while ser.in_waiting > 0:
+                    raw_line = ser.readline()
+                    if raw_line:
+                        line_str = raw_line.decode(errors="replace")
                         add_serial_log("RX", line_str)
-            else:
-                time.sleep(0.005)  # 5ms
-        except Exception as e:
-            time.sleep(0.05)
+            except Exception as e:
+                pass
+
+        # Small sleep to prevent busy-waiting
+        time.sleep(0.002)  # 2ms
 
 
+def start_serial_io():
+    """Start the serial I/O worker thread."""
+    global serial_cmd_queue, serial_io_thread, serial_io_running
+
+    if serial_io_thread is not None and serial_io_thread.is_alive():
+        return
+
+    serial_cmd_queue = queue.Queue()
+    serial_io_running = True
+    serial_io_thread = threading.Thread(target=serial_io_loop, daemon=True)
+    serial_io_thread.start()
+
+
+def stop_serial_io():
+    """Stop the serial I/O worker thread."""
+    global serial_cmd_queue, serial_io_thread, serial_io_running
+
+    serial_io_running = False
+    if serial_io_thread is not None:
+        serial_io_thread.join(timeout=1)
+        serial_io_thread = None
+    serial_cmd_queue = None
+
+
+# Legacy API compatibility
 def start_serial_worker():
-    """Start the async serial worker thread."""
-    if state.serial_worker is None or not state.serial_worker.is_alive():
-        state.serial_queue = queue.Queue()
-        state.serial_worker_running = True
-        state.serial_worker = threading.Thread(target=serial_worker_loop, daemon=True)
-        state.serial_worker.start()
+    """Start async serial worker (legacy, now uses unified I/O thread)."""
+    start_serial_io()
 
 
 def stop_serial_worker():
-    """Stop the async serial worker thread."""
-    state.serial_worker_running = False
-    if state.serial_worker is not None:
-        state.serial_worker.join(timeout=1)
-        state.serial_worker = None
-        state.serial_queue = None
+    """Stop async serial worker (legacy, now uses unified I/O thread)."""
+    # Don't stop here - let serial_reader handle lifecycle
+    pass
 
 
 def start_serial_reader():
-    """Start the background serial reader thread."""
-    # 清空echo队列
-    with pending_lock:
-        pending_echoes.clear()
-
-    if state.serial_reader_thread is None or not state.serial_reader_thread.is_alive():
-        state.serial_reader_running = True
-        state.serial_reader_thread = threading.Thread(
-            target=serial_reader_loop, daemon=True
-        )
-        state.serial_reader_thread.start()
+    """Start serial reader (legacy, now uses unified I/O thread)."""
+    start_serial_io()
 
 
 def stop_serial_reader():
-    """Stop the background serial reader thread."""
-    state.serial_reader_running = False
-    if state.serial_reader_thread is not None:
-        state.serial_reader_thread.join(timeout=1)
-        state.serial_reader_thread = None
+    """Stop serial reader (legacy, now uses unified I/O thread)."""
+    stop_serial_io()
 
 
 def add_serial_log(direction, data):

@@ -10,7 +10,6 @@ Device state management for DutyCycle Web Server.
 import json
 import logging
 import os
-import threading
 
 # Config file path (relative to WebServer directory)
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
@@ -34,6 +33,12 @@ PERSISTENT_KEYS = [
     "auto_monitor_mode",  # Monitor mode to auto-start
     "auto_sync_clock",  # Whether to auto-sync clock on connect
     "last_sync_time",  # Last clock sync timestamp (ISO format)
+    # Threshold alarm settings
+    "threshold_enable",
+    "threshold_mode",
+    "threshold_value",
+    "threshold_freq",
+    "threshold_duration",
 ]
 
 
@@ -53,16 +58,8 @@ class DeviceState:
         self.period = 0.1
         self.last_percent = 0
         self.audio_recorder = None
-        self.lock = threading.Lock()
         self.serial_log = []  # Store serial communication logs
         self.log_max_size = 200  # Max log entries
-        # Async serial write for high-frequency updates
-        self.serial_queue = None
-        self.serial_worker = None
-        self.serial_worker_running = False
-        # Async serial reader for continuous terminal output
-        self.serial_reader_thread = None
-        self.serial_reader_running = False
         # Command file monitoring
         self.cmd_file = None
         self.cmd_file_enabled = False
@@ -76,6 +73,14 @@ class DeviceState:
         self.auto_monitor_mode = None
         self.auto_sync_clock = False
         self.last_sync_time = None  # ISO format string
+
+        # Threshold alarm settings
+        self.threshold_enable = False
+        self.threshold_mode = "cpu-usage"
+        self.threshold_value = 80.0
+        self.threshold_freq = 1046  # H1 (Do)
+        self.threshold_duration = 100
+        self.last_alarm_time = 0  # Last alarm timestamp (not persisted)
 
         # Load config from file
         self.load_config()

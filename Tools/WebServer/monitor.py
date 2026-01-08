@@ -54,9 +54,8 @@ def check_cmd_file():
                         # Add CRLF if not present
                         if not command.endswith("\r\n"):
                             command += "\r\n"
-                        with state.lock:
-                            if state.ser:
-                                serial_write(state.ser, command)
+                        if state.ser:
+                            serial_write(state.ser, command)
             # Remove the file after processing
             os.remove(state.cmd_file)
             logger = logging.getLogger(__name__)
@@ -183,6 +182,42 @@ def cleanup_audio_meter():
         state.audio_recorder = None
 
 
+def check_threshold_alarm(value, current_mode):
+    """Check if value exceeds threshold and trigger alarm."""
+    if not state.threshold_enable:
+        return
+
+    # Only check if the value is from the threshold monitor target
+    if current_mode != state.threshold_mode:
+        return
+
+    if value is None:
+        return
+
+    now = time.time()
+    # Check if value exceeds threshold and enough time has passed since last alarm (1 second)
+    if value > state.threshold_value and (now - state.last_alarm_time) >= 1.0:
+        state.last_alarm_time = now
+        # Send alarm command to device
+        cmd = f"alarm -c PLAY_TONE --freq {state.threshold_freq} --duration {state.threshold_duration}\r\n"
+        if state.ser:
+            serial_write(state.ser, cmd)
+        logger = logging.getLogger(__name__)
+        logger.info(f"Threshold alarm triggered: {value:.1f}% > {state.threshold_value}%")
+
+
+def get_monitor_value(mode):
+    """Get monitoring value for a specific mode."""
+    if mode == "cpu-usage":
+        return get_cpu_usage()
+    elif mode == "mem-usage":
+        return get_mem_usage()
+    elif mode == "gpu-usage":
+        return get_gpu_usage()
+    # Note: audio-level is not supported for threshold monitoring (requires recorder init)
+    return None, f"Unknown mode: {mode}"
+
+
 def monitor_loop():
     """Background monitoring loop."""
     # Initialize audio recorder if needed
@@ -212,6 +247,18 @@ def monitor_loop():
             if error is None and percent is not None:
                 state.last_percent = percent
                 set_motor_percent(percent, immediate, async_mode=True)
+
+                # Check threshold alarm (if monitoring same mode as threshold target)
+                check_threshold_alarm(percent, state.monitor_mode)
+
+            # If threshold monitoring a different mode, get its value separately
+            if (state.threshold_enable and
+                state.threshold_mode and
+                state.threshold_mode != state.monitor_mode and
+                state.threshold_mode != "audio-level"):  # Skip audio for independent threshold
+                threshold_value, _ = get_monitor_value(state.threshold_mode)
+                if threshold_value is not None:
+                    check_threshold_alarm(threshold_value, state.threshold_mode)
 
             # Check command file
             check_cmd_file()
