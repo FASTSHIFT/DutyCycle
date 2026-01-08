@@ -54,20 +54,32 @@ def register_routes(app):
         baudrate = data.get("baudrate", 115200)
         timeout = data.get("timeout", 1)
 
-        if state.ser:
-            state.ser.close()
-
-        ser, error = serial_open(port, baudrate, timeout)
-        if error:
-            return jsonify({"success": False, "error": error})
-
-        state.ser = ser
-        state.port = port
-        state.baudrate = baudrate
-        state.timeout = timeout
-
-        # Start background reader
+        # Start worker first (needed for run_in_worker)
         start_serial_worker()
+
+        # All serial operations in worker thread
+        result = {"ser": None, "error": None}
+
+        def do_connect():
+            # Close existing connection
+            if state.ser:
+                state.ser.close()
+                state.ser = None
+            # Open new connection
+            ser, error = serial_open(port, baudrate, timeout)
+            if error:
+                result["error"] = error
+            else:
+                state.ser = ser
+                state.port = port
+                state.baudrate = baudrate
+                state.timeout = timeout
+
+        if not run_in_worker(do_connect, timeout=5.0):
+            return jsonify({"success": False, "error": "Connect timeout"})
+
+        if result["error"]:
+            return jsonify({"success": False, "error": result["error"]})
 
         # Save auto-connect state
         state.auto_connect = True
@@ -105,11 +117,19 @@ def register_routes(app):
     @app.route("/api/disconnect", methods=["POST"])
     def api_disconnect():
         """Disconnect from serial port."""
+        # Stop monitor first (uses worker internally)
         stop_monitor()
+
+        # Close serial in worker thread before stopping it
+        def do_disconnect():
+            if state.ser:
+                state.ser.close()
+                state.ser = None
+
+        run_in_worker(do_disconnect, timeout=2.0)
+
+        # Now stop worker
         stop_serial_worker()
-        if state.ser:
-            state.ser.close()
-            state.ser = None
 
         # Save auto-connect state (keep port for next time)
         state.auto_connect = False
