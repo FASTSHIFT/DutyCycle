@@ -72,7 +72,26 @@ def register_routes(app):
         state.auto_connect = True
         state.save_config()
 
-        return jsonify({"success": True, "port": port})
+        # Check if auto clock sync is needed
+        clock_synced = False
+        if state.auto_sync_clock:
+            need_sync = True
+            if state.last_sync_time:
+                from datetime import datetime
+                try:
+                    last_sync = datetime.fromisoformat(state.last_sync_time)
+                    hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+                    need_sync = hours_since >= 24
+                except:
+                    pass
+            if need_sync:
+                _, error = config_clock()
+                if not error:
+                    state.last_sync_time = datetime.now().isoformat()
+                    state.save_config()
+                    clock_synced = True
+
+        return jsonify({"success": True, "port": port, "clock_synced": clock_synced, "last_sync_time": state.last_sync_time})
 
     @app.route("/api/disconnect", methods=["POST"])
     def api_disconnect():
@@ -109,6 +128,8 @@ def register_routes(app):
                 "cmd_file_enabled": state.cmd_file_enabled,
                 "audio_db_min": state.audio_db_min,
                 "audio_db_max": state.audio_db_max,
+                "auto_sync_clock": state.auto_sync_clock,
+                "last_sync_time": state.last_sync_time,
             }
         )
 
@@ -130,6 +151,8 @@ def register_routes(app):
             state.audio_db_min = float(data["audio_db_min"])
         if "audio_db_max" in data:
             state.audio_db_max = float(data["audio_db_max"])
+        if "auto_sync_clock" in data:
+            state.auto_sync_clock = bool(data["auto_sync_clock"])
 
         # Save config to file
         state.save_config()
@@ -142,7 +165,13 @@ def register_routes(app):
         responses, error = config_clock()
         if error:
             return jsonify({"success": False, "error": error})
-        return jsonify({"success": True, "responses": responses})
+
+        # Record sync time
+        from datetime import datetime
+        state.last_sync_time = datetime.now().isoformat()
+        state.save_config()
+
+        return jsonify({"success": True, "responses": responses, "sync_time": state.last_sync_time})
 
     @app.route("/api/motor", methods=["POST"])
     def api_motor():

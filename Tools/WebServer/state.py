@@ -32,6 +32,8 @@ PERSISTENT_KEYS = [
     "auto_connect",  # Whether to auto-connect on startup
     "auto_monitor",  # Whether to auto-start monitor on startup
     "auto_monitor_mode",  # Monitor mode to auto-start
+    "auto_sync_clock",  # Whether to auto-sync clock on connect
+    "last_sync_time",  # Last clock sync timestamp (ISO format)
 ]
 
 
@@ -72,6 +74,8 @@ class DeviceState:
         self.auto_connect = False
         self.auto_monitor = False
         self.auto_monitor_mode = None
+        self.auto_sync_clock = False
+        self.last_sync_time = None  # ISO format string
 
         # Load config from file
         self.load_config()

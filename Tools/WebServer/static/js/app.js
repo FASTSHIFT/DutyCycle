@@ -5,7 +5,6 @@ let isMonitoring = false;
 let monitorInterval = null;
 let logInterval = null;
 let lastLogIndex = 0;
-let autoSyncInterval = null;
 let lastAlarmTime = 0;  // 上次报警时间，用于限制报警频率
 
 // xterm.js terminal instance
@@ -127,15 +126,7 @@ async function refreshMonitorModes() {
 }
 
 function loadCheckboxStates() {
-    // 恢复 autoSyncClock 状态
-    const autoSync = localStorage.getItem('autoSyncClock') === 'true';
-    document.getElementById('autoSyncClock').checked = autoSync;
-    if (autoSync) {
-        // 启动自动同步定时器
-        autoSyncInterval = setInterval(() => {
-            if (isConnected) syncClock();
-        }, 24 * 60 * 60 * 1000);
-    }
+    // autoSyncClock 状态从后端获取，在 refreshStatus 中处理
 
     // 恢复 immediateMode 状态
     const immediate = localStorage.getItem('immediateMode') === 'true';
@@ -361,6 +352,10 @@ async function refreshStatus() {
         }
         document.getElementById('cmdFileEnable').checked = result.cmd_file_enabled;
 
+        // 恢复自动同步时钟状态（从后端获取）
+        document.getElementById('autoSyncClock').checked = result.auto_sync_clock || false;
+        updateLastSyncTime(result.last_sync_time);
+
         // 如果后端正在监控，恢复前端轮询循环
         if (isMonitoring) {
             startMonitorLoop();
@@ -450,32 +445,31 @@ async function toggleConnect() {
 async function syncClock() {
     const result = await api('/clock', 'POST');
     if (result.success) {
-        const now = new Date();
-        const timeStr = now.toLocaleString('zh-CN', {
-            year: 'numeric', month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        });
-        document.getElementById('lastSyncTime').textContent = timeStr;
+        updateLastSyncTime(result.sync_time);
     }
 }
 
-function onAutoSyncChange() {
-    const checked = document.getElementById('autoSyncClock').checked;
-    // 保存状态到 localStorage
-    localStorage.setItem('autoSyncClock', checked);
+function updateLastSyncTime(isoTime) {
+    if (!isoTime) {
+        document.getElementById('lastSyncTime').textContent = '--';
+        return;
+    }
+    const date = new Date(isoTime);
+    const timeStr = date.toLocaleString('zh-CN', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    document.getElementById('lastSyncTime').textContent = timeStr;
+}
 
-    if (checked) {
-        // 每24小时同步一次
-        autoSyncInterval = setInterval(() => {
-            if (isConnected) syncClock();
-        }, 24 * 60 * 60 * 1000);
-        // 立即同步一次
-        if (isConnected) syncClock();
-    } else {
-        if (autoSyncInterval) {
-            clearInterval(autoSyncInterval);
-            autoSyncInterval = null;
-        }
+async function onAutoSyncChange() {
+    const checked = document.getElementById('autoSyncClock').checked;
+    // 保存到后端
+    await api('/config', 'POST', { auto_sync_clock: checked });
+
+    // 如果勾选且已连接，立即同步一次
+    if (checked && isConnected) {
+        await syncClock();
     }
 }
 
