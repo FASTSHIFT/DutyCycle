@@ -42,6 +42,7 @@ from serial_utils import (
     stop_serial_worker,
     serial_write_direct,
     get_timer_manager,
+    run_in_worker,
 )
 from device import set_motor_value, map_value
 
@@ -180,12 +181,17 @@ def init_audio_meter():
 
 def cleanup_audio_meter():
     """Cleanup audio recorder."""
-    if state.audio_recorder is not None:
+    logger = logging.getLogger(__name__)
+    recorder = state.audio_recorder
+    state.audio_recorder = None  # Clear reference first to prevent re-entry
+
+    if recorder is not None:
         try:
-            state.audio_recorder.__exit__(None, None, None)
-        except Exception:
-            pass
-        state.audio_recorder = None
+            # Try graceful exit
+            recorder.__exit__(None, None, None)
+        except Exception as e:
+            # Ignore errors during cleanup (e.g., PulseAudio assertion failures)
+            logger.debug(f"Audio recorder cleanup: {e}")
 
 
 def check_threshold_alarm(value, current_mode):
@@ -320,8 +326,9 @@ def stop_monitor():
             tm.remove(_cmd_file_timer)
             _cmd_file_timer = None
 
-    # Cleanup audio
-    cleanup_audio_meter()
+    # Cleanup audio in worker thread (to avoid race with monitor_tick)
+    # This ensures no concurrent access to audio_recorder
+    run_in_worker(cleanup_audio_meter, timeout=1.0)
 
     return True, None
 

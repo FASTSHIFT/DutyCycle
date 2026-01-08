@@ -103,6 +103,27 @@ def serial_write_async(command):
     serial_wake_event.set()
 
 
+def run_in_worker(func, timeout=2.0):
+    """
+    Run a function in the serial worker thread and wait for completion.
+
+    Args:
+        func: Callable to execute in worker thread
+        timeout: Max time to wait for completion
+
+    Returns:
+        True if executed successfully, False on timeout
+    """
+    if serial_cmd_queue is None:
+        return False
+
+    done_event = threading.Event()
+    serial_cmd_queue.put(("call", func, done_event))
+    serial_wake_event.set()
+
+    return done_event.wait(timeout=timeout)
+
+
 def serial_write_direct(ser, command):
     """
     Direct serial write (call from worker thread only).
@@ -182,10 +203,16 @@ def serial_worker_loop():
 
                 if cmd_type == "write":
                     serial_write_direct(ser, cmd_data)
+                elif cmd_type == "call":
+                    # Execute callable in worker thread
+                    try:
+                        cmd_data()
+                    except Exception as e:
+                        logger.warning(f"Worker call error: {e}")
 
-                    # Signal completion if event provided
-                    if done_event is not None:
-                        done_event.set()
+                # Signal completion if event provided
+                if done_event is not None:
+                    done_event.set()
 
         except queue.Empty:
             pass
