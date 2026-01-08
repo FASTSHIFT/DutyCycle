@@ -246,20 +246,18 @@ def register_routes(app):
 
     @app.route("/api/log", methods=["GET"])
     def api_log():
-        """Get serial communication log."""
-        since_index = request.args.get("since", 0, type=int)
-        # Clamp since_index to valid range
-        if since_index > len(state.serial_log):
-            since_index = len(state.serial_log)
-        logs = state.serial_log[since_index:]
-        return jsonify(
-            {"success": True, "logs": logs, "next_index": len(state.serial_log)}
-        )
+        """Get serial communication log since a given ID."""
+        since_id = request.args.get("since", 0, type=int)
+        # Find logs with ID >= since_id
+        logs = [entry for entry in state.serial_log if entry["id"] >= since_id]
+        next_id = state.log_next_id
+        return jsonify({"success": True, "logs": logs, "next_index": next_id})
 
     @app.route("/api/log/clear", methods=["POST"])
     def api_log_clear():
         """Clear serial communication log."""
         state.serial_log = []
+        state.log_next_id = 0
         return jsonify({"success": True})
 
     @app.route("/api/monitor/modes", methods=["GET"])

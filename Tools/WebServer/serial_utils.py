@@ -125,7 +125,9 @@ def serial_write_direct(ser, command):
 def add_serial_log(direction, data):
     """Add a log entry to serial log."""
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-    entry = {"time": timestamp, "dir": direction, "data": data}
+    log_id = state.log_next_id
+    state.log_next_id += 1
+    entry = {"id": log_id, "time": timestamp, "dir": direction, "data": data}
     state.serial_log.append(entry)
     # Keep log size limited
     if len(state.serial_log) > state.log_max_size:
@@ -206,7 +208,6 @@ def serial_worker_loop():
         logging.debug(f"Serial worker sleeping for {sleep_time:.3f} seconds")
 
         # Wait for wake event or timeout (timer-based wakeup)
-        now = time.time()
         serial_wake_event.wait(timeout=sleep_time)
         serial_wake_event.clear()
 

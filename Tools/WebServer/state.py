@@ -59,7 +59,8 @@ class DeviceState:
         self.last_percent = 0
         self.audio_recorder = None
         self.serial_log = []  # Store serial communication logs
-        self.log_max_size = 200  # Max log entries
+        self.log_max_size = 1000  # Max log entries
+        self.log_next_id = 0  # Incrementing log ID
         # Command file monitoring
         self.cmd_file = None
         self.cmd_file_enabled = False
