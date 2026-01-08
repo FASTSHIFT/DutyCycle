@@ -16,6 +16,7 @@ from serial_utils import (
     serial_write,
     start_serial_worker,
     stop_serial_worker,
+    run_in_worker,
 )
 from device import set_motor_value, set_motor_percent, config_clock
 from monitor import (
@@ -248,16 +249,24 @@ def register_routes(app):
     def api_log():
         """Get serial communication log since a given ID."""
         since_id = request.args.get("since", 0, type=int)
-        # Find logs with ID >= since_id
-        logs = [entry for entry in state.serial_log if entry["id"] >= since_id]
+        # Take a snapshot to avoid iteration during modification
+        log_snapshot = list(state.serial_log)
+        logs = [entry for entry in log_snapshot if entry["id"] >= since_id]
         next_id = state.log_next_id
         return jsonify({"success": True, "logs": logs, "next_index": next_id})
 
     @app.route("/api/log/clear", methods=["POST"])
     def api_log_clear():
         """Clear serial communication log."""
-        state.serial_log = []
-        state.log_next_id = 0
+
+        def do_clear():
+            state.serial_log = []
+            state.log_next_id = 0
+
+        # Clear in worker thread to avoid race with add_serial_log
+        if not run_in_worker(do_clear, timeout=1.0):
+            # Fallback if worker not running
+            do_clear()
         return jsonify({"success": True})
 
     @app.route("/api/monitor/modes", methods=["GET"])
@@ -322,14 +331,28 @@ def register_routes(app):
         """Get current monitor value."""
         mode = request.args.get("mode", state.monitor_mode)
 
+        # For audio-level, use cached value to avoid thread-safety issues
+        # (audio_recorder should only be accessed from worker thread)
+        if mode == "audio-level":
+            if state.monitor_mode == "audio-level" and state.monitor_running:
+                return jsonify(
+                    {
+                        "success": True,
+                        "value": round(state.last_percent, 2),
+                        "mode": mode,
+                    }
+                )
+            else:
+                return jsonify(
+                    {"success": False, "error": "Audio monitoring not active"}
+                )
+
         if mode == "cpu-usage":
             value, error = get_cpu_usage()
         elif mode == "mem-usage":
             value, error = get_mem_usage()
         elif mode == "gpu-usage":
             value, error = get_gpu_usage()
-        elif mode == "audio-level":
-            value, error = get_audio_level()
         else:
             return jsonify({"success": False, "error": "Invalid or no mode specified"})
 

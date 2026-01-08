@@ -284,51 +284,54 @@ def monitor_tick():
 
 def start_monitor(mode):
     """Start monitoring using timer in serial worker thread."""
-    global _monitor_timer, _cmd_file_timer
-
     if state.monitor_running:
         stop_monitor()
 
-    # Initialize audio recorder if needed
-    is_audio_mode = mode == "audio-level"
-    if is_audio_mode:
-        init_audio_meter()
-
-    state.monitor_mode = mode
-    state.monitor_running = True
-
-    # Start serial worker (if not already running)
+    # Start serial worker first (if not already running)
     start_serial_worker()
 
-    # Get timer manager and add monitor timer
-    tm = get_timer_manager()
-    if tm is not None:
-        _monitor_timer = tm.add(state.period, monitor_tick, "monitor")
-        _cmd_file_timer = tm.add(1.0, check_cmd_file, "cmd_file")  # Check every 1s
+    # All initialization in worker thread to ensure thread safety
+    def setup():
+        global _monitor_timer, _cmd_file_timer
+        # Initialize audio if needed
+        if mode == "audio-level":
+            init_audio_meter()
+        # Set state
+        state.monitor_mode = mode
+        state.monitor_running = True
+        # Add timers
+        tm = get_timer_manager()
+        if tm is not None:
+            _monitor_timer = tm.add(state.period, monitor_tick, "monitor")
+            _cmd_file_timer = tm.add(1.0, check_cmd_file, "cmd_file")
+
+    run_in_worker(setup, timeout=2.0)
 
     return True, None
 
 
 def stop_monitor():
     """Stop monitoring."""
-    global _monitor_timer, _cmd_file_timer
 
-    state.monitor_running = False
-    state.monitor_mode = None
+    # All cleanup in worker thread to ensure thread safety
+    def cleanup():
+        global _monitor_timer, _cmd_file_timer
+        # Clear state first to stop callbacks
+        state.monitor_running = False
+        state.monitor_mode = None
+        # Remove timers
+        tm = get_timer_manager()
+        if tm is not None:
+            if _monitor_timer is not None:
+                tm.remove(_monitor_timer)
+                _monitor_timer = None
+            if _cmd_file_timer is not None:
+                tm.remove(_cmd_file_timer)
+                _cmd_file_timer = None
+        # Cleanup audio recorder
+        cleanup_audio_meter()
 
-    # Remove timers
-    tm = get_timer_manager()
-    if tm is not None:
-        if _monitor_timer is not None:
-            tm.remove(_monitor_timer)
-            _monitor_timer = None
-        if _cmd_file_timer is not None:
-            tm.remove(_cmd_file_timer)
-            _cmd_file_timer = None
-
-    # Cleanup audio in worker thread (to avoid race with monitor_tick)
-    # This ensures no concurrent access to audio_recorder
-    run_in_worker(cleanup_audio_meter, timeout=1.0)
+    run_in_worker(cleanup, timeout=2.0)
 
     return True, None
 
