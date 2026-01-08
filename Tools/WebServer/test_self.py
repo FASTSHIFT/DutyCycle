@@ -102,7 +102,7 @@ def test_serial_queue():
     """Test serial queue mechanism (without actual serial port)."""
     print("\n📦 Testing Serial Queue...")
 
-    import serial_utils
+    import worker
     from serial_utils import (
         start_serial_worker,
         stop_serial_worker,
@@ -113,7 +113,7 @@ def test_serial_queue():
     start_serial_worker()
     time.sleep(0.05)
 
-    test("Worker started", serial_utils.serial_worker_running is True)
+    test("Worker started", worker.is_running())
     test("Timer manager created", get_timer_manager() is not None)
 
     # Test queue write (no serial port, so command won't actually send)
@@ -132,7 +132,7 @@ def test_serial_queue():
 
     timer = tm.add(0.02, test_callback, "test")
     timer.reset(time.time())
-    serial_utils.serial_wake_event.set()  # Wake worker to process new timer
+    worker.wake()  # Wake worker to process new timer
     time.sleep(0.3)  # Wait for a few ticks
     test("Timer callback executed", callback_count[0] >= 2)
 
@@ -247,7 +247,7 @@ def test_integration():
     """Integration test with actual components."""
     print("\n📦 Integration Test...")
 
-    import serial_utils
+    import worker
     from serial_utils import (
         start_serial_worker,
         stop_serial_worker,
@@ -273,7 +273,7 @@ def test_integration():
     t2 = tm.add(0.1, cmd_file_tick, "cmd_file")
     t1.reset(time.time())
     t2.reset(time.time())
-    serial_utils.serial_wake_event.set()  # Wake worker to process new timers
+    worker.wake()  # Wake worker to process new timers
 
     # Let it run
     time.sleep(0.25)

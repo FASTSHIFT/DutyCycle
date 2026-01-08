@@ -6,35 +6,18 @@
 """
 Serial communication utilities for DutyCycle Web Server.
 
-All serial I/O and monitoring are handled by a single worker thread.
-API requests go through a queue, timers handle periodic tasks.
+Provides serial port operations. All I/O goes through the worker thread.
 """
 
 import datetime
 import glob
 import logging
-import queue
-import threading
-import time
 
 import serial
 import serial.tools.list_ports
 
 from state import state
-from timer import TimerManager
-
-# Command queue for API requests
-serial_cmd_queue = None
-
-# Wake event for immediate processing
-serial_wake_event = None
-
-# Worker thread
-serial_worker_thread = None
-serial_worker_running = False
-
-# Timer manager (accessible for adding monitor timers)
-timer_manager = None
+import worker
 
 
 def scan_serial_ports():
@@ -72,20 +55,10 @@ def serial_write(ser, command, timeout=2.0):
     if ser is None:
         return None, "Serial port not opened"
 
-    if serial_cmd_queue is None:
+    if not worker.is_running():
         return None, "Serial worker not started"
 
-    # Create event to wait for completion
-    done_event = threading.Event()
-
-    # Queue the command with completion event
-    serial_cmd_queue.put(("write", command, done_event))
-
-    # Wake up worker thread immediately
-    serial_wake_event.set()
-
-    # Wait for command to be processed
-    if not done_event.wait(timeout=timeout):
+    if not worker.enqueue_and_wait("write", command, timeout):
         return None, "Command timeout"
 
     return [], None
@@ -93,35 +66,7 @@ def serial_write(ser, command, timeout=2.0):
 
 def serial_write_async(command):
     """Queue a command for async serial write (fire-and-forget)."""
-    if serial_cmd_queue is None:
-        return
-
-    # No event = no waiting
-    serial_cmd_queue.put(("write", command, None))
-
-    # Wake up worker thread immediately
-    serial_wake_event.set()
-
-
-def run_in_worker(func, timeout=2.0):
-    """
-    Run a function in the serial worker thread and wait for completion.
-
-    Args:
-        func: Callable to execute in worker thread
-        timeout: Max time to wait for completion
-
-    Returns:
-        True if executed successfully, False on timeout
-    """
-    if serial_cmd_queue is None:
-        return False
-
-    done_event = threading.Event()
-    serial_cmd_queue.put(("call", func, done_event))
-    serial_wake_event.set()
-
-    return done_event.wait(timeout=timeout)
+    worker.enqueue("write", command)
 
 
 def serial_write_direct(ser, command):
@@ -155,8 +100,9 @@ def add_serial_log(direction, data):
         state.serial_log = state.serial_log[-state.log_max_size :]
 
 
-def process_serial_rx(ser):
+def _process_serial_rx():
     """Read and log incoming serial data (non-blocking)."""
+    ser = state.ser
     if ser is None or not ser.isOpen():
         return
 
@@ -174,103 +120,29 @@ def process_serial_rx(ser):
         pass
 
 
-def serial_worker_loop():
-    """
-    Main worker thread handling serial I/O and timer tasks.
-
-    - Processes write commands from queue (API requests)
-    - Executes timer callbacks (monitoring, etc.)
-    - Reads incoming serial data
-    """
-    global serial_worker_running
-    logger = logging.getLogger(__name__)
-
-    QUEUE_WARN_THRESHOLD = 10
-
-    while serial_worker_running:
-        ser = state.ser
-        now = time.time()
-
-        # Check for queue backlog
-        qsize = serial_cmd_queue.qsize()
-        if qsize > QUEUE_WARN_THRESHOLD:
-            logger.warning(f"Serial command queue backlog: {qsize} commands pending")
-
-        # Process all queued commands first (non-blocking)
-        try:
-            while True:
-                cmd_type, cmd_data, done_event = serial_cmd_queue.get_nowait()
-
-                if cmd_type == "write":
-                    serial_write_direct(ser, cmd_data)
-                elif cmd_type == "call":
-                    # Execute callable in worker thread
-                    try:
-                        cmd_data()
-                    except Exception as e:
-                        logger.warning(f"Worker call error: {e}")
-
-                # Signal completion if event provided
-                if done_event is not None:
-                    done_event.set()
-
-        except queue.Empty:
-            pass
-
-        logger.debug(
-            "Serial queue size: %d, cost: %.3f ms", qsize, (time.time() - now) * 1000
-        )
-
-        # Execute timer callbacks
-        timer_manager.tick(time.time())
-
-        # Read incoming serial data
-        process_serial_rx(ser)
-
-        # Calculate sleep time until next timer or use small default
-        sleep_time = timer_manager.next_wake_time(time.time())
-        if sleep_time is None:
-            sleep_time = 1  # 1s default if no timers
-
-        logging.debug(f"Serial worker sleeping for {sleep_time:.3f} seconds")
-
-        # Wait for wake event or timeout (timer-based wakeup)
-        serial_wake_event.wait(timeout=sleep_time)
-        serial_wake_event.clear()
+def _process_queue_item(cmd_type, cmd_data):
+    """Process a queue item in the worker thread."""
+    if cmd_type == "write":
+        serial_write_direct(state.ser, cmd_data)
 
 
 def start_serial_worker():
     """Start the serial worker thread."""
-    global serial_cmd_queue, serial_wake_event, serial_worker_thread, serial_worker_running, timer_manager
-
-    if serial_worker_thread is not None and serial_worker_thread.is_alive():
-        return
-
-    serial_cmd_queue = queue.Queue()
-    serial_wake_event = threading.Event()
-    timer_manager = TimerManager()
-    serial_worker_running = True
-    serial_worker_thread = threading.Thread(target=serial_worker_loop, daemon=True)
-    serial_worker_thread.start()
+    # Configure worker callbacks
+    worker.configure(_process_queue_item, _process_serial_rx)
+    worker.start()
 
 
 def stop_serial_worker():
     """Stop the serial worker thread."""
-    global serial_cmd_queue, serial_wake_event, serial_worker_thread, serial_worker_running, timer_manager
-
-    serial_worker_running = False
-    if serial_wake_event is not None:
-        serial_wake_event.set()  # Wake up to exit
-    if serial_worker_thread is not None:
-        serial_worker_thread.join(timeout=1)
-        serial_worker_thread = None
-    serial_cmd_queue = None
-    serial_wake_event = None
-    if timer_manager is not None:
-        timer_manager.clear()
-        timer_manager = None
+    worker.stop()
 
 
 def get_timer_manager():
     """Get the timer manager for adding monitor timers."""
-    return timer_manager
+    return worker.get_timer_manager()
+
+
+def run_in_worker(func, timeout=2.0):
+    """Run a function in the worker thread and wait for completion."""
+    return worker.run_in_worker(func, timeout)
