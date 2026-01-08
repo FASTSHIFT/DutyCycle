@@ -506,10 +506,42 @@ function onMotorSliderInput() {
     api('/motor', 'POST', { percent: parseFloat(value), immediate, async: true });
 }
 
+// Slider 平滑过渡动画
+let sliderAnimation = null;
+function animateSlider(targetValue, duration = 150) {
+    const slider = document.getElementById('motorSlider');
+    const startValue = parseFloat(slider.value);
+    const startTime = performance.now();
+
+    // 取消之前的动画
+    if (sliderAnimation) {
+        cancelAnimationFrame(sliderAnimation);
+    }
+
+    function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // easeOutQuad 缓动函数
+        const eased = 1 - (1 - progress) * (1 - progress);
+        const currentValue = startValue + (targetValue - startValue) * eased;
+
+        slider.value = currentValue;
+
+        if (progress < 1) {
+            sliderAnimation = requestAnimationFrame(animate);
+        } else {
+            sliderAnimation = null;
+        }
+    }
+
+    sliderAnimation = requestAnimationFrame(animate);
+}
+
 async function setMotor() {
     const percent = parseFloat(document.getElementById('motorPercent').value);
     const immediate = document.getElementById('immediateMode').checked;
-    document.getElementById('motorSlider').value = percent;
+    animateSlider(percent);
 
     await api('/motor', 'POST', { percent, immediate });
 }
@@ -597,7 +629,7 @@ function startMonitorLoop() {
                 monitorValueEl.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
             }
             document.getElementById('meterFill').style.width = value + '%';
-            document.getElementById('motorSlider').value = value;
+            animateSlider(value, 80);  // 监控模式用更短的动画时间
             document.getElementById('motorPercent').value = value.toFixed(2);
             // 阈值报警已移到后端处理
         }
