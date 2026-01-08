@@ -6,8 +6,8 @@
 """
 Serial communication utilities for DutyCycle Web Server.
 
-All serial I/O is handled by a single worker thread via queue,
-eliminating the need for locks on serial port access.
+All serial I/O and monitoring are handled by a single worker thread.
+API requests go through a queue, timers handle periodic tasks.
 """
 
 import datetime
@@ -21,13 +21,20 @@ import serial
 import serial.tools.list_ports
 
 from state import state
+from timer import TimerManager
 
-# Command queue for serial worker
+# Command queue for API requests
 serial_cmd_queue = None
 
+# Wake event for immediate processing
+serial_wake_event = None
+
 # Worker thread
-serial_io_thread = None
-serial_io_running = False
+serial_worker_thread = None
+serial_worker_running = False
+
+# Timer manager (accessible for adding monitor timers)
+timer_manager = None
 
 
 def scan_serial_ports():
@@ -60,132 +67,59 @@ def serial_open(port, baudrate=115200, timeout=1):
         return None, f"Error: {e}"
 
 
-def serial_write(ser, command, sleep_duration=0.0):
-    """Queue command for serial write. Thread-safe, non-blocking."""
+def serial_write(ser, command, timeout=2.0):
+    """Queue command for serial write and wait for completion."""
     if ser is None:
         return None, "Serial port not opened"
 
     if serial_cmd_queue is None:
         return None, "Serial worker not started"
 
-    # Queue the command (will be processed by worker thread)
-    serial_cmd_queue.put(("write", command, False))
+    # Create event to wait for completion
+    done_event = threading.Event()
+
+    # Queue the command with completion event
+    serial_cmd_queue.put(("write", command, done_event))
+
+    # Wake up worker thread immediately
+    serial_wake_event.set()
+
+    # Wait for command to be processed
+    if not done_event.wait(timeout=timeout):
+        return None, "Command timeout"
+
     return [], None
 
 
 def serial_write_async(command):
-    """Queue a command for async serial write (high-frequency, drops old commands)."""
+    """Queue a command for async serial write (fire-and-forget)."""
     if serial_cmd_queue is None:
         return
 
-    # Queue with high-priority flag (worker will drop older high-freq commands)
-    serial_cmd_queue.put(("write_hf", command, True))
+    # No event = no waiting
+    serial_cmd_queue.put(("write", command, None))
+
+    # Wake up worker thread immediately
+    serial_wake_event.set()
 
 
-def serial_io_loop():
+def serial_write_direct(ser, command):
     """
-    Single worker thread handling all serial I/O.
-    - Processes write commands from queue
-    - Reads incoming data and logs it
+    Direct serial write (call from worker thread only).
+
+    Args:
+        ser: Serial port object
+        command: Command string to send
     """
-    global serial_io_running
     logger = logging.getLogger(__name__)
-
-    # For high-frequency writes, keep only the latest command
-    pending_hf_cmd = None
-
-    while serial_io_running:
-        ser = state.ser
-
-        # Process commands from queue (non-blocking)
-        try:
-            while True:
-                cmd_type, cmd_data, is_hf = serial_cmd_queue.get_nowait()
-
-                if cmd_type == "write":
-                    # Normal write: execute immediately
-                    if ser is not None and ser.isOpen():
-                        try:
-                            ser.write(cmd_data.encode())
-                            ser.flush()
-                        except Exception as e:
-                            logger.warning(f"Serial write error: {e}")
-
-                elif cmd_type == "write_hf":
-                    # High-frequency write: keep only latest
-                    pending_hf_cmd = cmd_data
-
-        except queue.Empty:
-            pass
-
-        # Execute pending high-frequency command (only the latest)
-        if pending_hf_cmd is not None and ser is not None and ser.isOpen():
-            try:
-                ser.write(pending_hf_cmd.encode())
-                # No flush for high-frequency (faster)
-            except Exception as e:
-                logger.warning(f"Serial HF write error: {e}")
-            pending_hf_cmd = None
-
-        # Read incoming data - simple passthrough
-        if ser is not None and ser.isOpen():
-            try:
-                while ser.in_waiting > 0:
-                    raw_line = ser.readline()
-                    if raw_line:
-                        line_str = raw_line.decode(errors="replace")
-                        add_serial_log("RX", line_str)
-            except Exception as e:
-                pass
-
-        # Small sleep to prevent busy-waiting
-        time.sleep(0.002)  # 2ms
-
-
-def start_serial_io():
-    """Start the serial I/O worker thread."""
-    global serial_cmd_queue, serial_io_thread, serial_io_running
-
-    if serial_io_thread is not None and serial_io_thread.is_alive():
+    if ser is None or not ser.isOpen():
         return
 
-    serial_cmd_queue = queue.Queue()
-    serial_io_running = True
-    serial_io_thread = threading.Thread(target=serial_io_loop, daemon=True)
-    serial_io_thread.start()
-
-
-def stop_serial_io():
-    """Stop the serial I/O worker thread."""
-    global serial_cmd_queue, serial_io_thread, serial_io_running
-
-    serial_io_running = False
-    if serial_io_thread is not None:
-        serial_io_thread.join(timeout=1)
-        serial_io_thread = None
-    serial_cmd_queue = None
-
-
-# Legacy API compatibility
-def start_serial_worker():
-    """Start async serial worker (legacy, now uses unified I/O thread)."""
-    start_serial_io()
-
-
-def stop_serial_worker():
-    """Stop async serial worker (legacy, now uses unified I/O thread)."""
-    # Don't stop here - let serial_reader handle lifecycle
-    pass
-
-
-def start_serial_reader():
-    """Start serial reader (legacy, now uses unified I/O thread)."""
-    start_serial_io()
-
-
-def stop_serial_reader():
-    """Stop serial reader (legacy, now uses unified I/O thread)."""
-    stop_serial_io()
+    try:
+        ser.write(command.encode())
+        ser.flush()
+    except Exception as e:
+        logger.warning(f"Serial write error: {e}")
 
 
 def add_serial_log(direction, data):
@@ -196,3 +130,119 @@ def add_serial_log(direction, data):
     # Keep log size limited
     if len(state.serial_log) > state.log_max_size:
         state.serial_log = state.serial_log[-state.log_max_size :]
+
+
+def process_serial_rx(ser):
+    """Read and log incoming serial data (non-blocking)."""
+    if ser is None or not ser.isOpen():
+        return
+
+    try:
+        # Non-blocking read all available bytes
+        available = ser.in_waiting
+        if available > 0:
+            raw_data = ser.read(available)
+            if raw_data:
+                data_str = raw_data.decode(errors="replace")
+                # Split by lines but keep partial lines for next read
+                for line in data_str.splitlines(keepends=True):
+                    add_serial_log("RX", line)
+    except Exception:
+        pass
+
+
+def serial_worker_loop():
+    """
+    Main worker thread handling serial I/O and timer tasks.
+
+    - Processes write commands from queue (API requests)
+    - Executes timer callbacks (monitoring, etc.)
+    - Reads incoming serial data
+    """
+    global serial_worker_running
+    logger = logging.getLogger(__name__)
+
+    QUEUE_WARN_THRESHOLD = 10
+
+    while serial_worker_running:
+        ser = state.ser
+        now = time.time()
+
+        # Check for queue backlog
+        qsize = serial_cmd_queue.qsize()
+        if qsize > QUEUE_WARN_THRESHOLD:
+            logger.warning(f"Serial command queue backlog: {qsize} commands pending")
+
+        # Process all queued commands first (non-blocking)
+        try:
+            while True:
+                cmd_type, cmd_data, done_event = serial_cmd_queue.get_nowait()
+
+                if cmd_type == "write":
+                    serial_write_direct(ser, cmd_data)
+
+                    # Signal completion if event provided
+                    if done_event is not None:
+                        done_event.set()
+
+        except queue.Empty:
+            pass
+
+        logger.debug(
+            "Serial queue size: %d, cost: %.3f ms", qsize, (time.time() - now) * 1000
+        )
+
+        # Execute timer callbacks
+        timer_manager.tick(time.time())
+
+        # Read incoming serial data
+        process_serial_rx(ser)
+
+        # Calculate sleep time until next timer or use small default
+        sleep_time = timer_manager.next_wake_time(time.time())
+        if sleep_time is None:
+            sleep_time = 1  # 1s default if no timers
+
+        logging.debug(f"Serial worker sleeping for {sleep_time:.3f} seconds")
+
+        # Wait for wake event or timeout (timer-based wakeup)
+        now = time.time()
+        serial_wake_event.wait(timeout=sleep_time)
+        serial_wake_event.clear()
+
+
+def start_serial_worker():
+    """Start the serial worker thread."""
+    global serial_cmd_queue, serial_wake_event, serial_worker_thread, serial_worker_running, timer_manager
+
+    if serial_worker_thread is not None and serial_worker_thread.is_alive():
+        return
+
+    serial_cmd_queue = queue.Queue()
+    serial_wake_event = threading.Event()
+    timer_manager = TimerManager()
+    serial_worker_running = True
+    serial_worker_thread = threading.Thread(target=serial_worker_loop, daemon=True)
+    serial_worker_thread.start()
+
+
+def stop_serial_worker():
+    """Stop the serial worker thread."""
+    global serial_cmd_queue, serial_wake_event, serial_worker_thread, serial_worker_running, timer_manager
+
+    serial_worker_running = False
+    if serial_wake_event is not None:
+        serial_wake_event.set()  # Wake up to exit
+    if serial_worker_thread is not None:
+        serial_worker_thread.join(timeout=1)
+        serial_worker_thread = None
+    serial_cmd_queue = None
+    serial_wake_event = None
+    if timer_manager is not None:
+        timer_manager.clear()
+        timer_manager = None
+
+
+def get_timer_manager():
+    """Get the timer manager for adding monitor timers."""
+    return timer_manager

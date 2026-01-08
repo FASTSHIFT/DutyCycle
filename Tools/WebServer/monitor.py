@@ -5,12 +5,13 @@
 
 """
 System monitoring functions for DutyCycle Web Server.
+
+Monitoring runs as timers in the serial worker thread (no separate thread).
 """
 
 import logging
 import math
 import os
-import threading
 import time
 import warnings
 
@@ -36,8 +37,13 @@ except (ImportError, AssertionError, OSError) as e:
     )
 
 from state import state
-from serial_utils import start_serial_worker, stop_serial_worker, serial_write
-from device import set_motor_percent
+from serial_utils import (
+    start_serial_worker,
+    stop_serial_worker,
+    serial_write_direct,
+    get_timer_manager,
+)
+from device import set_motor_value, map_value
 
 
 def check_cmd_file():
@@ -55,7 +61,7 @@ def check_cmd_file():
                         if not command.endswith("\r\n"):
                             command += "\r\n"
                         if state.ser:
-                            serial_write(state.ser, command)
+                            serial_write_direct(state.ser, command)
             # Remove the file after processing
             os.remove(state.cmd_file)
             logger = logging.getLogger(__name__)
@@ -198,12 +204,14 @@ def check_threshold_alarm(value, current_mode):
     # Check if value exceeds threshold and enough time has passed since last alarm (1 second)
     if value > state.threshold_value and (now - state.last_alarm_time) >= 1.0:
         state.last_alarm_time = now
-        # Send alarm command to device
+        # Send alarm command to device (direct write, we're in worker thread)
         cmd = f"alarm -c PLAY_TONE --freq {state.threshold_freq} --duration {state.threshold_duration}\r\n"
         if state.ser:
-            serial_write(state.ser, cmd)
+            serial_write_direct(state.ser, cmd)
         logger = logging.getLogger(__name__)
-        logger.info(f"Threshold alarm triggered: {value:.1f}% > {state.threshold_value}%")
+        logger.info(
+            f"Threshold alarm triggered: {value:.1f}% > {state.threshold_value}%"
+        )
 
 
 def get_monitor_value(mode):
@@ -218,75 +226,107 @@ def get_monitor_value(mode):
     return None, f"Unknown mode: {mode}"
 
 
-def monitor_loop():
-    """Background monitoring loop."""
-    # Initialize audio recorder if needed
-    is_audio_mode = state.monitor_mode == "audio-level"
-    if is_audio_mode:
-        init_audio_meter()
+# Monitor timer reference (for cleanup)
+_monitor_timer = None
+_cmd_file_timer = None
 
-    # Always use async serial for all monitor modes
-    start_serial_worker()
 
-    try:
-        while state.monitor_running:
-            percent = 0
-            immediate = False
-            error = None
+def monitor_tick():
+    """Timer callback for monitoring - runs in serial worker thread."""
+    if not state.monitor_running:
+        return
 
-            if state.monitor_mode == "cpu-usage":
-                percent, error = get_cpu_usage()
-            elif state.monitor_mode == "mem-usage":
-                percent, error = get_mem_usage()
-            elif state.monitor_mode == "gpu-usage":
-                percent, error = get_gpu_usage()
-            elif state.monitor_mode == "audio-level":
-                percent, error = get_audio_level()
-                immediate = True
+    percent = 0
+    immediate = False
+    error = None
 
-            if error is None and percent is not None:
-                state.last_percent = percent
-                set_motor_percent(percent, immediate, async_mode=True)
+    if state.monitor_mode == "cpu-usage":
+        percent, error = get_cpu_usage()
+    elif state.monitor_mode == "mem-usage":
+        percent, error = get_mem_usage()
+    elif state.monitor_mode == "gpu-usage":
+        percent, error = get_gpu_usage()
+    elif state.monitor_mode == "audio-level":
+        percent, error = get_audio_level()
+        immediate = True
 
-                # Check threshold alarm (if monitoring same mode as threshold target)
-                check_threshold_alarm(percent, state.monitor_mode)
+    if error is None and percent is not None:
+        state.last_percent = percent
 
-            # If threshold monitoring a different mode, get its value separately
-            if (state.threshold_enable and
-                state.threshold_mode and
-                state.threshold_mode != state.monitor_mode and
-                state.threshold_mode != "audio-level"):  # Skip audio for independent threshold
-                threshold_value, _ = get_monitor_value(state.threshold_mode)
-                if threshold_value is not None:
-                    check_threshold_alarm(threshold_value, state.threshold_mode)
+        # Direct motor control (we're in the serial worker thread)
+        motor_value = map_value(percent, 0, 100, state.motor_min, state.motor_max)
+        cmd_str = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}"
+        if immediate:
+            cmd_str += " -I"
+        if state.ser:
+            serial_write_direct(state.ser, f"{cmd_str}\r\n")
 
-            # Check command file
-            check_cmd_file()
+        # Check threshold alarm (if monitoring same mode as threshold target)
+        check_threshold_alarm(percent, state.monitor_mode)
 
-            time.sleep(state.period)
-    finally:
-        # Clean up
-        stop_serial_worker()
-        cleanup_audio_meter()
+    # If threshold monitoring a different mode, get its value separately
+    if (
+        state.threshold_enable
+        and state.threshold_mode
+        and state.threshold_mode != state.monitor_mode
+        and state.threshold_mode != "audio-level"
+    ):  # Skip audio for independent threshold
+        threshold_value, _ = get_monitor_value(state.threshold_mode)
+        if threshold_value is not None:
+            check_threshold_alarm(threshold_value, state.threshold_mode)
 
 
 def start_monitor(mode):
-    """Start monitoring in background thread."""
+    """Start monitoring using timer in serial worker thread."""
+    global _monitor_timer, _cmd_file_timer
+
     if state.monitor_running:
         stop_monitor()
 
+    # Initialize audio recorder if needed
+    is_audio_mode = mode == "audio-level"
+    if is_audio_mode:
+        init_audio_meter()
+
     state.monitor_mode = mode
     state.monitor_running = True
-    state.monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
-    state.monitor_thread.start()
+
+    # Start serial worker (if not already running)
+    start_serial_worker()
+
+    # Get timer manager and add monitor timer
+    tm = get_timer_manager()
+    if tm is not None:
+        _monitor_timer = tm.add(state.period, monitor_tick, "monitor")
+        _cmd_file_timer = tm.add(1.0, check_cmd_file, "cmd_file")  # Check every 1s
+
     return True, None
 
 
 def stop_monitor():
-    """Stop background monitoring."""
+    """Stop monitoring."""
+    global _monitor_timer, _cmd_file_timer
+
     state.monitor_running = False
-    if state.monitor_thread:
-        state.monitor_thread.join(timeout=2)
-    state.monitor_thread = None
     state.monitor_mode = None
+
+    # Remove timers
+    tm = get_timer_manager()
+    if tm is not None:
+        if _monitor_timer is not None:
+            tm.remove(_monitor_timer)
+            _monitor_timer = None
+        if _cmd_file_timer is not None:
+            tm.remove(_cmd_file_timer)
+            _cmd_file_timer = None
+
+    # Cleanup audio
+    cleanup_audio_meter()
+
     return True, None
+
+
+def update_monitor_period(period):
+    """Update monitor timer period."""
+    if _monitor_timer is not None:
+        _monitor_timer.set_interval(period)

@@ -14,13 +14,14 @@ from serial_utils import (
     scan_serial_ports,
     serial_open,
     serial_write,
-    start_serial_reader,
-    stop_serial_reader,
+    start_serial_worker,
+    stop_serial_worker,
 )
 from device import set_motor_value, set_motor_percent, config_clock
 from monitor import (
     start_monitor,
     stop_monitor,
+    update_monitor_period,
     get_cpu_usage,
     get_mem_usage,
     get_gpu_usage,
@@ -65,7 +66,7 @@ def register_routes(app):
         state.timeout = timeout
 
         # Start background reader
-        start_serial_reader()
+        start_serial_worker()
 
         # Save auto-connect state
         state.auto_connect = True
@@ -77,6 +78,7 @@ def register_routes(app):
             need_sync = True
             if state.last_sync_time:
                 from datetime import datetime
+
                 try:
                     last_sync = datetime.fromisoformat(state.last_sync_time)
                     hours_since = (datetime.now() - last_sync).total_seconds() / 3600
@@ -90,13 +92,20 @@ def register_routes(app):
                     state.save_config()
                     clock_synced = True
 
-        return jsonify({"success": True, "port": port, "clock_synced": clock_synced, "last_sync_time": state.last_sync_time})
+        return jsonify(
+            {
+                "success": True,
+                "port": port,
+                "clock_synced": clock_synced,
+                "last_sync_time": state.last_sync_time,
+            }
+        )
 
     @app.route("/api/disconnect", methods=["POST"])
     def api_disconnect():
         """Disconnect from serial port."""
         stop_monitor()
-        stop_serial_reader()
+        stop_serial_worker()
         if state.ser:
             state.ser.close()
             state.ser = None
@@ -148,6 +157,7 @@ def register_routes(app):
             state.motor_min = int(data["motor_min"])
         if "period" in data:
             state.period = float(data["period"])
+            update_monitor_period(state.period)
         if "cmd_file" in data:
             state.cmd_file = data["cmd_file"] if data["cmd_file"] else None
         if "cmd_file_enabled" in data:
@@ -184,10 +194,13 @@ def register_routes(app):
 
         # Record sync time
         from datetime import datetime
+
         state.last_sync_time = datetime.now().isoformat()
         state.save_config()
 
-        return jsonify({"success": True, "responses": responses, "sync_time": state.last_sync_time})
+        return jsonify(
+            {"success": True, "responses": responses, "sync_time": state.last_sync_time}
+        )
 
     @app.route("/api/motor", methods=["POST"])
     def api_motor():
