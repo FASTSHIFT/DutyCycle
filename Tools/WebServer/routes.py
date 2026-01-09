@@ -27,6 +27,7 @@ from monitor import (
     get_mem_usage,
     get_gpu_usage,
     get_audio_level,
+    get_audio_devices,
     GPUtil,
     sc,
 )
@@ -157,6 +158,7 @@ def register_routes(app):
                 "cmd_file_enabled": state.cmd_file_enabled,
                 "audio_db_min": state.audio_db_min,
                 "audio_db_max": state.audio_db_max,
+                "audio_device_id": state.audio_device_id,
                 "auto_sync_clock": state.auto_sync_clock,
                 "last_sync_time": state.last_sync_time,
                 # Threshold alarm settings
@@ -187,6 +189,10 @@ def register_routes(app):
             state.audio_db_min = float(data["audio_db_min"])
         if "audio_db_max" in data:
             state.audio_db_max = float(data["audio_db_max"])
+        if "audio_device_id" in data:
+            state.audio_device_id = (
+                data["audio_device_id"] if data["audio_device_id"] else None
+            )
         if "auto_sync_clock" in data:
             state.auto_sync_clock = bool(data["auto_sync_clock"])
         # Threshold alarm settings
@@ -379,3 +385,36 @@ def register_routes(app):
         if error:
             return jsonify({"success": False, "error": error})
         return jsonify({"success": True, "value": round(value, 2), "mode": mode})
+
+    @app.route("/api/audio/devices", methods=["GET"])
+    def api_audio_devices():
+        """Get available audio input devices."""
+        devices, error = get_audio_devices()
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "devices": devices})
+
+    @app.route("/api/audio/select", methods=["POST"])
+    def api_audio_select():
+        """Select audio input device and restart audio monitoring if active."""
+        data = request.json
+        device_id = data.get("device_id")
+
+        # Update device selection
+        state.audio_device_id = device_id if device_id else None
+        state.save_config()
+
+        # If audio monitoring is active, restart it with new device
+        if state.monitor_running and state.monitor_mode == "audio-level":
+            # Stop and restart monitoring
+            stop_monitor()
+            success, error = start_monitor("audio-level")
+            if error:
+                return jsonify(
+                    {
+                        "success": False,
+                        "error": f"Failed to restart audio monitoring: {error}",
+                    }
+                )
+
+        return jsonify({"success": True, "device_id": state.audio_device_id})

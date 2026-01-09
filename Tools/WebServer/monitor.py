@@ -47,6 +47,31 @@ from serial_utils import (
 from device import set_motor_value, map_value
 
 
+def get_audio_devices():
+    """Get list of available audio input devices."""
+    if sc is None:
+        return None, "soundcard not available"
+
+    try:
+        all_mics = sc.all_microphones(include_loopback=True)
+        devices = []
+        for mic in all_mics:
+            devices.append(
+                {
+                    "id": mic.id,
+                    "name": mic.name,
+                    "channels": mic.channels,
+                    "is_loopback": "monitor" in mic.name.lower()
+                    or "loopback" in mic.name.lower(),
+                }
+            )
+        return devices, None
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.exception(f"Error getting audio devices: {e}")
+        return None, str(e)
+
+
 def check_cmd_file():
     """Check for command file and execute commands from it."""
     if not state.cmd_file_enabled or not state.cmd_file:
@@ -140,6 +165,35 @@ def init_audio_meter():
 
     logger = logging.getLogger(__name__)
 
+    # If user selected a specific device, use it
+    if state.audio_device_id is not None:
+        try:
+            all_mics = sc.all_microphones(include_loopback=True)
+            selected_mic = None
+            for mic in all_mics:
+                if mic.id == state.audio_device_id:
+                    selected_mic = mic
+                    break
+
+            if selected_mic is not None:
+                state.audio_recorder = selected_mic.recorder(
+                    samplerate=44100, blocksize=1024
+                )
+                state.audio_recorder.__enter__()
+                logger.info(
+                    f"Audio recorder initialized (user selected): {selected_mic.name}"
+                )
+                return True
+            else:
+                logger.warning(
+                    f"Selected audio device {state.audio_device_id} not found, falling back to auto-select"
+                )
+        except Exception as e:
+            logger.warning(
+                f"Error initializing selected audio device: {e}, falling back to auto-select"
+            )
+
+    # Auto-select logic (original behavior)
     try:
         # Try Windows loopback first
         speaker = sc.default_speaker()

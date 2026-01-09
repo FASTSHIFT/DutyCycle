@@ -311,6 +311,29 @@ async function refreshPorts() {
     }
 }
 
+async function refreshAudioDevices() {
+    const result = await api('/audio/devices');
+    const select = document.getElementById('audioDevice');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">自动选择...</option>';
+    if (result.success && result.devices) {
+        result.devices.forEach(device => {
+            const opt = document.createElement('option');
+            opt.value = device.id;
+            // 显示设备名称，并标记回放设备
+            const label = device.is_loopback ? `🔊 ${device.name}` : device.name;
+            opt.textContent = label;
+            select.appendChild(opt);
+        });
+    }
+}
+
+async function onAudioDeviceChange() {
+    const deviceId = document.getElementById('audioDevice').value;
+    await api('/audio/select', 'POST', { device_id: deviceId || null });
+}
+
 async function refreshStatus() {
     const result = await api('/status');
     if (result.success) {
@@ -335,10 +358,25 @@ async function refreshStatus() {
 
         if (result.monitor_mode) {
             document.getElementById('monitorMode').value = result.monitor_mode;
-            // 根据模式显示/隐藏dB范围设置
+            // 根据模式显示/隐藏dB范围设置和音频设备选择
             const audioDbRangeRow = document.getElementById('audioDbRangeRow');
+            const audioDeviceRow = document.getElementById('audioDeviceRow');
             if (audioDbRangeRow) {
                 audioDbRangeRow.style.display = result.monitor_mode === 'audio-level' ? '' : 'none';
+            }
+            if (audioDeviceRow) {
+                audioDeviceRow.style.display = result.monitor_mode === 'audio-level' ? '' : 'none';
+                if (result.monitor_mode === 'audio-level') {
+                    // 加载音频设备列表
+                    await refreshAudioDevices();
+                    // 设置当前选中的设备
+                    if (result.audio_device_id !== undefined) {
+                        const audioDeviceSelect = document.getElementById('audioDevice');
+                        if (audioDeviceSelect) {
+                            audioDeviceSelect.value = result.audio_device_id || '';
+                        }
+                    }
+                }
             }
         } else {
             // 未监控时，根据当前选择的模式设置默认周期
@@ -552,14 +590,21 @@ async function onMonitorModeChange() {
     const mode = document.getElementById('monitorMode').value;
     const periodInput = document.getElementById('period');
     const audioDbRangeRow = document.getElementById('audioDbRangeRow');
+    const audioDeviceRow = document.getElementById('audioDeviceRow');
 
     // 音频模式默认10ms，其他模式默认1000ms
     if (mode === 'audio-level') {
         periodInput.value = 10;
         if (audioDbRangeRow) audioDbRangeRow.style.display = '';
+        if (audioDeviceRow) {
+            audioDeviceRow.style.display = '';
+            // 加载音频设备列表
+            await refreshAudioDevices();
+        }
     } else {
         periodInput.value = 1000;
         if (audioDbRangeRow) audioDbRangeRow.style.display = 'none';
+        if (audioDeviceRow) audioDeviceRow.style.display = 'none';
     }
     // 如果正在监控，实时切换模式
     if (isMonitoring) {

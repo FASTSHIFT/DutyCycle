@@ -216,6 +216,26 @@
                                                 <span class="input-unit">dB</span>
                                             </div>
                                         </div>
+                                        <div class="form-group" id="audioDeviceRow" style="display:none;">
+                                            <label class="form-label">音频输入
+                                                <span class="form-hint" title="选择要监听的音频输入设备">ⓘ</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <select id="audioDevice" class="form-control"
+                                                    onchange="onAudioDeviceChange()">
+                                                    <option value="">自动选择...</option>
+                                                    <!-- 选项由 JavaScript 动态加载 -->
+                                                </select>
+                                                <button class="btn btn-icon" onclick="refreshAudioDevices()"
+                                                    title="刷新音频设备列表">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" stroke-width="2">
+                                                        <path
+                                                            d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div style="margin-top: 16px;">
                                         <button id="monitorStartBtn" onclick="toggleMonitor()"

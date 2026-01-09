@@ -28,6 +28,7 @@ PERSISTENT_KEYS = [
     "cmd_file_enabled",
     "audio_db_min",
     "audio_db_max",
+    "audio_device_id",  # Selected audio input device ID
     "auto_connect",  # Whether to auto-connect on startup
     "auto_monitor",  # Whether to auto-start monitor on startup
     "auto_monitor_mode",  # Monitor mode to auto-start
@@ -67,6 +68,8 @@ class DeviceState:
         # Audio level mapping range (dB)
         self.audio_db_min = -40
         self.audio_db_max = 0
+        # Selected audio device ID (None = auto-select)
+        self.audio_device_id = None
 
         # Auto-restore settings
         self.auto_connect = False
