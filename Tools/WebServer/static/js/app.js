@@ -99,6 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTerminal();
     startLogPolling();
     initComposer();
+    // 初始化小时映射下拉菜单
+    initClockMapHourSelect();
 });
 
 async function refreshMonitorModes() {
@@ -520,6 +522,98 @@ function onImmediateModeChange() {
 
 // ===================== Motor Control Functions =====================
 
+// 当前显示模式：0 = COS_PHI, 1 = LINEAR
+let currentDisplayMode = 0;
+
+// COS_PHI模式可用的小时
+const COS_PHI_HOURS = ['H5', 'H7', 'H9', 'H12', 'H21', 'H0', 'H1', 'H5_DOWN'];
+
+// 初始化小时映射下拉菜单
+function initClockMapHourSelect() {
+    updateClockMapHourOptions();
+}
+
+// 根据显示模式更新小时选项
+function updateClockMapHourOptions() {
+    const select = document.getElementById('clockMapHour');
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    if (currentDisplayMode === 0) {
+        // COS_PHI模式：只有特定小时可选
+        COS_PHI_HOURS.forEach(hour => {
+            const opt = document.createElement('option');
+            opt.value = hour;
+            opt.textContent = hour;
+            select.appendChild(opt);
+        });
+    } else {
+        // LINEAR模式：H0~H24全部可选
+        for (let i = 0; i <= 24; i++) {
+            const opt = document.createElement('option');
+            opt.value = 'H' + i;
+            opt.textContent = 'H' + i;
+            select.appendChild(opt);
+        }
+    }
+}
+
+// 显示模式切换事件
+function onDisplayModeChange() {
+    currentDisplayMode = parseInt(document.getElementById('displayMode').value);
+    updateClockMapHourOptions();
+}
+
+// 设置显示模式
+async function setDisplayMode() {
+    const mode = document.getElementById('displayMode').value;
+    currentDisplayMode = parseInt(mode);
+    updateClockMapHourOptions();
+    await api('/command', 'POST', { command: `ctrl -c SET_MODE --mode ${mode}` });
+}
+
+// 设置小时映射
+async function setClockMap() {
+    const hour = document.getElementById('clockMapHour').value;
+    // 从当前滑块值计算PWM
+    const percent = parseFloat(document.getElementById('motorSlider').value);
+    const motorMin = parseInt(document.getElementById('motorMin').value);
+    const motorMax = parseInt(document.getElementById('motorMax').value);
+    const pwmValue = Math.round(motorMin + (percent / 100) * (motorMax - motorMin));
+
+    // 提取小时数值
+    let hourValue = hour;
+    if (hour === 'H5_DOWN') {
+        hourValue = '24';  // 特殊处理 H5_DOWN
+    } else {
+        hourValue = hour.replace('H', '');
+    }
+
+    await api('/command', 'POST', { command: `ctrl -c SET_CLOCK_MAP -H ${hourValue} -M ${pwmValue}` });
+}
+
+// 列出小时映射
+async function listClockMap() {
+    await api('/command', 'POST', { command: 'ctrl -c LIST_CLOCK_MAP' });
+}
+
+// 扫动测试
+async function sweepTest() {
+    await api('/command', 'POST', { command: 'ctrl -c SWEEP_TEST' });
+}
+
+// 计算并显示PWM原始值
+function updatePwmDisplay(percent) {
+    const motorMin = parseInt(document.getElementById('motorMin').value) || 0;
+    const motorMax = parseInt(document.getElementById('motorMax').value) || 1000;
+    const pwmValue = Math.round(motorMin + (percent / 100) * (motorMax - motorMin));
+    const pwmDisplay = document.getElementById('motorPwmValue');
+    if (pwmDisplay) {
+        pwmDisplay.textContent = `PWM: ${pwmValue}`;
+    }
+}
+
 async function updateConfig() {
     const motorMin = parseInt(document.getElementById('motorMin').value);
     const motorMax = parseInt(document.getElementById('motorMax').value);
@@ -529,19 +623,22 @@ async function updateConfig() {
 }
 
 function onMotorSliderInput() {
-    const value = document.getElementById('motorSlider').value;
-    document.getElementById('motorPercent').value = value;
+    const value = parseFloat(document.getElementById('motorSlider').value);
+    document.getElementById('motorPercent').value = value.toFixed(2);
 
     // 同步更新实时状态显示
     const monitorValueEl = document.getElementById('monitorValue');
     if (monitorValueEl) {
-        monitorValueEl.innerHTML = parseFloat(value).toFixed(2) + '<span class="stat-unit">%</span>';
+        monitorValueEl.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
     }
     document.getElementById('meterFill').style.width = value + '%';
 
+    // 更新PWM原始值显示
+    updatePwmDisplay(value);
+
     // 实时发送，跟手，使用异步模式
     const immediate = document.getElementById('immediateMode').checked;
-    api('/motor', 'POST', { percent: parseFloat(value), immediate, async: true });
+    api('/motor', 'POST', { percent: value, immediate, async: true });
 }
 
 // Slider 平滑过渡动画
@@ -676,6 +773,8 @@ function startMonitorLoop() {
             document.getElementById('meterFill').style.width = value + '%';
             animateSlider(value, 80);  // 监控模式用更短的动画时间
             document.getElementById('motorPercent').value = value.toFixed(2);
+            // 更新PWM原始值显示
+            updatePwmDisplay(value);
             // 阈值报警已移到后端处理
         }
 

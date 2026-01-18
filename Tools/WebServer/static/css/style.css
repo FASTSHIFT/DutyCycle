@@ -455,11 +455,11 @@ a:hover {
 }
 
 /* Standalone wide cards (outside grid) need top margin */
-.section-body > .card-wide {
+.section-body>.card-wide {
     margin-top: var(--space-4);
 }
 
-.section-body > .card-wide:first-child {
+.section-body>.card-wide:first-child {
     margin-top: 0;
 }
 
@@ -997,6 +997,20 @@ select.form-control option {
     gap: var(--space-3);
     padding-top: var(--space-3);
     border-top: 1px solid var(--border-muted);
+    flex-wrap: wrap;
+}
+
+/* PWM Value Display */
+.pwm-value-display {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-accent);
+    background: var(--color-accent-muted);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    min-width: 85px;
+    text-align: start;
 }
 
 .inline-row {

@@ -150,7 +150,7 @@
                                     <!-- Main Slider -->
                                     <div class="slider-section">
                                         <input type="range" id="motorSlider" class="slider-main" min="0" max="100"
-                                            value="0" oninput="onMotorSliderInput()">
+                                            value="0" step="0.01" oninput="onMotorSliderInput()">
                                         <div class="slider-labels">
                                             <span>0%</span>
                                             <span>50%</span>
@@ -162,9 +162,11 @@
                                     <div class="action-row">
                                         <div class="input-with-unit">
                                             <input type="number" id="motorPercent" class="form-control" value="0"
-                                                min="0" max="100" step="0.1" placeholder="占空比" title="设置电机占空比百分比">
+                                                min="0" max="100" step="0.01" placeholder="占空比" title="设置电机占空比百分比">
                                             <span class="input-unit">%</span>
                                         </div>
+                                        <span id="motorPwmValue" class="pwm-value-display" title="当前原始PWM值">PWM:
+                                            0</span>
                                         <button onclick="setMotor()" class="btn btn-primary"
                                             title="发送占空比设置命令">设置</button>
                                         <label class="checkbox-inline" title="勾选后拖动滑块立即生效">
@@ -172,6 +174,50 @@
                                                 onchange="onImmediateModeChange()">
                                             <span>立即生效</span>
                                         </label>
+                                    </div>
+
+                                    <!-- Display Mode Setting -->
+                                    <div class="form-section" style="margin-top: 12px;">
+                                        <div class="form-section-title">显示模式</div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label class="form-label">模式选择
+                                                    <span class="form-hint" title="设置设备显示模式">ⓘ</span>
+                                                </label>
+                                                <select id="displayMode" class="form-control form-control-sm"
+                                                    onchange="onDisplayModeChange()">
+                                                    <option value="0" title="功率因数表">COS_PHI (功率因数表)</option>
+                                                    <option value="1" title="电压电流等单向仪表">LINEAR (线性仪表)</option>
+                                                </select>
+                                            </div>
+                                            <button onclick="setDisplayMode()" class="btn btn-secondary btn-sm"
+                                                title="设置显示模式">应用</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hour Mapping Setting -->
+                                    <div class="form-section" style="margin-top: 12px;">
+                                        <div class="form-section-title">小时映射配置</div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label class="form-label">小时
+                                                    <span class="form-hint" title="选择要配置的小时刻度">ⓘ</span>
+                                                </label>
+                                                <select id="clockMapHour" class="form-control form-control-sm">
+                                                    <!-- 选项由 JavaScript 动态加载 -->
+                                                </select>
+                                            </div>
+                                            <button onclick="setClockMap()" class="btn btn-warning btn-sm"
+                                                title="将当前滑块PWM值设置到选定小时">设置映射</button>
+                                            <button onclick="listClockMap()" class="btn btn-secondary btn-sm"
+                                                title="列出当前小时映射配置">列出</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sweep Test -->
+                                    <div class="form-section" style="margin-top: 12px;">
+                                        <button onclick="sweepTest()" class="btn btn-success btn-block"
+                                            title="执行电机扫动测试">🔄 扫动测试</button>
                                     </div>
                                 </div>
                             </div>
