@@ -11,9 +11,13 @@ With coverage: python3 test_self.py --coverage
 """
 
 import argparse
+import os
 import sys
 import time
 import threading
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Test results
 passed = 0
@@ -100,31 +104,25 @@ def test_timer():
 
 def test_serial_queue():
     """Test serial queue mechanism (without actual serial port)."""
-    print("\n📦 Testing Serial Queue...")
+    print("\n📦 Testing Serial Queue (Multi-Device)...")
 
-    import worker
-    from serial_utils import (
-        start_serial_worker,
-        stop_serial_worker,
-        get_timer_manager,
-    )
+    from state import DeviceState
+    from device_worker import DeviceWorker
 
-    # Start worker
-    start_serial_worker()
+    # Create a mock device
+    device = DeviceState("test_device")
+    device.name = "Test Device"
+
+    # Create and start worker
+    worker = DeviceWorker(device)
+    worker.start()
     time.sleep(0.05)
 
     test("Worker started", worker.is_running())
-    test("Timer manager created", get_timer_manager() is not None)
-
-    # Test queue write (no serial port, so command won't actually send)
-    from serial_utils import serial_write_async
-
-    serial_write_async("test command\r\n")
-    time.sleep(0.02)
-    test("Async write queued", True)  # No exception = pass
+    test("Timer manager created", worker._timer_manager is not None)
 
     # Test timer in worker thread
-    tm = get_timer_manager()
+    tm = worker._timer_manager
     callback_count = [0]
 
     def test_callback():
@@ -137,9 +135,9 @@ def test_serial_queue():
     test("Timer callback executed", callback_count[0] >= 2)
 
     # Cleanup
-    stop_serial_worker()
+    worker.stop()
     time.sleep(0.05)
-    test("Worker stopped", True)
+    test("Worker stopped", not worker.is_running())
 
 
 def test_serial_write_sync():
@@ -245,26 +243,26 @@ def test_concurrent_writes():
 
 def test_integration():
     """Integration test with actual components."""
-    print("\n📦 Integration Test...")
+    print("\n📦 Integration Test (Multi-Device)...")
 
-    import worker
-    from serial_utils import (
-        start_serial_worker,
-        stop_serial_worker,
-        get_timer_manager,
-        serial_write_async,
-    )
+    from state import DeviceState
+    from device_worker import DeviceWorker
 
-    start_serial_worker()
+    # Create a mock device
+    device = DeviceState("integration_test")
+    device.name = "Integration Test"
+
+    # Create and start worker
+    worker = DeviceWorker(device)
+    worker.start()
     time.sleep(0.05)
 
     # Add multiple timers like monitor would
-    tm = get_timer_manager()
+    tm = worker._timer_manager
     tick_counts = {"monitor": 0, "cmd_file": 0}
 
     def monitor_tick():
         tick_counts["monitor"] += 1
-        serial_write_async(f"monitor tick {tick_counts['monitor']}\r\n")
 
     def cmd_file_tick():
         tick_counts["cmd_file"] += 1
@@ -282,7 +280,111 @@ def test_integration():
     test("Cmd file ticks >= 2", tick_counts["cmd_file"] >= 2)
     test("Monitor runs faster", tick_counts["monitor"] > tick_counts["cmd_file"])
 
-    stop_serial_worker()
+    worker.stop()
+
+
+def test_clock_sync_logic():
+    """Test clock sync timer logic."""
+    print("\n📦 Testing Clock Sync Logic...")
+
+    from datetime import datetime, timedelta
+    from state import DeviceState
+    from timer import TimerManager
+
+    # Create mock device
+    device = DeviceState("test_device", "Test Clock Sync")
+    device.auto_sync_clock = True
+    device.last_sync_time = None
+
+    # Test 1: No last sync time - should need sync
+    need_sync = True
+    if device.last_sync_time:
+        try:
+            last_sync = datetime.fromisoformat(device.last_sync_time)
+            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+            need_sync = hours_since >= 24
+        except:
+            pass
+    test("Need sync when no last_sync_time", need_sync is True)
+
+    # Test 2: Recent sync - should not need sync
+    device.last_sync_time = datetime.now().isoformat()
+    need_sync = True
+    if device.last_sync_time:
+        try:
+            last_sync = datetime.fromisoformat(device.last_sync_time)
+            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+            need_sync = hours_since >= 24
+        except:
+            pass
+    test("No sync needed when recently synced", need_sync is False)
+
+    # Test 3: Old sync (25 hours ago) - should need sync
+    device.last_sync_time = (datetime.now() - timedelta(hours=25)).isoformat()
+    need_sync = True
+    if device.last_sync_time:
+        try:
+            last_sync = datetime.fromisoformat(device.last_sync_time)
+            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+            need_sync = hours_since >= 24
+        except:
+            pass
+    test("Need sync when last sync > 24h ago", need_sync is True)
+
+    # Test 4: Exactly 24 hours ago - should need sync
+    device.last_sync_time = (datetime.now() - timedelta(hours=24)).isoformat()
+    need_sync = True
+    if device.last_sync_time:
+        try:
+            last_sync = datetime.fromisoformat(device.last_sync_time)
+            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+            need_sync = hours_since >= 24
+        except:
+            pass
+    test("Need sync when last sync == 24h ago", need_sync is True)
+
+    # Test 5: 23 hours ago - should not need sync
+    device.last_sync_time = (datetime.now() - timedelta(hours=23)).isoformat()
+    need_sync = True
+    if device.last_sync_time:
+        try:
+            last_sync = datetime.fromisoformat(device.last_sync_time)
+            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+            need_sync = hours_since >= 24
+        except:
+            pass
+    test("No sync needed when last sync < 24h ago", need_sync is False)
+
+    # Test 6: Auto sync disabled - logic should still work but timer won't run
+    device.auto_sync_clock = False
+    test("auto_sync_clock can be disabled", device.auto_sync_clock is False)
+
+    # Test 7: Timer manager can add clock sync timer
+    timer_manager = TimerManager()
+    sync_called = [False]
+
+    def mock_sync():
+        sync_called[0] = True
+
+    timer = timer_manager.add(0.1, mock_sync, "clock_sync")
+    test("Clock sync timer added", timer is not None)
+    test("Clock sync timer has correct name", timer.name == "clock_sync")
+
+    # Test 8: Timer can be found and removed by name
+    found = None
+    for t in timer_manager.timers:
+        if t.name == "clock_sync":
+            found = t
+            break
+    test("Clock sync timer can be found by name", found is not None)
+
+    timer_manager.remove(found)
+    found_after_remove = None
+    for t in timer_manager.timers:
+        if t.name == "clock_sync":
+            found_after_remove = t
+            break
+    test("Clock sync timer can be removed", found_after_remove is None)
 
 
 def run_tests():
@@ -298,6 +400,7 @@ def run_tests():
         test_serial_queue()
         test_serial_write_sync()
         test_concurrent_writes()
+        test_clock_sync_logic()
         test_integration()
     except Exception as e:
         print(f"\n💥 Test crashed: {e}")

@@ -26,7 +26,8 @@ DutyCycle Web Server
 A web-based control interface for DutyCycle device.
 
 Module structure:
-- state.py: Device state management
+- state.py: Multi-device state management
+- device_worker.py: Per-device worker thread management
 - serial_utils.py: Serial communication utilities
 - device.py: Device control functions (motor, clock)
 - monitor.py: System monitoring functions (CPU, memory, GPU, audio)
@@ -45,7 +46,7 @@ from flask_cors import CORS
 
 from routes import register_routes
 from state import state
-from serial_utils import serial_open, start_serial_worker
+from serial_utils import serial_open, start_device_worker
 from monitor import start_monitor
 
 
@@ -73,10 +74,8 @@ def check_port_available(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(1)
     try:
-        # Try to connect to the port
         result = sock.connect_ex(("127.0.0.1", port))
         if result == 0:
-            # Port is in use (connection succeeded)
             return False
         return True
     except Exception:
@@ -109,32 +108,38 @@ def parse_args():
 
 
 def restore_state():
-    """Restore serial connection and monitor state from config."""
-    # Check auto-connect conditions
-    if not state.auto_connect or not state.port:
-        return
+    """Restore serial connection and monitor state for all devices."""
+    for device_id, device in state.devices.items():
+        # Check auto-connect conditions
+        if not device.auto_connect or not device.port:
+            continue
 
-    logger.info(f"Auto-connecting to {state.port}...")
-    ser, error = serial_open(state.port, state.baudrate, state.timeout)
-    if error:
-        logger.warning(f"Auto-connect failed: {error}")
-        return
+        logger.info(f"[{device.name}] Auto-connecting to {device.port}...")
 
-    state.ser = ser
-    start_serial_worker()
-    logger.info(f"Auto-connected to {state.port}")
+        # Start worker first
+        start_device_worker(device)
 
-    # Check auto-monitor conditions
-    if not state.auto_monitor or not state.auto_monitor_mode:
-        return
+        ser, error = serial_open(device.port, device.baudrate, device.timeout)
+        if error:
+            logger.warning(f"[{device.name}] Auto-connect failed: {error}")
+            continue
 
-    logger.info(f"Auto-starting monitor: {state.auto_monitor_mode}")
-    success, error = start_monitor(state.auto_monitor_mode)
-    if error:
-        logger.warning(f"Auto-start monitor failed: {error}")
-        return
+        device.ser = ser
+        logger.info(f"[{device.name}] Auto-connected to {device.port}")
 
-    logger.info(f"Monitor started: {state.auto_monitor_mode}")
+        # Check auto-monitor conditions
+        if not device.auto_monitor or not device.auto_monitor_mode:
+            continue
+
+        logger.info(
+            f"[{device.name}] Auto-starting monitor: {device.auto_monitor_mode}"
+        )
+        success, error = start_monitor(device, device.auto_monitor_mode)
+        if error:
+            logger.warning(f"[{device.name}] Auto-start monitor failed: {error}")
+            continue
+
+        logger.info(f"[{device.name}] Monitor started: {device.auto_monitor_mode}")
 
 
 def main():
@@ -158,7 +163,10 @@ def main():
 
     app = create_app()
 
-    # Restore previous state (auto-connect, auto-monitor)
+    # Log device count
+    logger.info(f"Loaded {len(state.devices)} device(s)")
+
+    # Restore previous state for all devices (auto-connect, auto-monitor)
     restore_state()
 
     logger.info(f"Starting DutyCycle Web Server on http://127.0.0.1:{args.port}")

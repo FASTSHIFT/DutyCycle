@@ -1209,6 +1209,222 @@ select.form-control option {
     color: var(--text-primary);
 }
 
+/* ===================== Device Tabs ===================== */
+.device-tabs {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-base);
+    border-bottom: 1px solid var(--border-default);
+    overflow-x: auto;
+    flex-wrap: nowrap;
+}
+
+.device-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+.device-tab:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--border-emphasis);
+}
+
+.device-tab.active {
+    background: var(--bg-elevated);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent-muted);
+}
+
+.device-tab-name {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.device-tab-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.device-tab-status.disconnected {
+    background: var(--color-danger);
+}
+
+.device-tab-status.connected {
+    background: var(--color-success-emphasis);
+    box-shadow: 0 0 4px var(--color-success-emphasis);
+}
+
+.device-tab-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px dashed var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-tertiary);
+    font-size: var(--text-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.device-tab-add:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+.device-settings-btn {
+    margin-left: auto;
+}
+
+/* ===================== Advanced Settings Collapsible ===================== */
+.form-section-collapsible {
+    border: 1px solid var(--border-muted);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+}
+
+.form-section-collapsible .form-section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--transition-fast);
+}
+
+.form-section-collapsible .form-section-title:hover {
+    background: var(--bg-surface-hover);
+}
+
+.form-section-collapsible .form-section-title.clickable {
+    border-radius: var(--radius-md);
+}
+
+.form-section-collapsible .collapse-icon {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    transition: transform var(--transition-normal);
+}
+
+.form-section-collapsible:not(.collapsed) .collapse-icon {
+    transform: rotate(90deg);
+}
+
+.form-section-collapsible .form-section-content {
+    padding: var(--space-3);
+    border-top: 1px solid var(--border-muted);
+}
+
+.form-section-collapsible.collapsed .form-section-content {
+    display: none;
+}
+
+.form-subsection {
+    margin-bottom: var(--space-3);
+}
+
+.form-subsection:last-child {
+    margin-bottom: 0;
+}
+
+.form-subsection-title {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--space-2);
+}
+
+/* ===================== Modal ===================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.modal-header h3 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: var(--text-xl);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: var(--space-4);
+}
+
+.modal-footer {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: flex-end;
+    padding: var(--space-4);
+    border-top: 1px solid var(--border-default);
+}
+
+.modal-footer .btn-danger {
+    margin-right: auto;
+}
+
 /* ===================== Legacy Support ===================== */
 .value-display {
     font-size: 2.5rem;

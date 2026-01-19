@@ -12,6 +12,197 @@ let fitAddon = null;
 let currentLine = '';
 let sendingCommand = false;  // 防止重复发送
 
+// ===================== Multi-Device Support =====================
+
+// Current active device ID
+let activeDeviceId = null;
+
+// Device states storage: { device_id: { name, port, baudrate, connected, ... } }
+let devices = {};
+
+// Initialize devices from backend
+async function initDevices() {
+    // Fetch devices from backend
+    const result = await api('/devices');
+    if (result.success) {
+        // Convert array to dict format: { device_id: device_data }
+        devices = {};
+        if (Array.isArray(result.devices)) {
+            result.devices.forEach(d => {
+                devices[d.id] = d;
+            });
+        } else {
+            devices = result.devices || {};
+        }
+        activeDeviceId = result.active_device_id;
+
+        // Ensure at least one device exists
+        if (Object.keys(devices).length === 0) {
+            await addDevice();
+            return;
+        }
+
+        // If no active device, select first one
+        if (!activeDeviceId || !devices[activeDeviceId]) {
+            activeDeviceId = Object.keys(devices)[0];
+            await setActiveDevice(activeDeviceId);
+        }
+    }
+
+    renderDeviceTabs();
+}
+
+async function saveDeviceToBackend(deviceId, data) {
+    return await api('/devices/' + deviceId, 'PUT', data);
+}
+
+async function setActiveDevice(deviceId) {
+    const result = await api('/devices/active', 'POST', { device_id: deviceId });
+    if (result.success) {
+        activeDeviceId = deviceId;
+    }
+    return result;
+}
+
+function renderDeviceTabs() {
+    const container = document.getElementById('deviceTabs');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    Object.entries(devices).forEach(([id, device]) => {
+        const tab = document.createElement('div');
+        tab.className = 'device-tab' + (id === activeDeviceId ? ' active' : '');
+        tab.dataset.deviceId = id;
+        tab.onclick = () => switchDevice(id);
+
+        const name = document.createElement('span');
+        name.className = 'device-tab-name';
+        name.textContent = device.name || id;
+
+        const status = document.createElement('span');
+        status.className = 'device-tab-status ' + (device.connected ? 'connected' : 'disconnected');
+
+        tab.appendChild(name);
+        tab.appendChild(status);
+        container.appendChild(tab);
+    });
+
+    // Add button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'device-tab-add';
+    addBtn.onclick = addDevice;
+    addBtn.title = '添加设备';
+    addBtn.textContent = '+';
+    container.appendChild(addBtn);
+}
+
+async function switchDevice(deviceId) {
+    if (!devices[deviceId]) return;
+
+    activeDeviceId = deviceId;
+    await setActiveDevice(deviceId);
+    renderDeviceTabs();
+
+    // Refresh status from server for this device
+    await refreshStatus();
+}
+
+async function addDevice() {
+    const result = await api('/devices', 'POST', {});
+    if (result.success) {
+        // Refetch devices to get the new device data
+        await initDevices();
+        if (result.device_id) {
+            await switchDevice(result.device_id);
+        }
+    }
+}
+
+function updateDeviceConnectionStatus(connected) {
+    if (devices[activeDeviceId]) {
+        devices[activeDeviceId].connected = connected;
+        renderDeviceTabs();
+    }
+}
+
+// Device Settings Modal
+function showDeviceSettings() {
+    const modal = document.getElementById('deviceSettingsModal');
+    const device = devices[activeDeviceId];
+    if (!modal || !device) return;
+
+    document.getElementById('deviceName').value = device.name || '';
+    document.getElementById('deviceIdDisplay').value = activeDeviceId;
+    modal.style.display = 'flex';
+}
+
+function closeDeviceSettings() {
+    const modal = document.getElementById('deviceSettingsModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function saveDeviceSettings() {
+    const device = devices[activeDeviceId];
+    if (!device) return;
+
+    const name = document.getElementById('deviceName').value.trim();
+    if (name) {
+        const result = await saveDeviceToBackend(activeDeviceId, { name });
+        if (result.success) {
+            device.name = name;
+            renderDeviceTabs();
+        }
+    }
+
+    closeDeviceSettings();
+}
+
+async function deleteCurrentDevice() {
+    if (Object.keys(devices).length <= 1) {
+        alert('至少需要保留一个设备');
+        return;
+    }
+
+    if (!confirm('确定要删除当前设备吗？')) return;
+
+    const result = await api('/devices/' + activeDeviceId, 'DELETE');
+    if (result.success) {
+        delete devices[activeDeviceId];
+        activeDeviceId = Object.keys(devices)[0];
+        await setActiveDevice(activeDeviceId);
+        renderDeviceTabs();
+        await refreshStatus();
+        closeDeviceSettings();
+    }
+}
+
+// ===================== Advanced Settings Toggle =====================
+
+function toggleAdvancedSettings() {
+    const section = document.getElementById('advancedMotorSettings');
+    if (section) {
+        section.classList.toggle('collapsed');
+        const collapsed = section.classList.contains('collapsed');
+        localStorage.setItem('advancedMotorSettings', collapsed ? 'collapsed' : 'expanded');
+    }
+}
+
+function loadAdvancedSettingsState() {
+    const state = localStorage.getItem('advancedMotorSettings');
+    const section = document.getElementById('advancedMotorSettings');
+    if (section) {
+        // Default to collapsed
+        if (state === 'expanded') {
+            section.classList.remove('collapsed');
+        } else {
+            section.classList.add('collapsed');
+        }
+    }
+}
+
 // ===================== Utility Functions =====================
 
 function sleep(ms) {
@@ -73,7 +264,10 @@ async function api(endpoint, method = 'GET', data = null) {
         method,
         headers: { 'Content-Type': 'application/json' }
     };
-    if (data) options.body = JSON.stringify(data);
+    // 对于 POST/PUT/DELETE 请求，始终发送 body（即使为空对象）
+    if (method !== 'GET') {
+        options.body = JSON.stringify(data || {});
+    }
 
     try {
         const response = await fetch('/api' + endpoint, options);
@@ -86,9 +280,15 @@ async function api(endpoint, method = 'GET', data = null) {
 // ===================== Initialization =====================
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load UI states first
     loadCheckboxStates();
     loadAdvancedModeState();
+    loadAdvancedSettingsState();
     loadSectionStates();
+
+    // Initialize multi-device support from backend
+    await initDevices();
+
     refreshPorts();
     await refreshMonitorModes();
     // 初始化音高下拉菜单
@@ -343,6 +543,9 @@ async function refreshStatus() {
         isMonitoring = result.monitor_running;
         updateUI();
 
+        // Update device connection status in tabs
+        updateDeviceConnectionStatus(isConnected);
+
         if (result.port) {
             document.getElementById('portSelect').value = result.port;
         }
@@ -462,6 +665,7 @@ async function toggleConnect() {
             isConnected = false;
             isMonitoring = false;
             stopMonitorLoop();
+            updateDeviceConnectionStatus(false);
         }
     } else {
         const port = document.getElementById('portSelect').value;
@@ -475,6 +679,7 @@ async function toggleConnect() {
         const result = await api('/connect', 'POST', { port, baudrate });
         if (result.success) {
             isConnected = true;
+            updateDeviceConnectionStatus(true);
         } else {
             alert('连接失败: ' + result.error);
         }

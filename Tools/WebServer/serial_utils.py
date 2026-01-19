@@ -6,18 +6,16 @@
 """
 Serial communication utilities for DutyCycle Web Server.
 
-Provides serial port operations. All I/O goes through the worker thread.
+Provides serial port operations with multi-device support.
 """
 
-import datetime
 import glob
 import logging
 
 import serial
 import serial.tools.list_ports
 
-from state import state
-import worker
+from device_worker import get_worker, start_worker, stop_worker
 
 
 def scan_serial_ports():
@@ -50,13 +48,14 @@ def serial_open(port, baudrate=115200, timeout=1):
         return None, f"Error: {e}"
 
 
-def serial_write(ser, command, timeout=2.0):
+def serial_write(device, command, timeout=2.0):
     """Queue command for serial write and wait for completion."""
-    if ser is None:
+    if device.ser is None:
         return None, "Serial port not opened"
 
-    if not worker.is_running():
-        return None, "Serial worker not started"
+    worker = device.worker
+    if worker is None or not worker.is_running():
+        return None, "Device worker not started"
 
     if not worker.enqueue_and_wait("write", command, timeout):
         return None, "Command timeout"
@@ -64,20 +63,23 @@ def serial_write(ser, command, timeout=2.0):
     return [], None
 
 
-def serial_write_async(command):
+def serial_write_async(device, command):
     """Queue a command for async serial write (fire-and-forget)."""
-    worker.enqueue("write", command)
+    worker = device.worker
+    if worker is not None:
+        worker.enqueue("write", command)
 
 
-def serial_write_direct(ser, command):
+def serial_write_direct(device, command):
     """
     Direct serial write (call from worker thread only).
 
     Args:
-        ser: Serial port object
+        device: DeviceState object
         command: Command string to send
     """
     logger = logging.getLogger(__name__)
+    ser = device.ser
     if ser is None or not ser.isOpen():
         return
 
@@ -88,61 +90,27 @@ def serial_write_direct(ser, command):
         logger.warning(f"Serial write error: {e}")
 
 
-def add_serial_log(direction, data):
-    """Add a log entry to serial log."""
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]
-    log_id = state.log_next_id
-    state.log_next_id += 1
-    entry = {"id": log_id, "time": timestamp, "dir": direction, "data": data}
-    state.serial_log.append(entry)
-    # Keep log size limited
-    if len(state.serial_log) > state.log_max_size:
-        state.serial_log = state.serial_log[-state.log_max_size :]
+def start_device_worker(device):
+    """Start the worker thread for a device."""
+    return start_worker(device)
 
 
-def _process_serial_rx():
-    """Read and log incoming serial data (non-blocking)."""
-    ser = state.ser
-    if ser is None or not ser.isOpen():
-        return
-
-    try:
-        # Non-blocking read all available bytes
-        available = ser.in_waiting
-        if available > 0:
-            raw_data = ser.read(available)
-            if raw_data:
-                data_str = raw_data.decode(errors="replace")
-                # Split by lines but keep partial lines for next read
-                for line in data_str.splitlines(keepends=True):
-                    add_serial_log("RX", line)
-    except Exception:
-        pass
+def stop_device_worker(device):
+    """Stop the worker thread for a device."""
+    stop_worker(device)
 
 
-def _process_queue_item(cmd_type, cmd_data):
-    """Process a queue item in the worker thread."""
-    if cmd_type == "write":
-        serial_write_direct(state.ser, cmd_data)
-
-
-def start_serial_worker():
-    """Start the serial worker thread."""
-    # Configure worker callbacks
-    worker.configure(_process_queue_item, _process_serial_rx)
-    worker.start()
-
-
-def stop_serial_worker():
-    """Stop the serial worker thread."""
-    worker.stop()
-
-
-def get_timer_manager():
-    """Get the timer manager for adding monitor timers."""
-    return worker.get_timer_manager()
-
-
-def run_in_worker(func, timeout=2.0):
-    """Run a function in the worker thread and wait for completion."""
+def run_in_device_worker(device, func, timeout=2.0):
+    """Run a function in the device's worker thread and wait for completion."""
+    worker = device.worker
+    if worker is None:
+        return False
     return worker.run_in_worker(func, timeout)
+
+
+def get_device_timer_manager(device):
+    """Get the timer manager for a device."""
+    worker = device.worker
+    if worker is None:
+        return None
+    return worker.get_timer_manager()

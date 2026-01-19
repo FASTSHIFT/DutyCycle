@@ -39,10 +39,29 @@
         <main class="app-main">
             <!-- Sidebar: Device & Quick Actions -->
             <aside class="sidebar">
+                <!-- Device Tabs -->
+                <div class="device-tabs" id="deviceTabs">
+                    <div class="device-tab active" data-device-id="device_0" onclick="switchDevice('device_0')">
+                        <span class="device-tab-name">设备1</span>
+                        <span class="device-tab-status disconnected"></span>
+                    </div>
+                    <button class="device-tab-add" onclick="addDevice()" title="添加设备">+</button>
+                </div>
+
                 <!-- Device Connection Panel -->
                 <section class="panel panel-primary" id="panelDevice">
                     <div class="panel-header">
                         <h2><span class="panel-icon">🔌</span> 设备连接</h2>
+                        <button class="btn btn-icon btn-sm device-settings-btn" onclick="showDeviceSettings()"
+                            title="设备设置">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                </path>
+                            </svg>
+                        </button>
                     </div>
                     <div class="panel-body">
                         <div class="form-group">
@@ -176,48 +195,57 @@
                                         </label>
                                     </div>
 
-                                    <!-- Display Mode Setting -->
-                                    <div class="form-section" style="margin-top: 12px;">
-                                        <div class="form-section-title">显示模式</div>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label class="form-label">模式选择
-                                                    <span class="form-hint" title="设置设备显示模式">ⓘ</span>
-                                                </label>
-                                                <select id="displayMode" class="form-control form-control-sm"
-                                                    onchange="onDisplayModeChange()">
-                                                    <option value="0" title="功率因数表">COS_PHI (功率因数表)</option>
-                                                    <option value="1" title="电压电流等单向仪表">LINEAR (线性仪表)</option>
-                                                </select>
-                                            </div>
-                                            <button onclick="setDisplayMode()" class="btn btn-secondary btn-sm"
-                                                title="设置显示模式">应用</button>
+                                    <!-- Advanced Motor Settings - Collapsible -->
+                                    <div class="form-section form-section-collapsible collapsed"
+                                        id="advancedMotorSettings" style="margin-top: 12px;">
+                                        <div class="form-section-title clickable" onclick="toggleAdvancedSettings()">
+                                            <span class="collapse-icon">▶</span> 高级设置
                                         </div>
-                                    </div>
-
-                                    <!-- Hour Mapping Setting -->
-                                    <div class="form-section" style="margin-top: 12px;">
-                                        <div class="form-section-title">小时映射配置</div>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label class="form-label">小时
-                                                    <span class="form-hint" title="选择要配置的小时刻度">ⓘ</span>
-                                                </label>
-                                                <select id="clockMapHour" class="form-control form-control-sm">
-                                                    <!-- 选项由 JavaScript 动态加载 -->
-                                                </select>
+                                        <div class="form-section-content">
+                                            <!-- Display Mode Setting -->
+                                            <div class="form-subsection">
+                                                <div class="form-subsection-title">显示模式</div>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label class="form-label">模式选择
+                                                            <span class="form-hint" title="设置设备显示模式">ⓘ</span>
+                                                        </label>
+                                                        <select id="displayMode" class="form-control form-control-sm"
+                                                            onchange="onDisplayModeChange()">
+                                                            <option value="0" title="功率因数表">COS_PHI (功率因数表)</option>
+                                                            <option value="1" title="电压电流等单向仪表">LINEAR (线性仪表)</option>
+                                                        </select>
+                                                    </div>
+                                                    <button onclick="setDisplayMode()" class="btn btn-secondary btn-sm"
+                                                        title="设置显示模式">应用</button>
+                                                </div>
                                             </div>
-                                            <button onclick="setClockMap()" class="btn btn-warning btn-sm"
-                                                title="将当前滑块PWM值设置到选定小时">设置映射</button>
-                                            <button onclick="listClockMap()" class="btn btn-secondary btn-sm"
-                                                title="列出当前小时映射配置">列出</button>
-                                        </div>
-                                    </div>
 
-                                    <!-- Sweep Test -->
-                                    <div class="form-section" style="margin-top: 12px;">
-                                        <button onclick="sweepTest()" class="btn btn-success btn-block"
-                                            title="执行电机扫动测试">🔄 扫动测试</button>
+                                            <!-- Hour Mapping Setting -->
+                                            <div class="form-subsection">
+                                                <div class="form-subsection-title">小时映射配置</div>
+                                                <div class="form-row">
+                                                    <div class="form-group">
+                                                        <label class="form-label">小时
+                                                            <span class="form-hint" title="选择要配置的小时刻度">ⓘ</span>
+                                                        </label>
+                                                        <select id="clockMapHour" class="form-control form-control-sm">
+                                                            <!-- 选项由 JavaScript 动态加载 -->
+                                                        </select>
+                                                    </div>
+                                                    <button onclick="setClockMap()" class="btn btn-warning btn-sm"
+                                                        title="将当前滑块PWM值设置到选定小时">设置映射</button>
+                                                    <button onclick="listClockMap()" class="btn btn-secondary btn-sm"
+                                                        title="列出当前小时映射配置">列出</button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Sweep Test -->
+                                            <div class="form-subsection">
+                                                <button onclick="sweepTest()" class="btn btn-success btn-block"
+                                                    title="执行电机扫动测试">🔄 扫动测试</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -569,7 +597,46 @@
         </footer>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <!-- Device Settings Modal -->
+    <div class="modal-overlay" id="deviceSettingsModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>设备设置</h3>
+                <button class="modal-close" onclick="closeDeviceSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">设备名称</label>
+                    <input type="text" id="deviceName" class="form-control" placeholder="输入设备名称">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">设备ID</label>
+                    <input type="text" id="deviceIdDisplay" class="form-control" readonly disabled>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="deleteCurrentDevice()">删除设备</button>
+                <button class="btn btn-secondary" onclick="closeDeviceSettings()">取消</button>
+                <button class="btn btn-primary" onclick="saveDeviceSettings()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=4"></script>
+    <script>
+        // 调试：检查函数是否定义
+        window.addEventListener('load', function () {
+            console.log('=== DutyCycle Debug ===');
+            console.log('toggleConnect:', typeof toggleConnect);
+            console.log('refreshPorts:', typeof refreshPorts);
+            console.log('showDeviceSettings:', typeof showDeviceSettings);
+            console.log('devices:', devices);
+            console.log('activeDeviceId:', activeDeviceId);
+            if (typeof toggleConnect !== 'function') {
+                console.error('toggleConnect is not a function!');
+            }
+        });
+    </script>
 </body>
 
 </html>
