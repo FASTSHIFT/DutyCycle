@@ -602,6 +602,16 @@
               <FileType>5</FileType>
               <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\KVDB_Helper.h</FilePath>
             </File>
+            <File>
+              <FileName>MotorCtrl.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\MotorCtrl.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>MotorCtrl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\DataProc\Helper\MotorCtrl.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

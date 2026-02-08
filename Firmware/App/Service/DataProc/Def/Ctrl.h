@@ -24,6 +24,7 @@
 #define __DATA_PROC_CTRL_DEF_H
 
 #include <stdint.h>
+#include "../Helper/MotorCtrl.h"
 
 namespace DataProc {
 
@@ -35,28 +36,25 @@ enum class CTRL_CMD {
     SET_MOTOR_VALUE,
     SET_CLOCK_MAP,
     SET_MODE,
+    SET_UNIT,
     SHOW_BATTERY_USAGE,
-};
-
-enum CTRL_DISPLAY_MODE {
-    COS_PHI,
-    LINEAR,
-    DUAL_LINEAR,
 };
 
 typedef struct Ctrl_Info {
     Ctrl_Info()
         : cmd(CTRL_CMD::NONE)
-        , displayMode(CTRL_DISPLAY_MODE::COS_PHI)
         , hour(0)
-        , motorValue { 0, 0 }
+        , motorValue(0)
+        , motorID(0)
+        , unit(MotorCtrl::UNIT::NONE)
         , immediate(false)
     {
     }
     CTRL_CMD cmd;
-    CTRL_DISPLAY_MODE displayMode;
     int hour;
-    int motorValue[2];
+    int motorValue;
+    uint8_t motorID;
+    MotorCtrl::UNIT unit;
     bool immediate;
 } Ctrl_Info_t;
 

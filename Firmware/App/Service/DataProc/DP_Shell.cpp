@@ -455,7 +455,9 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
 
     const char* cmd = nullptr;
     int hour = -1;
-    int motorValue[2] = { 0, -1 };
+    int motorValue = 0;
+    int motorID = 0;
+    const char* unit = nullptr;
     int mode = 0;
     int immediate = 0;
 
@@ -463,8 +465,9 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         OPT_HELP(),
         OPT_STRING('c', "cmd", &cmd, "send ctrl command", nullptr, 0, 0),
         OPT_INTEGER('H', "hour", &hour, "the hour to set", nullptr, 0, 0),
-        OPT_INTEGER('M', "motor", &motorValue[0], "the motor[0] value to set", nullptr, 0, 0),
-        OPT_INTEGER(0, "motor1", &motorValue[1], "the motor[1] value to set", nullptr, 0, 0),
+        OPT_INTEGER('M', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
+        OPT_INTEGER(0, "id", &motorID, "motor ID", nullptr, 0, 0),
+        OPT_STRING(0, "unit", &unit, "motor unit", nullptr, 0, 0),
         OPT_INTEGER(0, "mode", &mode, "display mode, 0: cos-phi, 1: linear", nullptr, 0, 0),
         OPT_BOOLEAN('I', "immediate", &immediate, "immediately set the value", nullptr, 0, 0),
         OPT_END(),
@@ -481,37 +484,34 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         CMD_PAIR_DEF(CTRL_CMD, SET_MOTOR_VALUE),
         CMD_PAIR_DEF(CTRL_CMD, SET_CLOCK_MAP),
         CMD_PAIR_DEF(CTRL_CMD, SET_MODE),
+        CMD_PAIR_DEF(CTRL_CMD, SET_UNIT),
         CMD_PAIR_DEF(CTRL_CMD, SHOW_BATTERY_USAGE),
     };
-
     static constexpr CmdMapHelper<CTRL_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
+
+    static constexpr CMD_PAIR<MotorCtrl::UNIT> unit_map[] = {
+        CMD_PAIR_DEF(MotorCtrl::UNIT, NONE),
+        CMD_PAIR_DEF(MotorCtrl::UNIT, HOUR),
+        CMD_PAIR_DEF(MotorCtrl::UNIT, HOUR_COS_PHI),
+        CMD_PAIR_DEF(MotorCtrl::UNIT, MINUTE),
+        CMD_PAIR_DEF(MotorCtrl::UNIT, SECOND),
+    };
+    static constexpr CmdMapHelper<MotorCtrl::UNIT> unitMap(unit_map, CM_ARRAY_SIZE(unit_map));
 
     Ctrl_Info_t info;
 
-    switch (mode) {
-    case 0:
-        info.displayMode = CTRL_DISPLAY_MODE::COS_PHI;
-        break;
-
-    case 1:
-        info.displayMode = CTRL_DISPLAY_MODE::LINEAR;
-        break;
-
-    case 2:
-        info.displayMode = CTRL_DISPLAY_MODE::DUAL_LINEAR;
-        break;
-
-    default:
-        shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid display mode");
-        return SHELL_RET_FAILURE;
-    }
-
     info.hour = hour;
-    info.motorValue[0] = motorValue[0];
-    info.motorValue[1] = motorValue[1];
+    info.motorValue = motorValue;
+    info.motorID = motorID;
     info.immediate = immediate;
     if (!cmdMap.get(cmd, &info.cmd)) {
         return SHELL_RET_FAILURE;
+    }
+
+    if (unit) {
+        if (!unitMap.get(unit, &info.unit)) {
+            return SHELL_RET_FAILURE;
+        }
     }
 
     if (!nodeCtrl.notify(&info)) {
