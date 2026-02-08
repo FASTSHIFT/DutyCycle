@@ -41,6 +41,7 @@ enum class CTRL_CMD {
 enum CTRL_DISPLAY_MODE {
     COS_PHI,
     LINEAR,
+    DUAL_LINEAR,
 };
 
 typedef struct Ctrl_Info {
@@ -48,14 +49,14 @@ typedef struct Ctrl_Info {
         : cmd(CTRL_CMD::NONE)
         , displayMode(CTRL_DISPLAY_MODE::COS_PHI)
         , hour(0)
-        , motorValue(0)
+        , motorValue { 0, 0 }
         , immediate(false)
     {
     }
     CTRL_CMD cmd;
     CTRL_DISPLAY_MODE displayMode;
     int hour;
-    int motorValue;
+    int motorValue[2];
     bool immediate;
 } Ctrl_Info_t;
 

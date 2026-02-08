@@ -127,9 +127,10 @@ private:
     void onGlobalEvent(const Global_Info_t* info);
     void onButtonEvent(const Button_Info_t* info);
     int setClockMap(int hour, int value);
-    void setMotorValue(int value, bool immediate = false);
+    void setMotorValue(int value, int value1 = -1, bool immediate = false);
     int getMotorValueRaw();
     int setMotorValueRaw(int value);
+    int setMotorValueRaw(int value0, int value1);
     void onMotorFinished();
 
     void listHourMotorMap();
@@ -232,11 +233,11 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 
     case CTRL_CMD::SET_MOTOR_VALUE:
         _displayState = DISPLAY_STATE::MOTOR_SET;
-        setMotorValue(info->motorValue, info->immediate);
+        setMotorValue(info->motorValue[0], info->motorValue[1], info->immediate);
         break;
 
     case CTRL_CMD::SET_CLOCK_MAP:
-        return setClockMap(info->hour, info->motorValue);
+        return setClockMap(info->hour, info->motorValue[0]);
 
     case CTRL_CMD::ENABLE_CLOCK_MAP:
         _displayState = DISPLAY_STATE::CLOCK_MAP;
@@ -338,7 +339,7 @@ void DP_Ctrl::onButtonEvent(const Button_Info_t* info)
     }
 }
 
-void DP_Ctrl::setMotorValue(int value, bool immediate)
+void DP_Ctrl::setMotorValue(int value, int value1, bool immediate)
 {
     const int currentValue = getMotorValueRaw();
 
@@ -353,6 +354,12 @@ void DP_Ctrl::setMotorValue(int value, bool immediate)
     if (immediate) {
         easing_stop(&_easing, 0);
         _node->stopTimer();
+
+        if (value1 >= 0) {
+            setMotorValueRaw(value, value1);
+            return;
+        }
+
         setMotorValueRaw(value);
         return;
     }
@@ -395,9 +402,14 @@ int DP_Ctrl::setMotorValueRaw(int value)
         return DataNode::RES_PARAM_ERROR;
     }
 
-    HAL::Motor_Info_t info;
-    info.value[0] = value >= 0 ? value : 0;
-    info.value[1] = value < 0 ? -value : 0;
+    return setMotorValueRaw(value >= 0 ? value : 0, value < 0 ? -value : 0);
+}
+
+int DP_Ctrl::setMotorValueRaw(int value0, int value1)
+{
+    HAL::Motor_Info_t info = { 0 };
+    info.value[0] = value0;
+    info.value[1] = value1;
     return _devMotor->write(&info, sizeof(info)) == sizeof(info) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
 }
 

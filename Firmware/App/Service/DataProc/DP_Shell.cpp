@@ -455,7 +455,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
 
     const char* cmd = nullptr;
     int hour = -1;
-    int motorValue = 0;
+    int motorValue[2] = { 0, -1 };
     int mode = 0;
     int immediate = 0;
 
@@ -463,7 +463,8 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         OPT_HELP(),
         OPT_STRING('c', "cmd", &cmd, "send ctrl command", nullptr, 0, 0),
         OPT_INTEGER('H', "hour", &hour, "the hour to set", nullptr, 0, 0),
-        OPT_INTEGER('M', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
+        OPT_INTEGER('M', "motor", &motorValue[0], "the motor[0] value to set", nullptr, 0, 0),
+        OPT_INTEGER(0, "motor1", &motorValue[1], "the motor[1] value to set", nullptr, 0, 0),
         OPT_INTEGER(0, "mode", &mode, "display mode, 0: cos-phi, 1: linear", nullptr, 0, 0),
         OPT_BOOLEAN('I', "immediate", &immediate, "immediately set the value", nullptr, 0, 0),
         OPT_END(),
@@ -496,13 +497,18 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         info.displayMode = CTRL_DISPLAY_MODE::LINEAR;
         break;
 
+    case 2:
+        info.displayMode = CTRL_DISPLAY_MODE::DUAL_LINEAR;
+        break;
+
     default:
         shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid display mode");
         return SHELL_RET_FAILURE;
     }
 
     info.hour = hour;
-    info.motorValue = motorValue;
+    info.motorValue[0] = motorValue[0];
+    info.motorValue[1] = motorValue[1];
     info.immediate = immediate;
     if (!cmdMap.get(cmd, &info.cmd)) {
         return SHELL_RET_FAILURE;
