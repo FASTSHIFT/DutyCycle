@@ -235,6 +235,7 @@ void DP_Ctrl::onButtonEvent(const Button_Info_t* info)
 
     case BUTTON_EVENT::RELEASED:
         _mctrl[0].setDisplayState(MotorCtrl::DISPLAY_STATE::CLOCK_MAP);
+        _mctrl[1].setDisplayState(MotorCtrl::DISPLAY_STATE::CLOCK_MAP);
         break;
 
     default:
