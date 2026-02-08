@@ -118,7 +118,13 @@ def get_gpu_usage():
 
 
 def get_audio_level(device):
-    """Get audio level percentage with RMS-based mapping."""
+    """Get audio level percentage with RMS-based mapping.
+
+    Supports audio_channel config:
+    - 'mix': Average of all channels (default)
+    - 'left': Left channel only (channel 0)
+    - 'right': Right channel only (channel 1)
+    """
     if sc is None:
         return None, "soundcard not available"
 
@@ -127,8 +133,25 @@ def get_audio_level(device):
 
     try:
         data = device.audio_recorder.record(numframes=512)
-        sum_sq = sum(sample * sample for frame in data for sample in frame)
-        count = sum(1 for frame in data for _ in frame)
+
+        # 获取音频通道设置
+        audio_channel = getattr(device, 'audio_channel', 'mix')
+
+        if audio_channel == 'left':
+            # 左声道 (channel 0)
+            samples = [frame[0] for frame in data if len(frame) > 0]
+        elif audio_channel == 'right':
+            # 右声道 (channel 1)
+            samples = [frame[1] if len(frame) > 1 else frame[0] for frame in data if len(frame) > 0]
+        else:
+            # mix: 所有通道平均
+            samples = [sample for frame in data for sample in frame]
+
+        if not samples:
+            return 0, None
+
+        sum_sq = sum(s * s for s in samples)
+        count = len(samples)
         rms = math.sqrt(sum_sq / count) if count > 0 else 0
 
         if rms <= 0.0001:
@@ -258,6 +281,76 @@ def get_monitor_value(mode):
     return None, f"Unknown mode: {mode}"
 
 
+def get_audio_level_channel(device, channel):
+    """Get audio level for a specific channel (left/right/mix)."""
+    if sc is None:
+        return None, "soundcard not available"
+
+    if device.audio_recorder is None:
+        return None, "Audio recorder not initialized"
+
+    try:
+        data = device.audio_recorder.record(numframes=512)
+
+        if channel == 'left':
+            samples = [frame[0] for frame in data if len(frame) > 0]
+        elif channel == 'right':
+            samples = [frame[1] if len(frame) > 1 else frame[0] for frame in data if len(frame) > 0]
+        else:  # mix
+            samples = [sample for frame in data for sample in frame]
+
+        if not samples:
+            return 0, None
+
+        sum_sq = sum(s * s for s in samples)
+        count = len(samples)
+        rms = math.sqrt(sum_sq / count) if count > 0 else 0
+
+        if rms <= 0.0001:
+            return 0, None
+
+        db = 20 * math.log10(rms)
+        db_min = device.audio_db_min
+        db_max = device.audio_db_max
+        normalized = (db - db_min) / (db_max - db_min)
+        percent = max(0, min(100, normalized * 100))
+
+        return percent, None
+    except Exception as e:
+        return None, f"Error getting audio level: {e}"
+
+
+def _get_channel_value(device, mode):
+    """Get value for a specific monitor mode."""
+    if mode == 'none' or mode is None:
+        return None, None, False
+
+    if mode == 'cpu-usage':
+        percent, error = get_cpu_usage()
+        return percent, error, False
+    elif mode == 'mem-usage':
+        percent, error = get_mem_usage()
+        return percent, error, False
+    elif mode == 'gpu-usage':
+        percent, error = get_gpu_usage()
+        return percent, error, False
+    elif mode == 'audio-left':
+        percent, error = get_audio_level_channel(device, 'left')
+        return percent, error, True
+    elif mode == 'audio-right':
+        percent, error = get_audio_level_channel(device, 'right')
+        return percent, error, True
+    elif mode == 'audio-mix':
+        percent, error = get_audio_level_channel(device, 'mix')
+        return percent, error, True
+    elif mode == 'audio-level':
+        # Legacy mode
+        percent, error = get_audio_level(device)
+        return percent, error, True
+
+    return None, f"Unknown mode: {mode}", False
+
+
 def _create_monitor_tick(device):
     """Create a monitor tick callback bound to a specific device."""
 
@@ -265,41 +358,38 @@ def _create_monitor_tick(device):
         if not device.monitor_running:
             return
 
-        percent = 0
-        immediate = False
-        error = None
+        # CH0 监控
+        mode_0 = getattr(device, 'monitor_mode_0', 'none')
+        percent_0, error_0, immediate_0 = _get_channel_value(device, mode_0)
 
-        if device.monitor_mode == "cpu-usage":
-            percent, error = get_cpu_usage()
-        elif device.monitor_mode == "mem-usage":
-            percent, error = get_mem_usage()
-        elif device.monitor_mode == "gpu-usage":
-            percent, error = get_gpu_usage()
-        elif device.monitor_mode == "audio-level":
-            percent, error = get_audio_level(device)
-            immediate = True
-
-        if error is None and percent is not None:
-            device.last_percent = percent
-
-            motor_value = map_value(percent, 0, 100, device.motor_min, device.motor_max)
-            cmd_str = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}"
-            if immediate:
-                cmd_str += " -I"
+        if error_0 is None and percent_0 is not None:
+            device.last_percent_0 = percent_0
+            motor_value_0 = map_value(percent_0, 0, 100, device.motor_min, device.motor_max)
+            cmd_str_0 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_0)} -i 0"
+            if immediate_0:
+                cmd_str_0 += " -I"
             if device.ser:
-                serial_write_direct(device, f"{cmd_str}\r\n")
+                serial_write_direct(device, f"{cmd_str_0}\r\n")
 
-            check_threshold_alarm(device, percent, device.monitor_mode)
+        # CH1 监控
+        mode_1 = getattr(device, 'monitor_mode_1', 'none')
+        percent_1, error_1, immediate_1 = _get_channel_value(device, mode_1)
 
-        if (
-            device.threshold_enable
-            and device.threshold_mode
-            and device.threshold_mode != device.monitor_mode
-            and device.threshold_mode != "audio-level"
-        ):
-            threshold_value, _ = get_monitor_value(device.threshold_mode)
-            if threshold_value is not None:
-                check_threshold_alarm(device, threshold_value, device.threshold_mode)
+        if error_1 is None and percent_1 is not None:
+            device.last_percent_1 = percent_1
+            motor_value_1 = map_value(percent_1, 0, 100, device.motor_min, device.motor_max)
+            cmd_str_1 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_1)} -i 1"
+            if immediate_1:
+                cmd_str_1 += " -I"
+            if device.ser:
+                serial_write_direct(device, f"{cmd_str_1}\r\n")
+
+        # 更新 legacy last_percent (用于兼容)
+        device.last_percent = percent_0 if percent_0 is not None else (percent_1 or 0)
+
+        # 阈值报警检查 (使用 CH0 的值)
+        if percent_0 is not None:
+            check_threshold_alarm(device, percent_0, mode_0)
 
     return monitor_tick
 

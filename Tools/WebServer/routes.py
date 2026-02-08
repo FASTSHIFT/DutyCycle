@@ -24,7 +24,18 @@ from serial_utils import (
     run_in_device_worker,
     get_device_timer_manager,
 )
-from device import set_motor_value, set_motor_percent, config_clock
+from device import (
+    set_motor_value,
+    set_motor_percent,
+    config_clock,
+    set_motor_unit,
+    set_clock_map,
+    enable_clock_map,
+    list_clock_map,
+    sweep_test,
+    show_battery_usage,
+    VALID_UNITS,
+)
 from monitor import (
     start_monitor,
     stop_monitor,
@@ -303,8 +314,12 @@ def register_routes(app):
                 "motor_max": device.motor_max,
                 "motor_min": device.motor_min,
                 "monitor_mode": device.monitor_mode,
+                "monitor_mode_0": getattr(device, 'monitor_mode_0', 'none'),
+                "monitor_mode_1": getattr(device, 'monitor_mode_1', 'none'),
                 "monitor_running": device.monitor_running,
                 "period": device.period,
+                "period_0": getattr(device, 'period_0', device.period),
+                "period_1": getattr(device, 'period_1', device.period),
                 "last_percent": round(device.last_percent, 2),
                 "cmd_file": device.cmd_file,
                 "cmd_file_enabled": device.cmd_file_enabled,
@@ -318,6 +333,8 @@ def register_routes(app):
                 "threshold_value": device.threshold_value,
                 "threshold_freq": device.threshold_freq,
                 "threshold_duration": device.threshold_duration,
+                "last_percent_0": round(getattr(device, 'last_percent_0', device.last_percent), 2),
+                "last_percent_1": round(getattr(device, 'last_percent_1', device.last_percent), 2),
             }
         )
 
@@ -349,6 +366,9 @@ def register_routes(app):
             device.audio_device_id = (
                 data["audio_device_id"] if data["audio_device_id"] else None
             )
+        if "audio_channel" in data:
+            if data["audio_channel"] in ('mix', 'left', 'right'):
+                device.audio_channel = data["audio_channel"]
         if "auto_sync_clock" in data:
             device.auto_sync_clock = bool(data["auto_sync_clock"])
         if "threshold_enable" in data:
@@ -402,14 +422,15 @@ def register_routes(app):
 
         immediate = data.get("immediate", False)
         async_mode = data.get("async", False)
+        motor_id = data.get("motor_id")
 
         if "value" in data:
             responses, error = set_motor_value(
-                device, data["value"], immediate, async_mode
+                device, data["value"], immediate, async_mode, motor_id
             )
         elif "percent" in data:
             responses, error = set_motor_percent(
-                device, data["percent"], immediate, async_mode
+                device, data["percent"], immediate, async_mode, motor_id
             )
         else:
             return jsonify({"success": False, "error": "Missing value or percent"})
@@ -417,6 +438,116 @@ def register_routes(app):
         if async_mode:
             return jsonify({"success": True, "async": True})
 
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "responses": responses})
+
+    @app.route("/api/motor/unit", methods=["POST"])
+    def api_motor_unit():
+        """Set motor unit type (HOUR, MINUTE, SECOND, etc.)."""
+        data = request.json
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        unit = data.get("unit")
+        if not unit:
+            return jsonify({"success": False, "error": "Missing unit parameter"})
+
+        motor_id = data.get("motor_id")
+        responses, error = set_motor_unit(device, unit, motor_id)
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "responses": responses, "unit": unit.upper()})
+
+    @app.route("/api/motor/unit", methods=["GET"])
+    def api_get_motor_units():
+        """Get available motor unit types."""
+        return jsonify({"success": True, "units": VALID_UNITS})
+
+    @app.route("/api/motor/clock-map", methods=["POST"])
+    def api_clock_map():
+        """Set clock map entry.
+
+        For HOUR/HOUR_COS_PHI: index is hour (0-24)
+        For MINUTE/SECOND: index is 0-6 (mapping to 0,10,20,30,40,50,60)
+        """
+        data = request.json
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        index = data.get("index")
+        motor_value = data.get("motor_value")
+
+        if index is None:
+            return jsonify({"success": False, "error": "Missing index parameter"})
+        if motor_value is None:
+            return jsonify({"success": False, "error": "Missing motor_value parameter"})
+
+        motor_id = data.get("motor_id")
+        responses, error = set_clock_map(device, index, motor_value, motor_id)
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "responses": responses})
+
+    @app.route("/api/motor/clock-map", methods=["GET"])
+    def api_list_clock_map():
+        """List current clock map configuration."""
+        device_id = request.args.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        motor_id = request.args.get("motor_id", type=int)
+        responses, error = list_clock_map(device, motor_id)
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "responses": responses})
+
+    @app.route("/api/motor/enable-clock", methods=["POST"])
+    def api_enable_clock_map():
+        """Enable clock map mode (return to clock display)."""
+        data = request.json or {}
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        motor_id = data.get("motor_id")
+        responses, error = enable_clock_map(device, motor_id)
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "responses": responses})
+
+    @app.route("/api/motor/sweep-test", methods=["POST"])
+    def api_sweep_test():
+        """Run motor sweep test."""
+        data = request.json or {}
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        motor_id = data.get("motor_id")
+        responses, error = sweep_test(device, motor_id)
+        if error:
+            return jsonify({"success": False, "error": error})
+        return jsonify({"success": True, "responses": responses})
+
+    @app.route("/api/motor/battery-usage", methods=["POST"])
+    def api_show_battery_usage():
+        """Show battery usage on motor display."""
+        data = request.json or {}
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        motor_id = data.get("motor_id")
+        responses, error = show_battery_usage(device, motor_id)
         if error:
             return jsonify({"success": False, "error": error})
         return jsonify({"success": True, "responses": responses})
@@ -489,7 +620,36 @@ def register_routes(app):
             modes.append({"value": "gpu-usage", "label": "GPU 占用率"})
         if sc is not None:
             modes.append({"value": "audio-level", "label": "音频响度"})
+            modes.append({"value": "audio-left", "label": "音频 左声道"})
+            modes.append({"value": "audio-right", "label": "音频 右声道"})
+            modes.append({"value": "audio-mix", "label": "音频 混合"})
         return jsonify({"success": True, "modes": modes})
+
+    @app.route("/api/monitor/config", methods=["POST"])
+    def api_monitor_config():
+        """Update dual-channel monitor configuration."""
+        data = request.json
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        if "mode_0" in data:
+            device.monitor_mode_0 = data["mode_0"]
+        if "mode_1" in data:
+            device.monitor_mode_1 = data["mode_1"]
+        if "period_0" in data:
+            device.period_0 = float(data["period_0"])
+        if "period_1" in data:
+            device.period_1 = float(data["period_1"])
+
+        # 使用最小周期作为统一周期
+        min_period = min(device.period_0, device.period_1)
+        device.period = min_period
+        update_monitor_period(device, min_period)
+
+        state.save_config()
+        return jsonify({"success": True})
 
     @app.route("/api/monitor/start", methods=["POST"])
     def api_monitor_start():
@@ -500,30 +660,41 @@ def register_routes(app):
         if not device:
             return jsonify({"success": False, "error": "Device not found"})
 
+        # 支持双通道模式配置
+        mode_0 = data.get("mode_0", device.monitor_mode_0)
+        mode_1 = data.get("mode_1", device.monitor_mode_1)
+
+        # Legacy single mode support
         mode = data.get("mode")
-        valid_modes = ["cpu-usage", "mem-usage"]
-        if GPUtil is not None:
-            valid_modes.append("gpu-usage")
-        if sc is not None:
-            valid_modes.append("audio-level")
+        if mode:
+            mode_0 = mode
+            mode_1 = 'none'
 
-        if mode not in valid_modes:
-            return jsonify(
-                {
-                    "success": False,
-                    "error": f"Invalid mode. Must be one of: {valid_modes}",
-                }
-            )
+        device.monitor_mode_0 = mode_0
+        device.monitor_mode_1 = mode_1
 
-        success, error = start_monitor(device, mode)
+        # 检查是否至少有一个有效模式
+        effective_mode = None
+        if mode_0 and mode_0 != 'none':
+            effective_mode = mode_0
+        elif mode_1 and mode_1 != 'none':
+            effective_mode = mode_1
+
+        if not effective_mode:
+            return jsonify({"success": False, "error": "请至少为一个通道选择监控模式"})
+
+        # 检查是否需要音频
+        needs_audio = any(m.startswith('audio') for m in [mode_0, mode_1] if m and m != 'none')
+
+        success, error = start_monitor(device, effective_mode)
         if error:
             return jsonify({"success": False, "error": error})
 
         device.auto_monitor = True
-        device.auto_monitor_mode = mode
+        device.auto_monitor_mode = f"{mode_0},{mode_1}"
         state.save_config()
 
-        return jsonify({"success": True, "mode": mode})
+        return jsonify({"success": True, "mode_0": mode_0, "mode_1": mode_1})
 
     @app.route("/api/monitor/stop", methods=["POST"])
     def api_monitor_stop():

@@ -12,6 +12,14 @@ let fitAddon = null;
 let currentLine = '';
 let sendingCommand = false;  // 防止重复发送
 
+// Dual channel state
+let channelUnits = ['NONE', 'NONE'];  // Unit for each channel
+let channelValues = [0, 0];  // Current values for each channel
+
+// Dual channel monitor config
+let channelMonitorModes = ['none', 'none'];  // Monitor mode for each channel
+let channelPeriods = [1000, 1000];  // Sample period (ms) for each channel
+
 // ===================== Multi-Device Support =====================
 
 // Current active device ID
@@ -299,33 +307,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTerminal();
     startLogPolling();
     initComposer();
-    // 初始化小时映射下拉菜单
+    // 初始化时钟映射下拉菜单
     initClockMapHourSelect();
+    // 初始化双通道 unit 选择逻辑
+    initDualChannelUI();
 });
 
 async function refreshMonitorModes() {
     const result = await api('/monitor/modes');
-    const select = document.getElementById('monitorMode');
+    const select0 = document.getElementById('monitorMode0');
+    const select1 = document.getElementById('monitorMode1');
     const thresholdSelect = document.getElementById('thresholdMonitorMode');
-    if (result.success && result.modes) {
-        select.innerHTML = '';
-        thresholdSelect.innerHTML = '';
-        result.modes.forEach(m => {
-            // 主监控模式下拉列表
-            const opt = document.createElement('option');
-            opt.value = m.value;
-            opt.textContent = m.label;
-            select.appendChild(opt);
 
-            // 阈值报警监控对象下拉列表（排除音频相关选项）
-            if (!m.value.includes('audio')) {
-                const thresholdOpt = document.createElement('option');
-                thresholdOpt.value = m.value;
-                thresholdOpt.textContent = m.label;
-                thresholdSelect.appendChild(thresholdOpt);
+    if (result.success && result.modes) {
+        // 构建双通道监控模式选项
+        const buildOptions = (select, includeNone = true) => {
+            select.innerHTML = '';
+            if (includeNone) {
+                const noneOpt = document.createElement('option');
+                noneOpt.value = 'none';
+                noneOpt.textContent = '无';
+                select.appendChild(noneOpt);
             }
-        });
+            result.modes.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.value;
+                opt.textContent = m.label;
+                select.appendChild(opt);
+            });
+        };
+
+        if (select0) buildOptions(select0, true);
+        if (select1) buildOptions(select1, true);
+
+        // 阈值报警监控对象下拉列表（排除音频相关选项）
+        if (thresholdSelect) {
+            thresholdSelect.innerHTML = '';
+            result.modes.forEach(m => {
+                if (!m.value.includes('audio')) {
+                    const thresholdOpt = document.createElement('option');
+                    thresholdOpt.value = m.value;
+                    thresholdOpt.textContent = m.label;
+                    thresholdSelect.appendChild(thresholdOpt);
+                }
+            });
+        }
     }
+}
+
+function loadMonitorConfig(result) {
+    // 从后端结果加载双通道监控配置
+    if (result.monitor_mode_0) {
+        channelMonitorModes[0] = result.monitor_mode_0;
+        const select0 = document.getElementById('monitorMode0');
+        if (select0) select0.value = result.monitor_mode_0;
+    }
+    if (result.monitor_mode_1) {
+        channelMonitorModes[1] = result.monitor_mode_1;
+        const select1 = document.getElementById('monitorMode1');
+        if (select1) select1.value = result.monitor_mode_1;
+    }
+    if (result.period_0 !== undefined) {
+        channelPeriods[0] = result.period_0 * 1000;
+        const period0 = document.getElementById('period0');
+        if (period0) period0.value = channelPeriods[0];
+    }
+    if (result.period_1 !== undefined) {
+        channelPeriods[1] = result.period_1 * 1000;
+        const period1 = document.getElementById('period1');
+        if (period1) period1.value = channelPeriods[1];
+    }
+
+    // 更新音频设置显示
+    updateAudioSettingsVisibility();
 }
 
 function loadCheckboxStates() {
@@ -551,7 +605,6 @@ async function refreshStatus() {
         }
         document.getElementById('motorMin').value = result.motor_min;
         document.getElementById('motorMax').value = result.motor_max;
-        document.getElementById('period').value = Math.round(result.period * 1000);
 
         // 恢复音频dB范围配置
         if (result.audio_db_min !== undefined) {
@@ -561,31 +614,18 @@ async function refreshStatus() {
             document.getElementById('audioDbMax').value = result.audio_db_max;
         }
 
-        if (result.monitor_mode) {
-            document.getElementById('monitorMode').value = result.monitor_mode;
-            // 根据模式显示/隐藏dB范围设置和音频设备选择
-            const audioDbRangeRow = document.getElementById('audioDbRangeRow');
-            const audioDeviceRow = document.getElementById('audioDeviceRow');
-            if (audioDbRangeRow) {
-                audioDbRangeRow.style.display = result.monitor_mode === 'audio-level' ? '' : 'none';
-            }
-            if (audioDeviceRow) {
-                audioDeviceRow.style.display = result.monitor_mode === 'audio-level' ? '' : 'none';
-                if (result.monitor_mode === 'audio-level') {
-                    // 加载音频设备列表
-                    await refreshAudioDevices();
-                    // 设置当前选中的设备
-                    if (result.audio_device_id !== undefined) {
-                        const audioDeviceSelect = document.getElementById('audioDevice');
-                        if (audioDeviceSelect) {
-                            audioDeviceSelect.value = result.audio_device_id || '';
-                        }
-                    }
+        // 恢复双通道监控配置
+        loadMonitorConfig(result);
+
+        // 如果有音频模式，刷新音频设备列表
+        if (hasAudioMode()) {
+            await refreshAudioDevices();
+            if (result.audio_device_id !== undefined) {
+                const audioDeviceSelect = document.getElementById('audioDevice');
+                if (audioDeviceSelect) {
+                    audioDeviceSelect.value = result.audio_device_id || '';
                 }
             }
-        } else {
-            // 未监控时，根据当前选择的模式设置默认周期
-            onMonitorModeChange();
         }
 
         // 恢复命令文件监控状态
@@ -727,85 +767,132 @@ function onImmediateModeChange() {
 
 // ===================== Motor Control Functions =====================
 
-// 当前显示模式：0 = COS_PHI, 1 = LINEAR
-let currentDisplayMode = 0;
+// 初始化双通道 UI 逻辑
+function initDualChannelUI() {
+    // 设置 HOUR_COS_PHI 联动逻辑
+    const unit0Select = document.getElementById('unitSelect0');
+    const unit1Select = document.getElementById('unitSelect1');
 
-// COS_PHI模式可用的小时
-const COS_PHI_HOURS = ['H5', 'H7', 'H9', 'H12', 'H21', 'H0', 'H1', 'H5_DOWN'];
+    if (unit0Select && unit1Select) {
+        // CH1 的 HOUR_COS_PHI 选项默认禁用
+        const cosPhiOption = unit1Select.querySelector('option[value="HOUR_COS_PHI"]');
+        if (cosPhiOption) {
+            cosPhiOption.disabled = true;
+            cosPhiOption.title = 'HOUR_COS_PHI 占用双通道，只能在 CH0 选择';
+        }
+    }
+}
 
-// 初始化小时映射下拉菜单
+// Unit 切换事件
+async function onUnitChange(channelId) {
+    const unitSelect = document.getElementById(`unitSelect${channelId}`);
+    const unit = unitSelect.value;
+    channelUnits[channelId] = unit;
+
+    // 如果 CH0 选择了 HOUR_COS_PHI，锁定 CH1
+    if (channelId === 0) {
+        const unit1Select = document.getElementById('unitSelect1');
+        const slider1 = document.getElementById('motorSlider1');
+        if (unit === 'HOUR_COS_PHI') {
+            // 禁用 CH1
+            if (unit1Select) {
+                unit1Select.disabled = true;
+                unit1Select.title = 'HOUR_COS_PHI 模式下 CH1 被 CH0 控制';
+            }
+            if (slider1) {
+                slider1.disabled = true;
+            }
+        } else {
+            // 启用 CH1
+            if (unit1Select) {
+                unit1Select.disabled = false;
+                unit1Select.title = '';
+            }
+            if (slider1) {
+                slider1.disabled = false;
+            }
+        }
+    }
+
+    // 更新时钟映射选项
+    updateClockMapHourOptions();
+
+    // 发送到设备
+    await api('/motor/unit', 'POST', { unit, motor_id: channelId });
+}
+
+// 初始化时钟映射下拉菜单
 function initClockMapHourSelect() {
     updateClockMapHourOptions();
 }
 
-// 根据显示模式更新小时选项
+// 根据当前选择的通道和 unit 更新映射选项
 function updateClockMapHourOptions() {
     const select = document.getElementById('clockMapHour');
+    const channelSelect = document.getElementById('clockMapChannel');
     if (!select) return;
+
+    const channelId = channelSelect ? parseInt(channelSelect.value) : 0;
+    const unit = channelUnits[channelId] || 'HOUR';
 
     select.innerHTML = '';
 
-    if (currentDisplayMode === 0) {
-        // COS_PHI模式：只有特定小时可选
-        COS_PHI_HOURS.forEach(hour => {
+    if (unit === 'MINUTE' || unit === 'SECOND') {
+        // MINUTE/SECOND 模式：0-6 对应 0,10,20,30,40,50,60
+        for (let i = 0; i <= 6; i++) {
             const opt = document.createElement('option');
-            opt.value = hour;
-            opt.textContent = hour;
+            opt.value = i;
+            opt.textContent = `${i} (${i * 10})`;
+            select.appendChild(opt);
+        }
+    } else if (unit === 'HOUR_COS_PHI') {
+        // HOUR_COS_PHI 模式：特定小时
+        const cosPhiHours = [0, 1, 5, 7, 9, 12, 21, 24];
+        cosPhiHours.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h;
+            opt.textContent = `H${h}`;
             select.appendChild(opt);
         });
     } else {
-        // LINEAR模式：H0~H24全部可选
+        // HOUR 或其他模式：H0~H24
         for (let i = 0; i <= 24; i++) {
             const opt = document.createElement('option');
-            opt.value = 'H' + i;
-            opt.textContent = 'H' + i;
+            opt.value = i;
+            opt.textContent = `H${i}`;
             select.appendChild(opt);
         }
     }
 }
 
-// 显示模式切换事件
-function onDisplayModeChange() {
-    currentDisplayMode = parseInt(document.getElementById('displayMode').value);
-    updateClockMapHourOptions();
-}
-
-// 设置显示模式
-async function setDisplayMode() {
-    const mode = document.getElementById('displayMode').value;
-    currentDisplayMode = parseInt(mode);
-    updateClockMapHourOptions();
-    await api('/command', 'POST', { command: `ctrl -c SET_MODE --mode ${mode}` });
-}
-
-// 设置小时映射
+// 设置时钟映射
 async function setClockMap() {
-    const hour = document.getElementById('clockMapHour').value;
-    // 从当前滑块值计算PWM
-    const percent = parseFloat(document.getElementById('motorSlider').value);
+    const channelId = parseInt(document.getElementById('clockMapChannel').value);
+    const index = parseInt(document.getElementById('clockMapHour').value);
+
+    // 从对应通道的滑块值计算 PWM
+    const percent = parseFloat(document.getElementById(`motorSlider${channelId}`).value);
     const motorMin = parseInt(document.getElementById('motorMin').value);
     const motorMax = parseInt(document.getElementById('motorMax').value);
     const pwmValue = Math.round(motorMin + (percent / 100) * (motorMax - motorMin));
 
-    // 提取小时数值
-    let hourValue = hour;
-    if (hour === 'H5_DOWN') {
-        hourValue = '24';  // 特殊处理 H5_DOWN
-    } else {
-        hourValue = hour.replace('H', '');
-    }
-
-    await api('/command', 'POST', { command: `ctrl -c SET_CLOCK_MAP -H ${hourValue} -M ${pwmValue}` });
+    await api('/motor/clock-map', 'POST', {
+        index,
+        motor_value: pwmValue,
+        motor_id: channelId
+    });
 }
 
-// 列出小时映射
+// 列出时钟映射
 async function listClockMap() {
-    await api('/command', 'POST', { command: 'ctrl -c LIST_CLOCK_MAP' });
+    const channelId = parseInt(document.getElementById('clockMapChannel').value);
+    await api('/motor/clock-map', 'GET', null);
 }
 
 // 扫动测试
 async function sweepTest() {
-    await api('/command', 'POST', { command: 'ctrl -c SWEEP_TEST' });
+    const channelId = parseInt(document.getElementById('clockMapChannel').value);
+    await api('/motor/sweep-test', 'POST', { motor_id: channelId });
 }
 
 // 计算并显示PWM原始值
@@ -827,35 +914,76 @@ async function updateConfig() {
     await api('/config', 'POST', { motor_min: motorMin, motor_max: motorMax, period });
 }
 
-function onMotorSliderInput() {
-    const value = parseFloat(document.getElementById('motorSlider').value);
+// Slider 输入事件 (支持双通道)
+function onMotorSliderInput(channel) {
+    const slider = document.getElementById(`motorSlider${channel}`);
+    const value = parseFloat(slider.value);
+    channelValues[channel] = value;
+
+    // 更新 PWM 显示
+    updatePwmDisplay(channel, value);
+
+    // 更新实时状态面板的进度条和数值
+    const fill = document.getElementById(`meterFill${channel}`);
+    const monitorValue = document.getElementById(`monitorValue${channel}`);
+    if (fill) fill.style.width = value + '%';
+    if (monitorValue) {
+        monitorValue.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
+    }
+
+    // HOUR_COS_PHI 模式下同步两个通道
+    if (channel === 0 && channelUnits[0] === 'HOUR_COS_PHI') {
+        const slider1 = document.getElementById('motorSlider1');
+        if (slider1) {
+            slider1.value = value;
+            channelValues[1] = value;
+            updatePwmDisplay(1, value);
+            // 同步更新 CH1 的状态显示
+            const fill1 = document.getElementById('meterFill1');
+            const monitorValue1 = document.getElementById('monitorValue1');
+            if (fill1) fill1.style.width = value + '%';
+            if (monitorValue1) {
+                monitorValue1.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
+            }
+        }
+    }
+
+    // 更新百分比输入框
     document.getElementById('motorPercent').value = value.toFixed(2);
 
-    // 同步更新实时状态显示
-    const monitorValueEl = document.getElementById('monitorValue');
-    if (monitorValueEl) {
-        monitorValueEl.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
-    }
-    document.getElementById('meterFill').style.width = value + '%';
-
-    // 更新PWM原始值显示
-    updatePwmDisplay(value);
-
-    // 实时发送，跟手，使用异步模式
+    // 发送到设备
     const immediate = document.getElementById('immediateMode').checked;
-    api('/motor', 'POST', { percent: value, immediate, async: true });
+    if (channelUnits[0] === 'HOUR_COS_PHI') {
+        // HOUR_COS_PHI 模式下只发送到 CH0
+        api('/motor', 'POST', { percent: value, immediate, async: true, motor_id: 0 });
+    } else {
+        api('/motor', 'POST', { percent: value, immediate, async: true, motor_id: channel });
+    }
 }
 
-// Slider 平滑过渡动画
-let sliderAnimation = null;
-function animateSlider(targetValue, duration = 150) {
-    const slider = document.getElementById('motorSlider');
+// 更新 PWM 显示
+function updatePwmDisplay(channel, percent) {
+    const motorMin = parseInt(document.getElementById('motorMin').value);
+    const motorMax = parseInt(document.getElementById('motorMax').value);
+    const pwmValue = Math.round(motorMin + (percent / 100) * (motorMax - motorMin));
+    const pwmSpan = document.getElementById(`motorPwmValue${channel}`);
+    if (pwmSpan) {
+        pwmSpan.textContent = `PWM: ${pwmValue}`;
+    }
+}
+
+// Slider 平滑过渡动画 (支持双通道)
+let sliderAnimation = [null, null];
+function animateSlider(channel, targetValue, duration = 150) {
+    const slider = document.getElementById(`motorSlider${channel}`);
+    if (!slider) return;
+
     const startValue = parseFloat(slider.value);
     const startTime = performance.now();
 
     // 取消之前的动画
-    if (sliderAnimation) {
-        cancelAnimationFrame(sliderAnimation);
+    if (sliderAnimation[channel]) {
+        cancelAnimationFrame(sliderAnimation[channel]);
     }
 
     function animate(currentTime) {
@@ -867,50 +995,76 @@ function animateSlider(targetValue, duration = 150) {
         const currentValue = startValue + (targetValue - startValue) * eased;
 
         slider.value = currentValue;
+        channelValues[channel] = currentValue;
+        updatePwmDisplay(channel, currentValue);
 
         if (progress < 1) {
-            sliderAnimation = requestAnimationFrame(animate);
+            sliderAnimation[channel] = requestAnimationFrame(animate);
         } else {
-            sliderAnimation = null;
+            sliderAnimation[channel] = null;
         }
     }
 
-    sliderAnimation = requestAnimationFrame(animate);
+    sliderAnimation[channel] = requestAnimationFrame(animate);
 }
 
 async function setMotor() {
     const percent = parseFloat(document.getElementById('motorPercent').value);
     const immediate = document.getElementById('immediateMode').checked;
-    animateSlider(percent);
+    const channel = parseInt(document.getElementById('motorChannel')?.value || '0');
 
-    await api('/motor', 'POST', { percent, immediate });
+    // HOUR_COS_PHI 模式下同步两个通道动画
+    if (channelUnits[0] === 'HOUR_COS_PHI') {
+        animateSlider(0, percent);
+        animateSlider(1, percent);
+        await api('/motor', 'POST', { percent, immediate, motor_id: 0 });
+    } else {
+        animateSlider(channel, percent);
+        await api('/motor', 'POST', { percent, immediate, motor_id: channel });
+    }
 }
 
 // ===================== Monitor Functions =====================
 
-async function onMonitorModeChange() {
-    const mode = document.getElementById('monitorMode').value;
-    const periodInput = document.getElementById('period');
-    const audioDbRangeRow = document.getElementById('audioDbRangeRow');
-    const audioDeviceRow = document.getElementById('audioDeviceRow');
+// 检查是否有音频模式
+function hasAudioMode() {
+    return channelMonitorModes.some(m => m.startsWith('audio-'));
+}
+
+// 更新音频设置区域显示
+function updateAudioSettingsVisibility() {
+    const audioSettingsRow = document.getElementById('audioSettingsRow');
+    if (audioSettingsRow) {
+        audioSettingsRow.style.display = hasAudioMode() ? '' : 'none';
+    }
+}
+
+async function onMonitorModeChange(channel) {
+    const modeSelect = document.getElementById(`monitorMode${channel}`);
+    const periodInput = document.getElementById(`period${channel}`);
+    const mode = modeSelect.value;
+    
+    console.log(`onMonitorModeChange: channel=${channel}, mode=${mode}`);
+
+    channelMonitorModes[channel] = mode;
 
     // 音频模式默认10ms，其他模式默认1000ms
-    if (mode === 'audio-level') {
+    if (mode.startsWith('audio-')) {
         periodInput.value = 10;
-        if (audioDbRangeRow) audioDbRangeRow.style.display = '';
-        if (audioDeviceRow) {
-            audioDeviceRow.style.display = '';
-            // 加载音频设备列表
-            await refreshAudioDevices();
-        }
-    } else {
+        channelPeriods[channel] = 10;
+        // 加载音频设备列表
+        await refreshAudioDevices();
+    } else if (mode !== 'none') {
         periodInput.value = 1000;
-        if (audioDbRangeRow) audioDbRangeRow.style.display = 'none';
-        if (audioDeviceRow) audioDeviceRow.style.display = 'none';
+        channelPeriods[channel] = 1000;
     }
-    // 如果正在监控，实时切换模式
+
+    // 更新音频设置显示
+    updateAudioSettingsVisibility();
+
+    // 如果正在监控，实时更新配置
     if (isMonitoring) {
-        await switchMonitorMode(mode);
+        await updateMonitorConfig();
     }
 }
 
@@ -920,36 +1074,54 @@ async function onAudioDbRangeChange() {
     await api('/config', 'POST', { audio_db_min: dbMin, audio_db_max: dbMax });
 }
 
-async function switchMonitorMode(mode) {
-    // 先停止当前监控
-    await api('/monitor/stop', 'POST');
-    stopMonitorLoop();
-    // 更新周期配置
-    await onPeriodChange();
-    // 启动新模式
-    const result = await api('/monitor/start', 'POST', { mode });
-    if (result.success) {
-        startMonitorLoop();
+async function onPeriodChange(channel) {
+    const periodInput = document.getElementById(`period${channel}`);
+    channelPeriods[channel] = parseInt(periodInput.value);
+
+    // 实时更新后端配置
+    if (isMonitoring) {
+        await updateMonitorConfig();
     }
 }
 
-async function onPeriodChange() {
-    // 实时更新后端的周期配置
-    const period = parseInt(document.getElementById('period').value) / 1000;
-    await api('/config', 'POST', { period });
+async function updateMonitorConfig() {
+    // 发送双通道监控配置到后端
+    await api('/monitor/config', 'POST', {
+        mode_0: channelMonitorModes[0],
+        mode_1: channelMonitorModes[1],
+        period_0: channelPeriods[0] / 1000,
+        period_1: channelPeriods[1] / 1000,
+    });
 }
 
 async function toggleMonitor() {
+    console.log('toggleMonitor called, isMonitoring:', isMonitoring);
+    console.log('channelMonitorModes:', channelMonitorModes);
+    
     if (isMonitoring) {
         const result = await api('/monitor/stop', 'POST');
+        console.log('stop result:', result);
         if (result.success) {
             isMonitoring = false;
             stopMonitorLoop();
         }
     } else {
+        // 检查是否至少有一个通道配置了监控模式
+        if (channelMonitorModes[0] === 'none' && channelMonitorModes[1] === 'none') {
+            alert('请至少为一个通道选择监控模式');
+            return;
+        }
+        // 更新基本配置
         await updateConfig();
-        const mode = document.getElementById('monitorMode').value;
-        const result = await api('/monitor/start', 'POST', { mode });
+        // 发送双通道监控配置
+        await updateMonitorConfig();
+        // 启动监控
+        console.log('Starting monitor with modes:', channelMonitorModes);
+        const result = await api('/monitor/start', 'POST', {
+            mode_0: channelMonitorModes[0],
+            mode_1: channelMonitorModes[1],
+        });
+        console.log('start result:', result);
         if (result.success) {
             isMonitoring = true;
             startMonitorLoop();
@@ -969,18 +1141,41 @@ function startMonitorLoop() {
 
         const result = await api('/status');
         if (result.success) {
-            const value = result.last_percent;
-            // 更新监控显示（新UI格式）
-            const monitorValueEl = document.getElementById('monitorValue');
-            if (monitorValueEl) {
-                monitorValueEl.innerHTML = value.toFixed(2) + '<span class="stat-unit">%</span>';
+            // 支持双通道状态
+            const value0 = result.last_percent_0 ?? result.last_percent ?? 0;
+            const value1 = result.last_percent_1 ?? result.last_percent ?? 0;
+
+            channelValues[0] = value0;
+            channelValues[1] = value1;
+
+            // 更新双通道进度条
+            const fill0 = document.getElementById('meterFill0');
+            const fill1 = document.getElementById('meterFill1');
+            if (fill0) fill0.style.width = value0 + '%';
+            if (fill1) fill1.style.width = value1 + '%';
+
+            // 更新监控值显示
+            const monitorValue0 = document.getElementById('monitorValue0');
+            const monitorValue1 = document.getElementById('monitorValue1');
+            if (monitorValue0) {
+                monitorValue0.innerHTML = value0.toFixed(2) + '<span class="stat-unit">%</span>';
             }
-            document.getElementById('meterFill').style.width = value + '%';
-            animateSlider(value, 80);  // 监控模式用更短的动画时间
-            document.getElementById('motorPercent').value = value.toFixed(2);
-            // 更新PWM原始值显示
-            updatePwmDisplay(value);
-            // 阈值报警已移到后端处理
+            if (monitorValue1) {
+                monitorValue1.innerHTML = value1.toFixed(2) + '<span class="stat-unit">%</span>';
+            }
+
+            // 如果通道有监控模式，更新滑块和 PWM
+            if (channelMonitorModes[0] !== 'none') {
+                animateSlider(0, value0, 80);
+                updatePwmDisplay(0, value0);
+            }
+            if (channelMonitorModes[1] !== 'none') {
+                animateSlider(1, value1, 80);
+                updatePwmDisplay(1, value1);
+            }
+
+            // 更新输入框
+            document.getElementById('motorPercent').value = value0.toFixed(2);
         }
 
         // 下次轮询

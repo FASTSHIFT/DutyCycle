@@ -47,8 +47,8 @@ def api(endpoint, method="GET", data=None, timeout=5):
         return {"success": False, "error": str(e)}
 
 
-def test(name, condition, msg=""):
-    """Run a single test."""
+def check_test(name, condition, msg=""):
+    """Run a single test check."""
     global passed, failed
     if condition:
         print(f"  ✅ {name}")
@@ -65,7 +65,7 @@ def test_server_alive():
     print("\n📦 Testing Server Connection...")
 
     result = api("/status")
-    return test(
+    assert check_test(
         "Server responding",
         result.get("success") is True,
         result.get("error", "Unknown error"),
@@ -78,29 +78,29 @@ def test_device_management():
 
     # GET /api/devices
     result = api("/devices")
-    test("GET /devices", result.get("success") is True, result.get("error"))
-    test(
+    check_test("GET /devices", result.get("success") is True, result.get("error"))
+    check_test(
         "Devices list returned",
         "devices" in result and isinstance(result["devices"], list),
     )
-    test("Active device ID present", "active_device_id" in result)
+    check_test("Active device ID present", "active_device_id" in result)
 
     initial_count = len(result.get("devices", []))
 
     # POST /api/devices (add device)
     result = api("/devices", "POST", {"name": "测试设备_API"})
-    test("POST /devices (add)", result.get("success") is True, result.get("error"))
+    check_test("POST /devices (add)", result.get("success") is True, result.get("error"))
     new_device_id = result.get("device_id")
-    test("New device ID returned", new_device_id is not None)
+    check_test("New device ID returned", new_device_id is not None)
 
     # Verify device was added
     result = api("/devices")
-    test("Device count increased", len(result.get("devices", [])) == initial_count + 1)
+    check_test("Device count increased", len(result.get("devices", [])) == initial_count + 1)
 
     # PUT /api/devices/<id> (update device)
     if new_device_id:
         result = api(f"/devices/{new_device_id}", "PUT", {"name": "重命名设备"})
-        test(
+        check_test(
             "PUT /devices/<id> (rename)",
             result.get("success") is True,
             result.get("error"),
@@ -109,7 +109,7 @@ def test_device_management():
     # POST /api/devices/active (set active)
     if new_device_id:
         result = api("/devices/active", "POST", {"device_id": new_device_id})
-        test(
+        check_test(
             "POST /devices/active",
             result.get("success") is True,
             result.get("error"),
@@ -118,11 +118,11 @@ def test_device_management():
     # DELETE /api/devices/<id>
     if new_device_id:
         result = api(f"/devices/{new_device_id}", "DELETE")
-        test("DELETE /devices/<id>", result.get("success") is True, result.get("error"))
+        check_test("DELETE /devices/<id>", result.get("success") is True, result.get("error"))
 
         # Verify device was deleted
         result = api("/devices")
-        test("Device count restored", len(result.get("devices", [])) == initial_count)
+        check_test("Device count restored", len(result.get("devices", [])) == initial_count)
 
 
 def test_status_api():
@@ -130,7 +130,7 @@ def test_status_api():
     print("\n📦 Testing Status API...")
 
     result = api("/status")
-    test("GET /status", result.get("success") is True, result.get("error"))
+    check_test("GET /status", result.get("success") is True, result.get("error"))
 
     # Check expected fields
     expected_fields = [
@@ -141,7 +141,7 @@ def test_status_api():
         "monitor_running",
     ]
     for field in expected_fields:
-        test(f"Field '{field}' present", field in result, f"Missing field: {field}")
+        check_test(f"Field '{field}' present", field in result, f"Missing field: {field}")
 
 
 def test_ports_api():
@@ -149,8 +149,8 @@ def test_ports_api():
     print("\n📦 Testing Ports API...")
 
     result = api("/ports")
-    test("GET /ports", result.get("success") is True, result.get("error"))
-    test("Ports list returned", "ports" in result and isinstance(result["ports"], list))
+    check_test("GET /ports", result.get("success") is True, result.get("error"))
+    check_test("Ports list returned", "ports" in result and isinstance(result["ports"], list))
 
 
 def test_monitor_modes_api():
@@ -158,13 +158,13 @@ def test_monitor_modes_api():
     print("\n📦 Testing Monitor Modes API...")
 
     result = api("/monitor/modes")
-    test("GET /monitor/modes", result.get("success") is True, result.get("error"))
-    test("Modes list returned", "modes" in result and isinstance(result["modes"], list))
+    check_test("GET /monitor/modes", result.get("success") is True, result.get("error"))
+    check_test("Modes list returned", "modes" in result and isinstance(result["modes"], list))
 
     if result.get("modes"):
         mode = result["modes"][0]
-        test("Mode has value", "value" in mode)
-        test("Mode has label", "label" in mode)
+        check_test("Mode has value", "value" in mode)
+        check_test("Mode has label", "label" in mode)
 
 
 def test_config_api():
@@ -176,12 +176,12 @@ def test_config_api():
 
     # POST /api/config
     result = api("/config", "POST", {"motor_min": -500, "motor_max": 500})
-    test("POST /config", result.get("success") is True, result.get("error"))
+    check_test("POST /config", result.get("success") is True, result.get("error"))
 
     # Verify changes
     result = api("/status")
-    test("Config motor_min updated", result.get("motor_min") == -500)
-    test("Config motor_max updated", result.get("motor_max") == 500)
+    check_test("Config motor_min updated", result.get("motor_min") == -500)
+    check_test("Config motor_max updated", result.get("motor_max") == 500)
 
     # Restore original values
     api(
@@ -199,13 +199,13 @@ def test_log_api():
     print("\n📦 Testing Log API...")
 
     result = api("/log?since=0")
-    test("GET /log", result.get("success") is True, result.get("error"))
-    test("Logs list returned", "logs" in result and isinstance(result["logs"], list))
-    test("next_index present", "next_index" in result)
+    check_test("GET /log", result.get("success") is True, result.get("error"))
+    check_test("Logs list returned", "logs" in result and isinstance(result["logs"], list))
+    check_test("next_index present", "next_index" in result)
 
     # POST /api/log/clear (needs empty JSON body)
     result = api("/log/clear", "POST", {})
-    test("POST /log/clear", result.get("success") is True, result.get("error"))
+    check_test("POST /log/clear", result.get("success") is True, result.get("error"))
 
 
 def test_connection_api():
@@ -214,8 +214,8 @@ def test_connection_api():
 
     # Just test the API structure, not actual connection
     result = api("/status")
-    test("Connection status field exists", "connected" in result)
-    test("Port field exists", "port" in result)
+    check_test("Connection status field exists", "connected" in result)
+    check_test("Port field exists", "port" in result)
 
 
 def test_audio_api():
@@ -223,8 +223,8 @@ def test_audio_api():
     print("\n📦 Testing Audio API...")
 
     result = api("/audio/devices")
-    test("GET /audio/devices", result.get("success") is True, result.get("error"))
-    test(
+    check_test("GET /audio/devices", result.get("success") is True, result.get("error"))
+    check_test(
         "Audio devices list returned",
         "devices" in result and isinstance(result["devices"], list),
     )
@@ -254,7 +254,7 @@ def test_post_empty_body():
     for endpoint in endpoints:
         # Test with empty dict (should work)
         result = api(endpoint, "POST", {})
-        test(
+        check_test(
             f"POST {endpoint} with empty body",
             result.get("success") is True
             or "not connected" in result.get("error", "").lower()
@@ -273,13 +273,13 @@ def test_post_empty_body():
         req = urllib.request.Request(url, data=b"{}", headers=headers, method="POST")
         with urllib.request.urlopen(req, timeout=5) as resp:
             result = json.loads(resp.read().decode("utf-8"))
-            test(
+            check_test(
                 "POST with explicit empty JSON body",
                 result.get("success") is True or "error" in result,
                 result.get("error", ""),
             )
     except Exception as e:
-        test("POST with explicit empty JSON body", False, str(e))
+        check_test("POST with explicit empty JSON body", False, str(e))
 
 
 def test_clock_sync_api():
@@ -288,12 +288,12 @@ def test_clock_sync_api():
 
     # Test GET /status returns clock sync fields
     result = api("/status")
-    test(
+    check_test(
         "auto_sync_clock field present",
         "auto_sync_clock" in result,
         "Missing auto_sync_clock field",
     )
-    test(
+    check_test(
         "last_sync_time field present",
         "last_sync_time" in result,
         "Missing last_sync_time field",
@@ -301,7 +301,7 @@ def test_clock_sync_api():
 
     # Test POST /config to set auto_sync_clock
     result = api("/config", "POST", {"auto_sync_clock": True})
-    test(
+    check_test(
         "Enable auto_sync_clock",
         result.get("success") is True,
         result.get("error"),
@@ -309,7 +309,7 @@ def test_clock_sync_api():
 
     # Verify setting was saved
     result = api("/status")
-    test(
+    check_test(
         "auto_sync_clock enabled",
         result.get("auto_sync_clock") is True,
         f"Got: {result.get('auto_sync_clock')}",
@@ -318,14 +318,14 @@ def test_clock_sync_api():
     # Test POST /clock endpoint (manual sync)
     result = api("/clock", "POST", {})
     # This may fail if not connected, but should not return 400
-    test(
+    check_test(
         "POST /clock accepts request",
         "success" in result or "error" in result,
         "Invalid response format",
     )
     if not result.get("success"):
         # Expected to fail if not connected
-        test(
+        check_test(
             "POST /clock error is reasonable",
             "connect" in result.get("error", "").lower()
             or "serial" in result.get("error", "").lower()

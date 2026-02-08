@@ -33,6 +33,7 @@ DEVICE_PERSISTENT_KEYS = [
     "audio_db_min",
     "audio_db_max",
     "audio_device_id",
+    "audio_channel",
     "auto_connect",
     "auto_monitor",
     "auto_monitor_mode",
@@ -64,12 +65,18 @@ class DeviceState:
         self.motor_max = 1000
         self.motor_min = 0
 
-        # Monitor state
-        self.monitor_mode = None
+        # Dual-channel monitor state
+        self.monitor_mode_0 = 'none'  # CH0 monitor mode
+        self.monitor_mode_1 = 'none'  # CH1 monitor mode
+        self.period_0 = 0.1  # CH0 sample period
+        self.period_1 = 0.1  # CH1 sample period
         self.monitor_running = False
-        self.period = 0.1
         self.last_percent = 0
         self.audio_recorder = None
+
+        # Legacy (for backward compatibility)
+        self.monitor_mode = None
+        self.period = 0.1
 
         # Serial log (per device)
         self.serial_log = []
@@ -84,6 +91,11 @@ class DeviceState:
         self.audio_db_min = -40
         self.audio_db_max = 0
         self.audio_device_id = None
+        self.audio_channel = 'mix'  # 'mix', 'left', 'right'
+
+        # Multi-channel motor state
+        self.last_percent_0 = 0  # CH0
+        self.last_percent_1 = 0  # CH1
 
         # Auto-restore settings
         self.auto_connect = False
