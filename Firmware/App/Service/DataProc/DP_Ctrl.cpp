@@ -378,12 +378,12 @@ void DP_Ctrl::setMotorValue(int value, bool immediate)
 
 int DP_Ctrl::getMotorValueRaw()
 {
-    int currentValue = 0;
-    if (_devMotor->read(&currentValue, sizeof(currentValue)) != sizeof(currentValue)) {
+    HAL::Motor_Info_t info;
+    if (_devMotor->read(&info, sizeof(info)) != sizeof(info)) {
         return 0;
     }
 
-    return currentValue;
+    return info.value[0] >= 0 ? info.value[0] : -info.value[1];
 }
 
 int DP_Ctrl::setMotorValueRaw(int value)
@@ -395,7 +395,10 @@ int DP_Ctrl::setMotorValueRaw(int value)
         return DataNode::RES_PARAM_ERROR;
     }
 
-    return _devMotor->write(&value, sizeof(value)) == sizeof(value) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
+    HAL::Motor_Info_t info;
+    info.value[0] = value >= 0 ? value : 0;
+    info.value[1] = value < 0 ? -value : 0;
+    return _devMotor->write(&info, sizeof(info)) == sizeof(info) ? DataNode::RES_OK : DataNode::RES_PARAM_ERROR;
 }
 
 void DP_Ctrl::onMotorFinished()

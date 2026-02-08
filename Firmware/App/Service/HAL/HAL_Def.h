@@ -28,6 +28,7 @@
 #include "Def/Buzzer.h"
 #include "Def/Clock.h"
 #include "Def/Flash.h"
+#include "Def/Motor.h"
 #include "Def/Power.h"
 #include "Def/Tick.h"
 #include "Def/WatchDog.h"

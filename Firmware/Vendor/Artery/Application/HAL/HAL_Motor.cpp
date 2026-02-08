@@ -35,9 +35,7 @@ private:
     virtual int onInit();
     virtual int onWrite(const void* buffer, size_t size);
     virtual int onRead(void* buffer, size_t size);
-    void motorWrite(int value);
-    int motorRead();
-    int readPWM(uint8_t pin);
+    uint16_t readPWM(uint8_t pin);
 };
 
 int Motor::onInit()
@@ -49,42 +47,36 @@ int Motor::onInit()
 
 int Motor::onWrite(const void* buffer, size_t size)
 {
-    if (size != sizeof(int)) {
+    if (size != sizeof(Motor_Info_t)) {
         return DeviceObject::RES_PARAM_ERROR;
     }
 
-    motorWrite(*((int*)buffer));
-    return sizeof(int);
+    auto info = (const Motor_Info_t*)buffer;
+
+    if (info->value[0] >= 0) {
+        analogWrite(CONFIG_MOTOR_OUT1_PIN, info->value[0]);
+    }
+
+    if (info->value[1] >= 0) {
+        analogWrite(CONFIG_MOTOR_OUT2_PIN, info->value[1]);
+    }
+
+    return sizeof(Motor_Info_t);
 }
 
 int Motor::onRead(void* buffer, size_t size)
 {
-    if (size != sizeof(int)) {
+    if (size != sizeof(Motor_Info_t)) {
         return DeviceObject::RES_PARAM_ERROR;
     }
 
-    *((int*)buffer) = motorRead();
-    return sizeof(int);
+    auto info = (Motor_Info_t*)buffer;
+    info->value[0] = readPWM(CONFIG_MOTOR_OUT1_PIN);
+    info->value[1] = readPWM(CONFIG_MOTOR_OUT2_PIN);
+    return sizeof(Motor_Info_t);
 }
 
-void Motor::motorWrite(int value)
-{
-    analogWrite(CONFIG_MOTOR_OUT1_PIN, value > 0 ? value : 0);
-    analogWrite(CONFIG_MOTOR_OUT2_PIN, value < 0 ? (uint16_t)-value : 0);
-}
-
-int Motor::motorRead()
-{
-    int value = readPWM(CONFIG_MOTOR_OUT1_PIN);
-    if (value > 0) {
-        return value;
-    }
-
-    value = readPWM(CONFIG_MOTOR_OUT2_PIN);
-    return -value;
-}
-
-int Motor::readPWM(uint8_t pin)
+uint16_t Motor::readPWM(uint8_t pin)
 {
     return Timer_GetCompare(PIN_MAP[pin].TIMx, PIN_MAP[pin].TimerChannel);
 }

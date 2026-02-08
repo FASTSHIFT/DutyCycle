@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2024 _VIFEXTech
+ * Copyright (c) 2024 - 2026 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,26 +20,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __HAL_TEMPLATE_DEF_H
-#define __HAL_TEMPLATE_DEF_H
+#ifndef __HAL_MOTOR_DEF_H
+#define __HAL_MOTOR_DEF_H
 
 #include <stdint.h>
 
 namespace HAL {
 
-/* clang-format off */
-
-/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
-
 typedef struct
 {
-    int value;
-} Template_Info_t;
-
-#define TEMPLATE_IOCMD_SET_VALUE    DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(Template_Info_t), 0, 0)
-
-/* clang-format on */
+    int16_t value[2];
+} Motor_Info_t;
 
 } // namespace HAL
 
-#endif // __HAL_TEMPLATE_DEF_H
+#endif // __HAL_MOTOR_DEF_H
