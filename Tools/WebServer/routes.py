@@ -314,12 +314,12 @@ def register_routes(app):
                 "motor_max": device.motor_max,
                 "motor_min": device.motor_min,
                 "monitor_mode": device.monitor_mode,
-                "monitor_mode_0": getattr(device, 'monitor_mode_0', 'none'),
-                "monitor_mode_1": getattr(device, 'monitor_mode_1', 'none'),
+                "monitor_mode_0": getattr(device, "monitor_mode_0", "none"),
+                "monitor_mode_1": getattr(device, "monitor_mode_1", "none"),
                 "monitor_running": device.monitor_running,
                 "period": device.period,
-                "period_0": getattr(device, 'period_0', device.period),
-                "period_1": getattr(device, 'period_1', device.period),
+                "period_0": getattr(device, "period_0", device.period),
+                "period_1": getattr(device, "period_1", device.period),
                 "last_percent": round(device.last_percent, 2),
                 "cmd_file": device.cmd_file,
                 "cmd_file_enabled": device.cmd_file_enabled,
@@ -333,8 +333,12 @@ def register_routes(app):
                 "threshold_value": device.threshold_value,
                 "threshold_freq": device.threshold_freq,
                 "threshold_duration": device.threshold_duration,
-                "last_percent_0": round(getattr(device, 'last_percent_0', device.last_percent), 2),
-                "last_percent_1": round(getattr(device, 'last_percent_1', device.last_percent), 2),
+                "last_percent_0": round(
+                    getattr(device, "last_percent_0", device.last_percent), 2
+                ),
+                "last_percent_1": round(
+                    getattr(device, "last_percent_1", device.last_percent), 2
+                ),
             }
         )
 
@@ -367,7 +371,7 @@ def register_routes(app):
                 data["audio_device_id"] if data["audio_device_id"] else None
             )
         if "audio_channel" in data:
-            if data["audio_channel"] in ('mix', 'left', 'right'):
+            if data["audio_channel"] in ("mix", "left", "right"):
                 device.audio_channel = data["audio_channel"]
         if "auto_sync_clock" in data:
             device.auto_sync_clock = bool(data["auto_sync_clock"])
@@ -668,23 +672,25 @@ def register_routes(app):
         mode = data.get("mode")
         if mode:
             mode_0 = mode
-            mode_1 = 'none'
+            mode_1 = "none"
 
         device.monitor_mode_0 = mode_0
         device.monitor_mode_1 = mode_1
 
         # 检查是否至少有一个有效模式
         effective_mode = None
-        if mode_0 and mode_0 != 'none':
+        if mode_0 and mode_0 != "none":
             effective_mode = mode_0
-        elif mode_1 and mode_1 != 'none':
+        elif mode_1 and mode_1 != "none":
             effective_mode = mode_1
 
         if not effective_mode:
             return jsonify({"success": False, "error": "请至少为一个通道选择监控模式"})
 
         # 检查是否需要音频
-        needs_audio = any(m.startswith('audio') for m in [mode_0, mode_1] if m and m != 'none')
+        needs_audio = any(
+            m.startswith("audio") for m in [mode_0, mode_1] if m and m != "none"
+        )
 
         success, error = start_monitor(device, effective_mode)
         if error:

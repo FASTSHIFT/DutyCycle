@@ -135,14 +135,18 @@ def get_audio_level(device):
         data = device.audio_recorder.record(numframes=512)
 
         # 获取音频通道设置
-        audio_channel = getattr(device, 'audio_channel', 'mix')
+        audio_channel = getattr(device, "audio_channel", "mix")
 
-        if audio_channel == 'left':
+        if audio_channel == "left":
             # 左声道 (channel 0)
             samples = [frame[0] for frame in data if len(frame) > 0]
-        elif audio_channel == 'right':
+        elif audio_channel == "right":
             # 右声道 (channel 1)
-            samples = [frame[1] if len(frame) > 1 else frame[0] for frame in data if len(frame) > 0]
+            samples = [
+                frame[1] if len(frame) > 1 else frame[0]
+                for frame in data
+                if len(frame) > 0
+            ]
         else:
             # mix: 所有通道平均
             samples = [sample for frame in data for sample in frame]
@@ -292,10 +296,14 @@ def get_audio_level_channel(device, channel):
     try:
         data = device.audio_recorder.record(numframes=512)
 
-        if channel == 'left':
+        if channel == "left":
             samples = [frame[0] for frame in data if len(frame) > 0]
-        elif channel == 'right':
-            samples = [frame[1] if len(frame) > 1 else frame[0] for frame in data if len(frame) > 0]
+        elif channel == "right":
+            samples = [
+                frame[1] if len(frame) > 1 else frame[0]
+                for frame in data
+                if len(frame) > 0
+            ]
         else:  # mix
             samples = [sample for frame in data for sample in frame]
 
@@ -322,28 +330,28 @@ def get_audio_level_channel(device, channel):
 
 def _get_channel_value(device, mode):
     """Get value for a specific monitor mode."""
-    if mode == 'none' or mode is None:
+    if mode == "none" or mode is None:
         return None, None, False
 
-    if mode == 'cpu-usage':
+    if mode == "cpu-usage":
         percent, error = get_cpu_usage()
         return percent, error, False
-    elif mode == 'mem-usage':
+    elif mode == "mem-usage":
         percent, error = get_mem_usage()
         return percent, error, False
-    elif mode == 'gpu-usage':
+    elif mode == "gpu-usage":
         percent, error = get_gpu_usage()
         return percent, error, False
-    elif mode == 'audio-left':
-        percent, error = get_audio_level_channel(device, 'left')
+    elif mode == "audio-left":
+        percent, error = get_audio_level_channel(device, "left")
         return percent, error, True
-    elif mode == 'audio-right':
-        percent, error = get_audio_level_channel(device, 'right')
+    elif mode == "audio-right":
+        percent, error = get_audio_level_channel(device, "right")
         return percent, error, True
-    elif mode == 'audio-mix':
-        percent, error = get_audio_level_channel(device, 'mix')
+    elif mode == "audio-mix":
+        percent, error = get_audio_level_channel(device, "mix")
         return percent, error, True
-    elif mode == 'audio-level':
+    elif mode == "audio-level":
         # Legacy mode
         percent, error = get_audio_level(device)
         return percent, error, True
@@ -359,12 +367,14 @@ def _create_monitor_tick(device):
             return
 
         # CH0 监控
-        mode_0 = getattr(device, 'monitor_mode_0', 'none')
+        mode_0 = getattr(device, "monitor_mode_0", "none")
         percent_0, error_0, immediate_0 = _get_channel_value(device, mode_0)
 
         if error_0 is None and percent_0 is not None:
             device.last_percent_0 = percent_0
-            motor_value_0 = map_value(percent_0, 0, 100, device.motor_min, device.motor_max)
+            motor_value_0 = map_value(
+                percent_0, 0, 100, device.motor_min, device.motor_max
+            )
             cmd_str_0 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_0)} -i 0"
             if immediate_0:
                 cmd_str_0 += " -I"
@@ -372,12 +382,14 @@ def _create_monitor_tick(device):
                 serial_write_direct(device, f"{cmd_str_0}\r\n")
 
         # CH1 监控
-        mode_1 = getattr(device, 'monitor_mode_1', 'none')
+        mode_1 = getattr(device, "monitor_mode_1", "none")
         percent_1, error_1, immediate_1 = _get_channel_value(device, mode_1)
 
         if error_1 is None and percent_1 is not None:
             device.last_percent_1 = percent_1
-            motor_value_1 = map_value(percent_1, 0, 100, device.motor_min, device.motor_max)
+            motor_value_1 = map_value(
+                percent_1, 0, 100, device.motor_min, device.motor_max
+            )
             cmd_str_1 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_1)} -i 1"
             if immediate_1:
                 cmd_str_1 += " -I"

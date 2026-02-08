@@ -49,7 +49,6 @@ from state import state
 from serial_utils import serial_open, start_device_worker
 from monitor import start_monitor
 
-
 # Get the directory where this script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 

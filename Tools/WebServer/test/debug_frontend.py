@@ -144,8 +144,7 @@ def print_debug_instructions():
     print("\n" + "=" * 60)
     print("浏览器调试步骤：")
     print("=" * 60)
-    print(
-        """
+    print("""
 1. 打开浏览器，访问 http://127.0.0.1:5001
 
 2. 打开开发者工具:
@@ -175,8 +174,7 @@ def print_debug_instructions():
    - 切换到 Network（网络）标签页
    - 点击按钮后查看是否有 API 请求发出
    - 查看请求是否成功（状态码 200）
-"""
-    )
+""")
 
 
 def main():

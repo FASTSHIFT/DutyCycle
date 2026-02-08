@@ -66,8 +66,8 @@ class DeviceState:
         self.motor_min = 0
 
         # Dual-channel monitor state
-        self.monitor_mode_0 = 'none'  # CH0 monitor mode
-        self.monitor_mode_1 = 'none'  # CH1 monitor mode
+        self.monitor_mode_0 = "none"  # CH0 monitor mode
+        self.monitor_mode_1 = "none"  # CH1 monitor mode
         self.period_0 = 0.1  # CH0 sample period
         self.period_1 = 0.1  # CH1 sample period
         self.monitor_running = False
@@ -91,7 +91,7 @@ class DeviceState:
         self.audio_db_min = -40
         self.audio_db_max = 0
         self.audio_device_id = None
-        self.audio_channel = 'mix'  # 'mix', 'left', 'right'
+        self.audio_channel = "mix"  # 'mix', 'left', 'right'
 
         # Multi-channel motor state
         self.last_percent_0 = 0  # CH0

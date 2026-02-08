@@ -89,13 +89,17 @@ def test_device_management():
 
     # POST /api/devices (add device)
     result = api("/devices", "POST", {"name": "测试设备_API"})
-    check_test("POST /devices (add)", result.get("success") is True, result.get("error"))
+    check_test(
+        "POST /devices (add)", result.get("success") is True, result.get("error")
+    )
     new_device_id = result.get("device_id")
     check_test("New device ID returned", new_device_id is not None)
 
     # Verify device was added
     result = api("/devices")
-    check_test("Device count increased", len(result.get("devices", [])) == initial_count + 1)
+    check_test(
+        "Device count increased", len(result.get("devices", [])) == initial_count + 1
+    )
 
     # PUT /api/devices/<id> (update device)
     if new_device_id:
@@ -118,11 +122,15 @@ def test_device_management():
     # DELETE /api/devices/<id>
     if new_device_id:
         result = api(f"/devices/{new_device_id}", "DELETE")
-        check_test("DELETE /devices/<id>", result.get("success") is True, result.get("error"))
+        check_test(
+            "DELETE /devices/<id>", result.get("success") is True, result.get("error")
+        )
 
         # Verify device was deleted
         result = api("/devices")
-        check_test("Device count restored", len(result.get("devices", [])) == initial_count)
+        check_test(
+            "Device count restored", len(result.get("devices", [])) == initial_count
+        )
 
 
 def test_status_api():
@@ -141,7 +149,9 @@ def test_status_api():
         "monitor_running",
     ]
     for field in expected_fields:
-        check_test(f"Field '{field}' present", field in result, f"Missing field: {field}")
+        check_test(
+            f"Field '{field}' present", field in result, f"Missing field: {field}"
+        )
 
 
 def test_ports_api():
@@ -150,7 +160,9 @@ def test_ports_api():
 
     result = api("/ports")
     check_test("GET /ports", result.get("success") is True, result.get("error"))
-    check_test("Ports list returned", "ports" in result and isinstance(result["ports"], list))
+    check_test(
+        "Ports list returned", "ports" in result and isinstance(result["ports"], list)
+    )
 
 
 def test_monitor_modes_api():
@@ -159,7 +171,9 @@ def test_monitor_modes_api():
 
     result = api("/monitor/modes")
     check_test("GET /monitor/modes", result.get("success") is True, result.get("error"))
-    check_test("Modes list returned", "modes" in result and isinstance(result["modes"], list))
+    check_test(
+        "Modes list returned", "modes" in result and isinstance(result["modes"], list)
+    )
 
     if result.get("modes"):
         mode = result["modes"][0]
@@ -200,7 +214,9 @@ def test_log_api():
 
     result = api("/log?since=0")
     check_test("GET /log", result.get("success") is True, result.get("error"))
-    check_test("Logs list returned", "logs" in result and isinstance(result["logs"], list))
+    check_test(
+        "Logs list returned", "logs" in result and isinstance(result["logs"], list)
+    )
     check_test("next_index present", "next_index" in result)
 
     # POST /api/log/clear (needs empty JSON body)

@@ -367,8 +367,7 @@ def test_with_selenium():
 
         # Execute JavaScript directly to check functions exist
         try:
-            functions_exist = driver.execute_script(
-                """
+            functions_exist = driver.execute_script("""
                 return {
                     toggleConnect: typeof toggleConnect === 'function',
                     refreshPorts: typeof refreshPorts === 'function',
@@ -377,8 +376,7 @@ def test_with_selenium():
                     devices: typeof devices === 'object',
                     activeDeviceId: activeDeviceId
                 };
-            """
-            )
+            """)
             test(
                 "toggleConnect function exists",
                 functions_exist.get("toggleConnect", False),
@@ -403,15 +401,13 @@ def test_with_selenium():
             )
 
             # Check devices content
-            devices_info = driver.execute_script(
-                """
+            devices_info = driver.execute_script("""
                 return {
                     count: Object.keys(devices).length,
                     ids: Object.keys(devices),
                     activeId: activeDeviceId
                 };
-            """
-            )
+            """)
             test(
                 "Devices loaded",
                 devices_info.get("count", 0) > 0,
