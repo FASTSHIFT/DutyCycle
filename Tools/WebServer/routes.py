@@ -358,6 +358,10 @@ def register_routes(app):
         if "period" in data:
             device.period = float(data["period"])
             update_monitor_period(device, device.period)
+        if "period_0" in data:
+            device.period_0 = float(data["period_0"])
+        if "period_1" in data:
+            device.period_1 = float(data["period_1"])
         if "cmd_file" in data:
             device.cmd_file = data["cmd_file"] if data["cmd_file"] else None
         if "cmd_file_enabled" in data:

@@ -931,28 +931,34 @@ async function sweepTest() {
   await api('/motor/sweep-test', 'POST', { motor_id: channelId });
 }
 
-// 计算并显示PWM原始值
-function updatePwmDisplay(percent) {
-  const motorMin = parseInt(document.getElementById('motorMin').value) || 0;
-  const motorMax = parseInt(document.getElementById('motorMax').value) || 1000;
-  const pwmValue = Math.round(
-    motorMin + (percent / 100) * (motorMax - motorMin),
-  );
-  const pwmDisplay = document.getElementById('motorPwmValue');
-  if (pwmDisplay) {
-    pwmDisplay.textContent = `PWM: ${pwmValue}`;
-  }
-}
-
 async function updateConfig() {
   const motorMin = parseInt(document.getElementById('motorMin').value);
   const motorMax = parseInt(document.getElementById('motorMax').value);
-  const period = parseInt(document.getElementById('period').value) / 1000;
+  
+  // 获取双通道周期配置
+  const period0El = document.getElementById('period0');
+  const period1El = document.getElementById('period1');
+  
+  let period = 0.1; // 默认值
+  if (period0El && period1El) {
+    // 双通道模式：使用最小周期
+    const p0 = parseInt(period0El.value) / 1000;
+    const p1 = parseInt(period1El.value) / 1000;
+    period = Math.min(p0, p1);
+  } else {
+    // 备用：如果找不到双通道模式的元素，尝试找旧的 period 元素
+    const periodEl = document.getElementById('period');
+    if (periodEl) {
+      period = parseInt(periodEl.value) / 1000;
+    }
+  }
 
   await api('/config', 'POST', {
     motor_min: motorMin,
     motor_max: motorMax,
     period,
+    period_0: channelPeriods[0] / 1000,
+    period_1: channelPeriods[1] / 1000,
   });
 }
 
