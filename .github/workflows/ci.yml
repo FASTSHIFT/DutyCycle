@@ -39,7 +39,7 @@ jobs:
       - name: Code Format & Lint
         working-directory: Tools/WebServer
         run: |
-          ./format.sh --lint
+          ./format.sh --lint --check
 
       - name: Run unit tests with coverage
         working-directory: Tools/WebServer/test
