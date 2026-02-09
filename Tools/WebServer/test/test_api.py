@@ -25,6 +25,24 @@ failed = 0
 BASE_URL = "http://127.0.0.1:5000"
 
 
+def safe_print(msg):
+    """Print message, handling encoding issues on Windows."""
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        # Fallback: replace emoji with ASCII equivalents
+        replacements = {
+            "📦": "[*]",
+            "✅": "[PASS]",
+            "❌": "[FAIL]",
+            "💥": "[ERROR]",
+            "⚠️": "[WARN]",
+        }
+        for emoji, ascii_char in replacements.items():
+            msg = msg.replace(emoji, ascii_char)
+        print(msg)
+
+
 def api(endpoint, method="GET", data=None, timeout=5):
     """Make an API request."""
     url = BASE_URL + "/api" + endpoint
@@ -50,21 +68,25 @@ def check_test(name, condition, msg=""):
     """Run a single test check."""
     global passed, failed
     if condition:
-        print(f"  ✅ {name}")
+        safe_print(f"  ✅ {name}")
         passed += 1
         return True
     else:
-        print(f"  ❌ {name}: {msg}")
+        safe_print(f"  ❌ {name}: {msg}")
         failed += 1
         return False
 
 
 def test_server_alive():
-    """Test if server is running."""
-    print("\n📦 Testing Server Connection...")
+    """Test if server is running.
+
+    Returns:
+        True if server is responding, False otherwise.
+    """
+    safe_print("\n📦 Testing Server Connection...")
 
     result = api("/status")
-    assert check_test(
+    return check_test(
         "Server responding",
         result.get("success") is True,
         result.get("error", "Unknown error"),
@@ -73,7 +95,7 @@ def test_server_alive():
 
 def test_device_management():
     """Test device management APIs."""
-    print("\n📦 Testing Device Management APIs...")
+    safe_print("\n📦 Testing Device Management APIs...")
 
     # GET /api/devices
     result = api("/devices")
@@ -134,7 +156,7 @@ def test_device_management():
 
 def test_status_api():
     """Test status API."""
-    print("\n📦 Testing Status API...")
+    safe_print("\n📦 Testing Status API...")
 
     result = api("/status")
     check_test("GET /status", result.get("success") is True, result.get("error"))
@@ -155,7 +177,7 @@ def test_status_api():
 
 def test_ports_api():
     """Test ports API."""
-    print("\n📦 Testing Ports API...")
+    safe_print("\n📦 Testing Ports API...")
 
     result = api("/ports")
     check_test("GET /ports", result.get("success") is True, result.get("error"))
@@ -166,7 +188,7 @@ def test_ports_api():
 
 def test_monitor_modes_api():
     """Test monitor modes API."""
-    print("\n📦 Testing Monitor Modes API...")
+    safe_print("\n📦 Testing Monitor Modes API...")
 
     result = api("/monitor/modes")
     check_test("GET /monitor/modes", result.get("success") is True, result.get("error"))
@@ -182,7 +204,7 @@ def test_monitor_modes_api():
 
 def test_config_api():
     """Test config API."""
-    print("\n📦 Testing Config API...")
+    safe_print("\n📦 Testing Config API...")
 
     # Get current status first
     status = api("/status")
@@ -209,7 +231,7 @@ def test_config_api():
 
 def test_log_api():
     """Test log API."""
-    print("\n📦 Testing Log API...")
+    safe_print("\n📦 Testing Log API...")
 
     result = api("/log?since=0")
     check_test("GET /log", result.get("success") is True, result.get("error"))
@@ -225,7 +247,7 @@ def test_log_api():
 
 def test_connection_api():
     """Test connection APIs (without actual device)."""
-    print("\n📦 Testing Connection API (structure only)...")
+    safe_print("\n📦 Testing Connection API (structure only)...")
 
     # Just test the API structure, not actual connection
     result = api("/status")
@@ -235,7 +257,7 @@ def test_connection_api():
 
 def test_audio_api():
     """Test audio device API."""
-    print("\n📦 Testing Audio API...")
+    safe_print("\n📦 Testing Audio API...")
 
     result = api("/audio/devices")
     check_test("GET /audio/devices", result.get("success") is True, result.get("error"))
@@ -257,7 +279,7 @@ def test_post_empty_body():
         The frontend api() function now always sends a body for non-GET requests,
         even if it's just an empty object {}.
     """
-    print("\n📦 Testing POST Empty Body (regression test)...")
+    safe_print("\n📦 Testing POST Empty Body (regression test)...")
 
     # Test various endpoints that should accept empty body
     endpoints = [
@@ -299,7 +321,7 @@ def test_post_empty_body():
 
 def test_clock_sync_api():
     """Test clock synchronization API."""
-    print("\n📦 Testing Clock Sync API...")
+    safe_print("\n📦 Testing Clock Sync API...")
 
     # Test GET /status returns clock sync fields
     result = api("/status")
@@ -366,7 +388,7 @@ def run_tests():
     try:
         # First check if server is alive
         if not test_server_alive():
-            print("\n⚠️  Server not responding. Make sure the server is running:")
+            safe_print("\n⚠️  Server not responding. Make sure the server is running:")
             print(f"   python3 main.py --port {BASE_URL.split(':')[-1]}")
             return 1
 
@@ -383,7 +405,7 @@ def run_tests():
         test_clock_sync_api()
 
     except Exception as e:
-        print(f"\n💥 Test crashed: {e}")
+        safe_print(f"\n💥 Test crashed: {e}")
         import traceback
 
         traceback.print_exc()
