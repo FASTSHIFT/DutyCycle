@@ -260,10 +260,22 @@ def test_audio_api():
     safe_print("\n📦 Testing Audio API...")
 
     result = api("/audio/devices")
-    check_test("GET /audio/devices", result.get("success") is True, result.get("error"))
+    # In CI environment, soundcard may not be available - that's OK
+    soundcard_unavailable = "soundcard not available" in result.get("error", "").lower()
+    check_test(
+        "GET /audio/devices",
+        result.get("success") is True or soundcard_unavailable,
+        result.get("error"),
+    )
     check_test(
         "Audio devices list returned",
-        "devices" in result and isinstance(result["devices"], list),
+        ("devices" in result and isinstance(result["devices"], list))
+        or soundcard_unavailable,
+        (
+            "Missing devices list"
+            if not soundcard_unavailable
+            else "soundcard unavailable"
+        ),
     )
 
 
