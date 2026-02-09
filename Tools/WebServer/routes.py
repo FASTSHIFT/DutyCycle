@@ -43,7 +43,6 @@ from monitor import (
     get_cpu_usage,
     get_mem_usage,
     get_gpu_usage,
-    get_audio_level,
     get_audio_devices,
     GPUtil,
     sc,
@@ -78,7 +77,7 @@ def setup_clock_sync_timer(device):
                 last_sync = datetime.fromisoformat(device.last_sync_time)
                 hours_since = (datetime.now() - last_sync).total_seconds() / 3600
                 need_sync = hours_since >= 24
-            except:
+            except Exception:
                 pass
 
         if need_sync:
@@ -244,7 +243,7 @@ def register_routes(app):
                     last_sync = datetime.fromisoformat(device.last_sync_time)
                     hours_since = (datetime.now() - last_sync).total_seconds() / 3600
                     need_sync = hours_since >= 24
-                except:
+                except Exception:
                     pass
             if need_sync:
                 _, error = config_clock(device)
@@ -300,7 +299,7 @@ def register_routes(app):
         connected = False
         try:
             connected = device.ser is not None and device.ser.isOpen()
-        except:
+        except Exception:
             pass
 
         return jsonify(
@@ -690,11 +689,6 @@ def register_routes(app):
 
         if not effective_mode:
             return jsonify({"success": False, "error": "请至少为一个通道选择监控模式"})
-
-        # 检查是否需要音频
-        needs_audio = any(
-            m.startswith("audio") for m in [mode_0, mode_1] if m and m != "none"
-        )
 
         success, error = start_monitor(device, effective_mode)
         if error:

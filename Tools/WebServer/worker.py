@@ -110,7 +110,7 @@ def _worker_loop():
     """
     Main worker loop handling queue and timer tasks.
     """
-    global _worker_running
+    global _worker_running  # noqa: F824 - read-only access to module-level variable
     logger = logging.getLogger(__name__)
 
     QUEUE_WARN_THRESHOLD = 10
@@ -168,7 +168,7 @@ def _worker_loop():
 
 def start():
     """Start the worker thread."""
-    global _cmd_queue, _wake_event, _worker_thread, _worker_running, _timer_manager
+    global _cmd_queue, _wake_event, _worker_thread, _worker_running, _timer_manager  # noqa: F824
 
     if _worker_thread is not None and _worker_thread.is_alive():
         return

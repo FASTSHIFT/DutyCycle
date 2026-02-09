@@ -15,7 +15,7 @@ import logging
 import serial
 import serial.tools.list_ports
 
-from device_worker import get_worker, start_worker, stop_worker
+from device_worker import start_worker, stop_worker
 
 
 def scan_serial_ports():

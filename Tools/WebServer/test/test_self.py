@@ -14,7 +14,6 @@ import argparse
 import os
 import sys
 import time
-import threading
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,20 +23,37 @@ passed = 0
 failed = 0
 
 
+def safe_print(msg):
+    """Print message, handling encoding issues on Windows."""
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        # Fallback: replace emoji with ASCII equivalents
+        replacements = {
+            "📦": "[*]",
+            "✅": "[PASS]",
+            "❌": "[FAIL]",
+            "💥": "[ERROR]",
+        }
+        for emoji, ascii_char in replacements.items():
+            msg = msg.replace(emoji, ascii_char)
+        print(msg)
+
+
 def test(name, condition, msg=""):
     """Run a single test."""
     global passed, failed
     if condition:
-        print(f"  ✅ {name}")
+        safe_print(f"  ✅ {name}")
         passed += 1
     else:
-        print(f"  ❌ {name}: {msg}")
+        safe_print(f"  ❌ {name}: {msg}")
         failed += 1
 
 
 def test_timer():
     """Test Timer module."""
-    print("\n📦 Testing Timer module...")
+    safe_print("\n📦 Testing Timer module...")
 
     from timer import Timer, TimerManager
 
@@ -104,7 +120,7 @@ def test_timer():
 
 def test_serial_queue():
     """Test serial queue mechanism (without actual serial port)."""
-    print("\n📦 Testing Serial Queue (Multi-Device)...")
+    safe_print("\n📦 Testing Serial Queue (Multi-Device)...")
 
     from state import DeviceState
     from device_worker import DeviceWorker
@@ -142,7 +158,7 @@ def test_serial_queue():
 
 def test_serial_write_sync():
     """Test synchronous serial write with event."""
-    print("\n📦 Testing Sync Serial Write...")
+    safe_print("\n📦 Testing Sync Serial Write...")
 
     import queue
     import threading
@@ -182,7 +198,7 @@ def test_serial_write_sync():
 
 def test_concurrent_writes():
     """Test concurrent command writes don't interleave."""
-    print("\n📦 Testing Concurrent Writes...")
+    safe_print("\n📦 Testing Concurrent Writes...")
 
     import queue
     import threading
@@ -243,7 +259,7 @@ def test_concurrent_writes():
 
 def test_integration():
     """Integration test with actual components."""
-    print("\n📦 Integration Test (Multi-Device)...")
+    safe_print("\n📦 Integration Test (Multi-Device)...")
 
     from state import DeviceState
     from device_worker import DeviceWorker
@@ -285,11 +301,22 @@ def test_integration():
 
 def test_clock_sync_logic():
     """Test clock sync timer logic."""
-    print("\n📦 Testing Clock Sync Logic...")
+    safe_print("\n📦 Testing Clock Sync Logic...")
 
     from datetime import datetime, timedelta
     from state import DeviceState
     from timer import TimerManager
+
+    def check_need_sync(device):
+        """Helper to check if sync is needed."""
+        if not device.last_sync_time:
+            return True
+        try:
+            last_sync = datetime.fromisoformat(device.last_sync_time)
+            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
+            return hours_since >= 24
+        except Exception:
+            return True
 
     # Create mock device
     device = DeviceState("test_device", "Test Clock Sync")
@@ -297,63 +324,23 @@ def test_clock_sync_logic():
     device.last_sync_time = None
 
     # Test 1: No last sync time - should need sync
-    need_sync = True
-    if device.last_sync_time:
-        try:
-            last_sync = datetime.fromisoformat(device.last_sync_time)
-            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
-            need_sync = hours_since >= 24
-        except:
-            pass
-    test("Need sync when no last_sync_time", need_sync is True)
+    test("Need sync when no last_sync_time", check_need_sync(device) is True)
 
     # Test 2: Recent sync - should not need sync
     device.last_sync_time = datetime.now().isoformat()
-    need_sync = True
-    if device.last_sync_time:
-        try:
-            last_sync = datetime.fromisoformat(device.last_sync_time)
-            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
-            need_sync = hours_since >= 24
-        except:
-            pass
-    test("No sync needed when recently synced", need_sync is False)
+    test("No sync needed when recently synced", check_need_sync(device) is False)
 
     # Test 3: Old sync (25 hours ago) - should need sync
     device.last_sync_time = (datetime.now() - timedelta(hours=25)).isoformat()
-    need_sync = True
-    if device.last_sync_time:
-        try:
-            last_sync = datetime.fromisoformat(device.last_sync_time)
-            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
-            need_sync = hours_since >= 24
-        except:
-            pass
-    test("Need sync when last sync > 24h ago", need_sync is True)
+    test("Need sync when last sync > 24h ago", check_need_sync(device) is True)
 
     # Test 4: Exactly 24 hours ago - should need sync
     device.last_sync_time = (datetime.now() - timedelta(hours=24)).isoformat()
-    need_sync = True
-    if device.last_sync_time:
-        try:
-            last_sync = datetime.fromisoformat(device.last_sync_time)
-            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
-            need_sync = hours_since >= 24
-        except:
-            pass
-    test("Need sync when last sync == 24h ago", need_sync is True)
+    test("Need sync when last sync == 24h ago", check_need_sync(device) is True)
 
     # Test 5: 23 hours ago - should not need sync
     device.last_sync_time = (datetime.now() - timedelta(hours=23)).isoformat()
-    need_sync = True
-    if device.last_sync_time:
-        try:
-            last_sync = datetime.fromisoformat(device.last_sync_time)
-            hours_since = (datetime.now() - last_sync).total_seconds() / 3600
-            need_sync = hours_since >= 24
-        except:
-            pass
-    test("No sync needed when last sync < 24h ago", need_sync is False)
+    test("No sync needed when last sync < 24h ago", check_need_sync(device) is False)
 
     # Test 6: Auto sync disabled - logic should still work but timer won't run
     device.auto_sync_clock = False
@@ -387,9 +374,300 @@ def test_clock_sync_logic():
     test("Clock sync timer can be removed", found_after_remove is None)
 
 
+def test_device_commands():
+    """Test device command generation (motor_id handling)."""
+    safe_print("\n📦 Testing Device Commands...")
+
+    from device import (
+        set_motor_value,
+        set_motor_percent,
+        set_motor_unit,
+        set_clock_map,
+        enable_clock_map,
+        list_clock_map,
+        sweep_test,
+        show_battery_usage,
+        map_value,
+        VALID_UNITS,
+    )
+    from state import DeviceState
+
+    # Create mock device
+    device = DeviceState("test_device", "Test Device")
+    device.motor_min = 0
+    device.motor_max = 1000
+
+    # Test map_value function
+    test("map_value 0->0", map_value(0, 0, 100, 0, 1000) == 0)
+    test("map_value 50->500", map_value(50, 0, 100, 0, 1000) == 500)
+    test("map_value 100->1000", map_value(100, 0, 100, 0, 1000) == 1000)
+    test("map_value clamp high", map_value(150, 0, 100, 0, 1000) == 1000)
+    test("map_value clamp low", map_value(-50, 0, 100, 0, 1000) == 0)
+
+    # Test VALID_UNITS
+    test("VALID_UNITS contains NONE", "NONE" in VALID_UNITS)
+    test("VALID_UNITS contains HOUR", "HOUR" in VALID_UNITS)
+    test("VALID_UNITS contains HOUR_COS_PHI", "HOUR_COS_PHI" in VALID_UNITS)
+    test("VALID_UNITS contains MINUTE", "MINUTE" in VALID_UNITS)
+    test("VALID_UNITS contains SECOND", "SECOND" in VALID_UNITS)
+
+    # Test commands without serial (should return error)
+    _, error = set_motor_value(device, 500)
+    test(
+        "set_motor_value without serial returns error",
+        error == "Serial port not opened",
+    )
+
+    _, error = set_motor_percent(device, 50)
+    test(
+        "set_motor_percent without serial returns error",
+        error == "Serial port not opened",
+    )
+
+    _, error = set_motor_unit(device, "HOUR")
+    test(
+        "set_motor_unit without serial returns error", error == "Serial port not opened"
+    )
+
+    _, error = set_clock_map(device, 12, 500)
+    test(
+        "set_clock_map without serial returns error", error == "Serial port not opened"
+    )
+
+    _, error = enable_clock_map(device)
+    test(
+        "enable_clock_map without serial returns error",
+        error == "Serial port not opened",
+    )
+
+    _, error = list_clock_map(device)
+    test(
+        "list_clock_map without serial returns error", error == "Serial port not opened"
+    )
+
+    _, error = sweep_test(device)
+    test("sweep_test without serial returns error", error == "Serial port not opened")
+
+    _, error = show_battery_usage(device)
+    test(
+        "show_battery_usage without serial returns error",
+        error == "Serial port not opened",
+    )
+
+    # Test invalid unit (need to check before serial check)
+    # Note: set_motor_unit checks serial first, so we need a mock serial
+    from unittest.mock import MagicMock
+
+    mock_device = DeviceState("mock", "Mock")
+    mock_serial = MagicMock()
+    mock_serial.isOpen.return_value = True
+    mock_device.ser = mock_serial
+    _, error = set_motor_unit(mock_device, "INVALID")
+    test(
+        "set_motor_unit with invalid unit returns error",
+        error is not None and "Invalid unit" in error,
+        f"Error: {error}",
+    )
+
+
+def test_device_motor_id_handling():
+    """Test motor_id parameter handling in device commands."""
+    safe_print("\n📦 Testing Motor ID Handling...")
+
+    # We need to mock serial to capture commands
+    from unittest.mock import MagicMock
+    from state import DeviceState
+    from device_worker import DeviceWorker
+
+    # Create mock device with mock serial
+    device = DeviceState("test_device", "Test Device")
+    device.motor_min = 0
+    device.motor_max = 1000
+
+    # Create a mock serial that captures writes
+    mock_serial = MagicMock()
+    mock_serial.isOpen.return_value = True
+    written_commands = []
+
+    def capture_write(data):
+        written_commands.append(data.decode() if isinstance(data, bytes) else data)
+
+    mock_serial.write = capture_write
+    mock_serial.flush = MagicMock()
+    device.ser = mock_serial
+
+    # Start worker
+    worker = DeviceWorker(device)
+    worker.start()
+    device.worker = worker
+    import time
+
+    time.sleep(0.05)
+
+    from device import (
+        set_motor_value,
+        set_motor_unit,
+        set_clock_map,
+        enable_clock_map,
+        list_clock_map,
+        sweep_test,
+        show_battery_usage,
+    )
+
+    # Test motor_id=None (should NOT include --id)
+    written_commands.clear()
+    set_motor_value(device, 500, motor_id=None)
+    time.sleep(0.1)
+    test(
+        "motor_id=None: no --id in command",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test motor_id=0 (should NOT include --id, firmware defaults to 0)
+    written_commands.clear()
+    set_motor_value(device, 500, motor_id=0)
+    time.sleep(0.1)
+    test(
+        "motor_id=0: no --id in command",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test motor_id=1 (should include --id 1)
+    written_commands.clear()
+    set_motor_value(device, 500, motor_id=1)
+    time.sleep(0.1)
+    test(
+        "motor_id=1: --id 1 in command",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test set_motor_unit with motor_id
+    written_commands.clear()
+    set_motor_unit(device, "HOUR", motor_id=0)
+    time.sleep(0.1)
+    test(
+        "set_motor_unit motor_id=0: no --id",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    written_commands.clear()
+    set_motor_unit(device, "MINUTE", motor_id=1)
+    time.sleep(0.1)
+    test(
+        "set_motor_unit motor_id=1: --id 1",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test set_clock_map with motor_id
+    written_commands.clear()
+    set_clock_map(device, 12, 500, motor_id=0)
+    time.sleep(0.1)
+    test(
+        "set_clock_map motor_id=0: no --id",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    written_commands.clear()
+    set_clock_map(device, 12, 500, motor_id=1)
+    time.sleep(0.1)
+    test(
+        "set_clock_map motor_id=1: --id 1",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test enable_clock_map with motor_id
+    written_commands.clear()
+    enable_clock_map(device, motor_id=0)
+    time.sleep(0.1)
+    test(
+        "enable_clock_map motor_id=0: no --id",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    written_commands.clear()
+    enable_clock_map(device, motor_id=1)
+    time.sleep(0.1)
+    test(
+        "enable_clock_map motor_id=1: --id 1",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test list_clock_map with motor_id
+    written_commands.clear()
+    list_clock_map(device, motor_id=0)
+    time.sleep(0.1)
+    test(
+        "list_clock_map motor_id=0: no --id",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    written_commands.clear()
+    list_clock_map(device, motor_id=1)
+    time.sleep(0.1)
+    test(
+        "list_clock_map motor_id=1: --id 1",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test sweep_test with motor_id
+    written_commands.clear()
+    sweep_test(device, motor_id=0)
+    time.sleep(0.1)
+    test(
+        "sweep_test motor_id=0: no --id",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    written_commands.clear()
+    sweep_test(device, motor_id=1)
+    time.sleep(0.1)
+    test(
+        "sweep_test motor_id=1: --id 1",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Test show_battery_usage with motor_id
+    written_commands.clear()
+    show_battery_usage(device, motor_id=0)
+    time.sleep(0.1)
+    test(
+        "show_battery_usage motor_id=0: no --id",
+        len(written_commands) > 0 and "--id" not in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    written_commands.clear()
+    show_battery_usage(device, motor_id=1)
+    time.sleep(0.1)
+    test(
+        "show_battery_usage motor_id=1: --id 1",
+        len(written_commands) > 0 and "--id 1" in written_commands[-1],
+        f"Command: {written_commands[-1] if written_commands else 'none'}",
+    )
+
+    # Cleanup
+    worker.stop()
+    time.sleep(0.05)
+
+
 def run_tests():
     """Run all tests."""
     global passed, failed
+    passed = 0
+    failed = 0
 
     print("=" * 50)
     print("DutyCycle Web Server Self-Test")
@@ -401,16 +679,18 @@ def run_tests():
         test_serial_write_sync()
         test_concurrent_writes()
         test_clock_sync_logic()
+        test_device_commands()
+        test_device_motor_id_handling()
         test_integration()
     except Exception as e:
-        print(f"\n💥 Test crashed: {e}")
+        safe_print(f"\n💥 Test crashed: {e}")
         import traceback
 
         traceback.print_exc()
         failed += 1
 
     print("\n" + "=" * 50)
-    print(f"Results: {passed} passed, {failed} failed")
+    print("Results: %d passed, %d failed" % (passed, failed))
     print("=" * 50)
 
     return 0 if failed == 0 else 1

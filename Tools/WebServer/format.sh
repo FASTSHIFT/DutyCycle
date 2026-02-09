@@ -61,11 +61,12 @@ format_python() {
 format_javascript() {
     echo -e "\n${GREEN}📦 Formatting JavaScript files (*.js)...${NC}"
     
-    # Find all JS files
+    # Find all JS files, exclude node_modules and coverage directories at any level
     local files=$(find . -name "*.js" \
-        -not -path "./node_modules/*" \
-        -not -path "./.venv/*" \
-        -not -path "./htmlcov/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/.venv/*" \
+        -not -path "*/htmlcov/*" \
+        -not -path "*/coverage-js/*" \
         2>/dev/null | sort)
     
     if [ -z "$files" ]; then
@@ -109,10 +110,11 @@ format_javascript() {
 format_html() {
     echo -e "\n${GREEN}📦 Formatting HTML files (*.html)...${NC}"
     
-    # Find all HTML files
+    # Find all HTML files, exclude node_modules and coverage directories at any level
     local files=$(find . -name "*.html" \
-        -not -path "./htmlcov/*" \
-        -not -path "./node_modules/*" \
+        -not -path "*/htmlcov/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/coverage-js/*" \
         2>/dev/null | sort)
     
     if [ -z "$files" ]; then
@@ -154,10 +156,11 @@ format_html() {
 format_css() {
     echo -e "\n${GREEN}📦 Formatting CSS files (*.css)...${NC}"
     
-    # Find all CSS files
+    # Find all CSS files, exclude node_modules and coverage directories at any level
     local files=$(find . -name "*.css" \
-        -not -path "./htmlcov/*" \
-        -not -path "./node_modules/*" \
+        -not -path "*/htmlcov/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/coverage-js/*" \
         2>/dev/null | sort)
     
     if [ -z "$files" ]; then
@@ -205,10 +208,12 @@ lint_python() {
     fi
     
     local files=$(find . -name "*.py" \
-        -not -path "./__pycache__/*" \
-        -not -path "./htmlcov/*" \
-        -not -path "./.venv/*" \
-        -not -path "./venv/*" \
+        -not -path "*/__pycache__/*" \
+        -not -path "*/htmlcov/*" \
+        -not -path "*/.venv/*" \
+        -not -path "*/venv/*" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/coverage-js/*" \
         2>/dev/null | sort)
     
     if [ -z "$files" ]; then

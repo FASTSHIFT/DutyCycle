@@ -11,7 +11,6 @@ This script checks common problems that could cause buttons not to work.
 
 import json
 import subprocess
-import sys
 import urllib.request
 
 
@@ -92,7 +91,7 @@ def check_server(url):
 
 def check_devices(url):
     """Check devices API."""
-    print(f"\n[4] Checking devices API...")
+    print("\n[4] Checking devices API...")
     try:
         req = urllib.request.Request(url + "/api/devices")
         with urllib.request.urlopen(req, timeout=3) as resp:
@@ -100,24 +99,25 @@ def check_devices(url):
             if data.get("success"):
                 devices = data.get("devices", [])
                 active = data.get("active_device_id")
-                print(f"    ✓ Devices loaded: {len(devices)}")
-                print(f"      - Active device: {active}")
+                print("    ✓ Devices loaded: %d" % len(devices))
+                print("      - Active device: %s" % active)
                 for d in devices:
                     print(
-                        f"      - {d['id']}: {d['name']} ({d.get('port', 'no port')})"
+                        "      - %s: %s (%s)"
+                        % (d["id"], d["name"], d.get("port", "no port"))
                     )
                 return True
             else:
-                print(f"    ✗ Error: {data.get('error')}")
+                print("    ✗ Error: %s" % data.get("error"))
                 return False
     except Exception as e:
-        print(f"    ✗ Cannot fetch devices: {e}")
+        print("    ✗ Cannot fetch devices: %s" % e)
         return False
 
 
 def check_html_handlers(html_file):
     """Check if HTML has correct onclick handlers."""
-    print(f"\n[5] Checking HTML onclick handlers...")
+    print("\n[5] Checking HTML onclick handlers...")
 
     with open(html_file, "r", encoding="utf-8") as f:
         content = f.read()

@@ -45,7 +45,7 @@ def check_server_available():
         req = urllib.request.Request(BASE_URL + "/api/status")
         with urllib.request.urlopen(req, timeout=3) as resp:
             return resp.status == 200
-    except:
+    except Exception:
         return False
 
 
@@ -251,7 +251,7 @@ def test_with_selenium():
 
             service = Service(ChromeDriverManager().install())
             driver = webdriver.Chrome(service=service, options=chrome_options)
-        except:
+        except Exception:
             # Fallback to default
             driver = webdriver.Chrome(options=chrome_options)
 
@@ -310,7 +310,7 @@ def test_with_selenium():
                 btn = None
                 try:
                     btn = driver.find_element(By.ID, btn_id)
-                except:
+                except Exception:
                     pass
 
                 # Try finding by onclick attribute
@@ -319,7 +319,7 @@ def test_with_selenium():
                         btn = driver.find_element(
                             By.CSS_SELECTOR, f'[onclick="{onclick}"]'
                         )
-                    except:
+                    except Exception:
                         pass
 
                 if btn:
@@ -426,6 +426,8 @@ def test_with_selenium():
 
 def main():
     global BASE_URL, passed, failed
+    passed = 0
+    failed = 0
 
     parser = argparse.ArgumentParser(description="DutyCycle Frontend Tests")
     parser.add_argument("--server", default="http://127.0.0.1:5000", help="Server URL")
@@ -439,17 +441,17 @@ def main():
 
     BASE_URL = args.server.rstrip("/")
 
-    print(f"DutyCycle Frontend Tests")
-    print(f"Server: {BASE_URL}")
+    print("DutyCycle Frontend Tests")
+    print("Server: %s" % BASE_URL)
     print("=" * 50)
 
     # Check server is running
     if not check_server_available():
-        print(f"\n✗ Server not available at {BASE_URL}")
+        print("\n✗ Server not available at %s" % BASE_URL)
         print("Please start the server first: ./main.py")
         sys.exit(1)
 
-    print(f"✓ Server is running")
+    print("✓ Server is running")
 
     # Run tests
     test_js_syntax()

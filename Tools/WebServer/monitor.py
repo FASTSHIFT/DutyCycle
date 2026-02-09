@@ -37,7 +37,6 @@ except (ImportError, AssertionError, OSError) as e:
 
 from serial_utils import (
     start_device_worker,
-    stop_device_worker,
     serial_write_direct,
     get_device_timer_manager,
     run_in_device_worker,

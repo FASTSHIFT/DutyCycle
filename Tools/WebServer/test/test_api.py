@@ -14,7 +14,6 @@ Run: python3 test_api.py [--server URL]
 import argparse
 import json
 import sys
-import time
 import urllib.request
 import urllib.error
 

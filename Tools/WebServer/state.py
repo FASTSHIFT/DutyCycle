@@ -166,7 +166,7 @@ class MultiDeviceState:
                 if device.ser:
                     try:
                         device.ser.close()
-                    except:
+                    except Exception:
                         pass
                 del self.devices[device_id]
 
@@ -203,7 +203,7 @@ class MultiDeviceState:
             connected = False
             try:
                 connected = device.ser is not None and device.ser.isOpen()
-            except:
+            except Exception:
                 pass
             result.append(
                 {
