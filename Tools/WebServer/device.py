@@ -42,10 +42,11 @@ def set_motor_value(
         motor_value: The motor value to set
         immediate: If True, set the value immediately without animation
         async_mode: If True, send command asynchronously
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
     """
     cmd_str = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     if immediate:
         cmd_str += " -I"
@@ -86,7 +87,8 @@ def set_motor_unit(device, unit, motor_id=None):
     Args:
         device: The device to control
         unit: Unit name (NONE, HOUR, HOUR_COS_PHI, MINUTE, SECOND)
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
 
     Returns:
         Tuple of (responses, error)
@@ -99,7 +101,7 @@ def set_motor_unit(device, unit, motor_id=None):
         return None, f"Invalid unit '{unit}'. Valid units: {VALID_UNITS}"
 
     cmd_str = f"ctrl -c SET_UNIT --unit {unit_upper}"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     command = f"{cmd_str}\r\n"
 
@@ -116,7 +118,8 @@ def set_clock_map(device, index, motor_value, motor_id=None):
         device: The device to control
         index: Map index (0-24 for HOUR, 0-6 for MINUTE/SECOND)
         motor_value: Motor value for this index
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
 
     Returns:
         Tuple of (responses, error)
@@ -125,7 +128,7 @@ def set_clock_map(device, index, motor_value, motor_id=None):
         return None, "Serial port not opened"
 
     cmd_str = f"ctrl -c SET_CLOCK_MAP -H {int(index)} -M {int(motor_value)}"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     command = f"{cmd_str}\r\n"
 
@@ -137,7 +140,8 @@ def enable_clock_map(device, motor_id=None):
 
     Args:
         device: The device to control
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
 
     Returns:
         Tuple of (responses, error)
@@ -146,7 +150,7 @@ def enable_clock_map(device, motor_id=None):
         return None, "Serial port not opened"
 
     cmd_str = "ctrl -c ENABLE_CLOCK_MAP"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     command = f"{cmd_str}\r\n"
 
@@ -158,7 +162,8 @@ def list_clock_map(device, motor_id=None):
 
     Args:
         device: The device to control
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
 
     Returns:
         Tuple of (responses, error)
@@ -167,7 +172,7 @@ def list_clock_map(device, motor_id=None):
         return None, "Serial port not opened"
 
     cmd_str = "ctrl -c LIST_CLOCK_MAP"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     command = f"{cmd_str}\r\n"
 
@@ -179,7 +184,8 @@ def sweep_test(device, motor_id=None):
 
     Args:
         device: The device to control
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
 
     Returns:
         Tuple of (responses, error)
@@ -188,7 +194,7 @@ def sweep_test(device, motor_id=None):
         return None, "Serial port not opened"
 
     cmd_str = "ctrl -c SWEEP_TEST"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     command = f"{cmd_str}\r\n"
 
@@ -200,7 +206,8 @@ def show_battery_usage(device, motor_id=None):
 
     Args:
         device: The device to control
-        motor_id: Optional motor ID (0-based) for multi-motor support
+        motor_id: Optional motor ID (0-based) for multi-motor support.
+                  When None or 0, --id is omitted (firmware defaults to 0).
 
     Returns:
         Tuple of (responses, error)
@@ -209,7 +216,7 @@ def show_battery_usage(device, motor_id=None):
         return None, "Serial port not opened"
 
     cmd_str = "ctrl -c SHOW_BATTERY_USAGE"
-    if motor_id is not None:
+    if motor_id:  # Only add --id when motor_id is non-zero
         cmd_str += f" --id {int(motor_id)}"
     command = f"{cmd_str}\r\n"
 

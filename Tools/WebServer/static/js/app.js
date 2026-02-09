@@ -934,11 +934,11 @@ async function sweepTest() {
 async function updateConfig() {
   const motorMin = parseInt(document.getElementById('motorMin').value);
   const motorMax = parseInt(document.getElementById('motorMax').value);
-  
+
   // 获取双通道周期配置
   const period0El = document.getElementById('period0');
   const period1El = document.getElementById('period1');
-  
+
   let period = 0.1; // 默认值
   if (period0El && period1El) {
     // 双通道模式：使用最小周期

@@ -375,7 +375,8 @@ def _create_monitor_tick(device):
             motor_value_0 = map_value(
                 percent_0, 0, 100, device.motor_min, device.motor_max
             )
-            cmd_str_0 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_0)} --id 0"
+            # CH0: --id is omitted since firmware defaults to 0
+            cmd_str_0 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_0)}"
             if immediate_0:
                 cmd_str_0 += " -I"
             if device.ser:
@@ -390,6 +391,7 @@ def _create_monitor_tick(device):
             motor_value_1 = map_value(
                 percent_1, 0, 100, device.motor_min, device.motor_max
             )
+            # CH1: --id 1 is required for non-zero motor ID
             cmd_str_1 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_1)} --id 1"
             if immediate_1:
                 cmd_str_1 += " -I"
