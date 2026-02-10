@@ -524,6 +524,18 @@ a:hover {
   gap: var(--space-3);
 }
 
+.form-group-inline-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.form-group-inline-label .form-label {
+  margin: 0;
+  white-space: nowrap;
+}
+
 .form-group-mini {
   flex: 0 0 auto;
 }
