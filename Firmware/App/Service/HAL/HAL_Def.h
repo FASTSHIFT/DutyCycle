@@ -31,6 +31,7 @@
 #include "Def/Motor.h"
 #include "Def/Power.h"
 #include "Def/Tick.h"
+#include "Def/UID.h"
 #include "Def/WatchDog.h"
 
 #endif

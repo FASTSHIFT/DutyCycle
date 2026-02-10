@@ -57,7 +57,7 @@ public:
 private:
     int onEvent(DataNode::EventParam_t* param);
     void getInfo(Version_Info_t* info);
-    void dumpInfo(const Version_Info_t* info);
+    void dumpInfo();
 };
 
 DP_Version::DP_Version(DataNode* node)
@@ -67,21 +67,30 @@ DP_Version::DP_Version(DataNode* node)
             auto ctx = (DP_Version*)n->getUserData();
             return ctx->onEvent(param);
         },
-        DataNode::EVENT_PULL);
+        DataNode::EVENT_PULL | DataNode::EVENT_NOTIFY);
 
-    Version_Info_t version;
-    getInfo(&version);
-    dumpInfo(&version);
+    dumpInfo();
 }
 
 int DP_Version::onEvent(DataNode::EventParam_t* param)
 {
-    if (param->size != sizeof(Version_Info_t)) {
-        return DataNode::RES_SIZE_MISMATCH;
-    }
+    switch (param->event) {
+    case DataNode::EVENT_PULL: {
+        if (param->size != sizeof(Version_Info_t)) {
+            return DataNode::RES_SIZE_MISMATCH;
+        }
 
-    auto info = (Version_Info_t*)param->data_p;
-    getInfo(info);
+        auto info = (Version_Info_t*)param->data_p;
+        getInfo(info);
+    } break;
+
+    case DataNode::EVENT_NOTIFY:
+        dumpInfo();
+        break;
+
+    default:
+        return DataNode::RES_UNSUPPORTED_REQUEST;
+    }
 
     return DataNode::RES_OK;
 }
@@ -96,17 +105,25 @@ void DP_Version::getInfo(Version_Info_t* info)
     info->compiler = VERSION_COMPILER;
     info->buildDate = __DATE__;
     info->buildTime = __TIME__;
+
+    extern void HAL_GetUID(HAL::UID_Info_t * info);
+    HAL_GetUID(&info->uid);
 }
 
-void DP_Version::dumpInfo(const Version_Info_t* info)
+void DP_Version::dumpInfo()
 {
-    HAL_LOG_INFO("Firmware: %s", info->name);
-    HAL_LOG_INFO("Software: %s", info->software);
-    HAL_LOG_INFO("Hardware: %s", info->hardware);
-    HAL_LOG_INFO("Author: %s", info->author);
-    HAL_LOG_INFO("Website: %s", info->website);
-    HAL_LOG_INFO("Compiler: %s", info->compiler);
-    HAL_LOG_INFO("Build Time: %s %s", info->buildDate, info->buildTime);
+    Version_Info_t info;
+    getInfo(&info);
+    HAL_LOG_INFO("Firmware: %s", info.name);
+    HAL_LOG_INFO("Software: %s", info.software);
+    HAL_LOG_INFO("Hardware: %s", info.hardware);
+    HAL_LOG_INFO("Author: %s", info.author);
+    HAL_LOG_INFO("Website: %s", info.website);
+    HAL_LOG_INFO("Compiler: %s", info.compiler);
+    HAL_LOG_INFO("Build Time: %s %s", info.buildDate, info.buildTime);
+    HAL_LOG_INFO("PID: 0x%08X", info.uid.pid);
+    HAL_LOG_INFO("Flash Size: %d KB", info.uid.flashSize);
+    HAL_LOG_INFO("UID: 0x%08X, 0x%08X, 0x%08X", info.uid.uid.u32[0], info.uid.uid.u32[1], info.uid.uid.u32[2]);
 }
 
 DATA_PROC_DESCRIPTOR_DEF(Version)

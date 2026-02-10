@@ -161,6 +161,7 @@ private:
     static int cmdHelp(int argc, const char** argv);
     static int cmdLogLevel(int argc, const char** argv);
     static int cmdPs(int argc, const char** argv);
+    static int cmdVersion(int argc, const char** argv);
 
     static int cmdPublish(int argc, const char** argv);
     static int cmdClock(int argc, const char** argv);
@@ -211,6 +212,7 @@ DP_Shell::DP_Shell(DataNode* node)
     shell_register(cmdHelp, "help");
     shell_register(cmdLogLevel, "loglevel");
     shell_register(cmdPs, "ps");
+    shell_register(cmdVersion, "version");
 
     shell_register(cmdPublish, "publish");
     shell_register(cmdClock, "clock");
@@ -277,6 +279,16 @@ int DP_Shell::cmdPs(int argc, const char** argv)
     extern void HAL_MemoryDumpInfo();
     HAL_MemoryDumpInfo();
     return SHELL_RET_SUCCESS;
+}
+
+int DP_Shell::cmdVersion(int argc, const char** argv)
+{
+    ShellNodeHelper<nullptr_t, nullptr_t> nodeVersion("Version");
+    if (!nodeVersion) {
+        return SHELL_RET_FAILURE;
+    }
+
+    return nodeVersion.notify(nullptr) ? SHELL_RET_SUCCESS : SHELL_RET_FAILURE;
 }
 
 int DP_Shell::cmdPublish(int argc, const char** argv)

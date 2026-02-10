@@ -31,6 +31,7 @@
 
 void HAL_MemoryDumpInfo();
 void HAL_MPU_Init();
+void HAL_GetUID(HAL::UID_Info_t* info);
 uint8_t HAL_PinRemap(uint8_t pin);
 
 #endif

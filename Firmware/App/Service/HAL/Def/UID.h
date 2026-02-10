@@ -1,6 +1,6 @@
 /*
  * MIT License
- * Copyright (c) 2021 - 2024 _VIFEXTech
+ * Copyright (c) 2024 _VIFEXTech
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,39 +20,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef __DATA_PROC_VERSION_DEF_H
-#define __DATA_PROC_VERSION_DEF_H
+#ifndef __HAL_UID_DEF_H
+#define __HAL_UID_DEF_H
 
-#include <cstdint>
+#include <stdint.h>
 
-#include "../../HAL/Def/UID.h"
+namespace HAL {
 
-namespace DataProc {
+typedef struct
+{
+    uint16_t flashSize;
+    union {
+        uint8_t u8[12];
+        uint32_t u32[3];
+    } uid;
+    uint32_t pid;
+} UID_Info_t;
 
-typedef struct Version_Info {
-    Version_Info()
-        : name(nullptr)
-        , software(nullptr)
-        , hardware(nullptr)
-        , author(nullptr)
-        , website(nullptr)
-        , compiler(nullptr)
-        , buildDate(nullptr)
-        , buildTime(nullptr)
-        , uid { 0 }
-    {
-    }
-    const char* name;
-    const char* software;
-    const char* hardware;
-    const char* author;
-    const char* website;
-    const char* compiler;
-    const char* buildDate;
-    const char* buildTime;
-    HAL::UID_Info_t uid;
-} Version_Info_t;
+} // namespace HAL
 
-} // namespace DataProc
-
-#endif // __DATA_PROC_VERSION_DEF_H
+#endif // __HAL_UID_DEF_H

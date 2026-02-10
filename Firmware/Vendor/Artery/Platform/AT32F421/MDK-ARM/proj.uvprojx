@@ -683,6 +683,11 @@
               <FilePath>..\..\..\..\..\App\Service\HAL\Def\Power.h</FilePath>
             </File>
             <File>
+              <FileName>UID.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\..\..\..\App\Service\HAL\Def\UID.h</FilePath>
+            </File>
+            <File>
               <FileName>Tick.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\..\..\..\..\App\Service\HAL\Def\Tick.h</FilePath>
@@ -1091,6 +1096,11 @@
               <FileName>HAL_PinRemap.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\..\Application\HAL\HAL_PinRemap.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>HAL_UID.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\Application\HAL\HAL_UID.cpp</FilePath>
             </File>
           </Files>
         </Group>
