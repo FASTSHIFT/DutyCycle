@@ -986,6 +986,20 @@ async function sweepTest() {
   await api('/motor/sweep-test', 'POST', { motor_id: channelId });
 }
 
+// 恢复时钟显示
+async function enableClockMap() {
+  const channelId = parseInt(
+    document.getElementById('motorChannel')?.value || '0',
+  );
+  if (channelId === 'both' || isNaN(channelId)) {
+    // 双通道模式：恢复两个通道
+    await api('/motor/enable-clock', 'POST', { motor_id: 0 });
+    await api('/motor/enable-clock', 'POST', { motor_id: 1 });
+  } else {
+    await api('/motor/enable-clock', 'POST', { motor_id: channelId });
+  }
+}
+
 async function updateConfig() {
   const motorMin = parseInt(document.getElementById('motorMin').value);
   const motorMax = parseInt(document.getElementById('motorMax').value);
