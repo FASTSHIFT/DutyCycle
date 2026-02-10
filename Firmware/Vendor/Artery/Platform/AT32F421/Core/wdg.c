@@ -84,6 +84,9 @@ uint32_t WDG_SetTimeout(uint32_t timeout)
 
 void WDG_SetEnable(void)
 {
+    /* pause debug wdt when debug is running */
+    debug_periph_mode_set(DEBUG_WDT_PAUSE, TRUE);
+
     /* enable wdt */
     wdt_enable();
 }
