@@ -241,7 +241,7 @@ int MotorCtrl::getMotorValueRaw()
     }
 
     if (_unit == UNIT::HOUR_COS_PHI) {
-        return info.value[0] >= 0 ? info.value[0] : -info.value[1];
+        return info.value[0] > 0 ? info.value[0] : -info.value[1];
     }
 
     return info.value[_id];
