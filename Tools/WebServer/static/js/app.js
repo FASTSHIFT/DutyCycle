@@ -1092,7 +1092,10 @@ async function setMotor() {
 
 // 检查是否有音频模式
 function hasAudioMode() {
-  return channelMonitorModes.some((m) => m.startsWith('audio-'));
+  const audioModes = ['audio-level', 'audio-left', 'audio-right'];
+  const hasAudio = channelMonitorModes.some((m) => audioModes.includes(m));
+  console.log('hasAudioMode:', hasAudio, 'modes:', channelMonitorModes);
+  return hasAudio;
 }
 
 // 更新音频设置区域显示

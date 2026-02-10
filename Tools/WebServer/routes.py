@@ -629,7 +629,6 @@ def register_routes(app):
             modes.append({"value": "audio-level", "label": "音频响度"})
             modes.append({"value": "audio-left", "label": "音频 左声道"})
             modes.append({"value": "audio-right", "label": "音频 右声道"})
-            modes.append({"value": "audio-mix", "label": "音频 混合"})
         return jsonify({"success": True, "modes": modes})
 
     @app.route("/api/monitor/config", methods=["POST"])

@@ -279,6 +279,121 @@ def test_audio_api():
     )
 
 
+def test_audio_monitor_modes():
+    """Test that audio monitor modes are correctly configured."""
+    safe_print("\n📦 Testing Audio Monitor Modes...")
+
+    result = api("/monitor/modes")
+    check_test("GET /monitor/modes", result.get("success") is True, result.get("error"))
+
+    if result.get("success") and result.get("modes"):
+        modes = result["modes"]
+        mode_values = [m["value"] for m in modes]
+
+        # Check that audio-level is present (if soundcard available)
+        has_audio_level = "audio-level" in mode_values
+        has_audio_left = "audio-left" in mode_values
+        has_audio_right = "audio-right" in mode_values
+        has_audio_mix = "audio-mix" in mode_values
+
+        # audio-mix should NOT be present (removed)
+        check_test(
+            "audio-mix mode removed",
+            not has_audio_mix,
+            f"audio-mix should not be in modes: {mode_values}",
+        )
+
+        # If any audio mode is present, all required ones should be present
+        if has_audio_level or has_audio_left or has_audio_right:
+            check_test(
+                "audio-level mode present",
+                has_audio_level,
+                f"Missing audio-level in: {mode_values}",
+            )
+            check_test(
+                "audio-left mode present",
+                has_audio_left,
+                f"Missing audio-left in: {mode_values}",
+            )
+            check_test(
+                "audio-right mode present",
+                has_audio_right,
+                f"Missing audio-right in: {mode_values}",
+            )
+        else:
+            safe_print("  ⚠️  No audio modes available (soundcard not installed)")
+
+
+def test_audio_monitor_config():
+    """Test audio monitor configuration API."""
+    safe_print("\n📦 Testing Audio Monitor Config...")
+
+    # Test setting audio monitor mode for CH0
+    result = api(
+        "/monitor/config",
+        "POST",
+        {
+            "mode_0": "audio-level",
+            "mode_1": "none",
+            "period_0": 0.01,
+            "period_1": 1.0,
+        },
+    )
+    check_test(
+        "POST /monitor/config with audio-level",
+        result.get("success") is True,
+        result.get("error"),
+    )
+
+    # Verify config was saved
+    result = api("/status")
+    check_test(
+        "monitor_mode_0 set to audio-level",
+        result.get("monitor_mode_0") == "audio-level",
+        f"Got: {result.get('monitor_mode_0')}",
+    )
+
+    # Test setting audio-left mode
+    result = api(
+        "/monitor/config",
+        "POST",
+        {
+            "mode_0": "audio-left",
+            "mode_1": "audio-right",
+            "period_0": 0.01,
+            "period_1": 0.01,
+        },
+    )
+    check_test(
+        "POST /monitor/config with audio-left/right",
+        result.get("success") is True,
+        result.get("error"),
+    )
+
+    # Verify config was saved
+    result = api("/status")
+    check_test(
+        "monitor_mode_0 set to audio-left",
+        result.get("monitor_mode_0") == "audio-left",
+        f"Got: {result.get('monitor_mode_0')}",
+    )
+    check_test(
+        "monitor_mode_1 set to audio-right",
+        result.get("monitor_mode_1") == "audio-right",
+        f"Got: {result.get('monitor_mode_1')}",
+    )
+
+    # Reset to none
+    api(
+        "/monitor/config",
+        "POST",
+        {
+            "mode_0": "none",
+            "mode_1": "none",
+        },
+    )
+
+
 def test_post_empty_body():
     """Test POST requests with empty body (regression test for 400 Bad Request bug).
 
@@ -413,6 +528,8 @@ def run_tests():
         test_log_api()
         test_connection_api()
         test_audio_api()
+        test_audio_monitor_modes()
+        test_audio_monitor_config()
         test_post_empty_body()
         test_clock_sync_api()
 

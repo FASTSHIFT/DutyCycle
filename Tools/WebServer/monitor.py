@@ -329,6 +329,8 @@ def get_audio_level_channel(device, channel):
 
 def _get_channel_value(device, mode):
     """Get value for a specific monitor mode."""
+    logger = logging.getLogger(__name__)
+
     if mode == "none" or mode is None:
         return None, None, False
 
@@ -343,16 +345,16 @@ def _get_channel_value(device, mode):
         return percent, error, False
     elif mode == "audio-left":
         percent, error = get_audio_level_channel(device, "left")
+        logger.debug(f"audio-left: percent={percent}, error={error}")
         return percent, error, True
     elif mode == "audio-right":
         percent, error = get_audio_level_channel(device, "right")
-        return percent, error, True
-    elif mode == "audio-mix":
-        percent, error = get_audio_level_channel(device, "mix")
+        logger.debug(f"audio-right: percent={percent}, error={error}")
         return percent, error, True
     elif mode == "audio-level":
-        # Legacy mode
+        # Legacy mode - uses device.audio_channel setting
         percent, error = get_audio_level(device)
+        logger.debug(f"audio-level: percent={percent}, error={error}")
         return percent, error, True
 
     return None, f"Unknown mode: {mode}", False
@@ -416,8 +418,23 @@ def _create_cmd_file_tick(device):
     return cmd_file_tick
 
 
+def _needs_audio_init(device):
+    """Check if any monitor mode requires audio initialization."""
+    mode_0 = getattr(device, "monitor_mode_0", "none")
+    mode_1 = getattr(device, "monitor_mode_1", "none")
+    audio_modes = ("audio-level", "audio-left", "audio-right")
+    needs_audio = mode_0 in audio_modes or mode_1 in audio_modes
+    logger = logging.getLogger(__name__)
+    logger.debug(
+        f"_needs_audio_init: mode_0={mode_0}, mode_1={mode_1}, needs_audio={needs_audio}"
+    )
+    return needs_audio
+
+
 def start_monitor(device, mode):
     """Start monitoring for a device."""
+    logger = logging.getLogger(__name__)
+
     if device.monitor_running:
         stop_monitor(device)
 
@@ -425,7 +442,9 @@ def start_monitor(device, mode):
     start_device_worker(device)
 
     def setup():
-        if mode == "audio-level":
+        # Check if any channel needs audio
+        if _needs_audio_init(device):
+            logger.info("Initializing audio meter for audio monitoring mode")
             init_audio_meter(device)
         device.monitor_mode = mode
         device.monitor_running = True
@@ -437,6 +456,9 @@ def start_monitor(device, mode):
             device.cmd_file_timer = tm.add(
                 1.0, _create_cmd_file_tick(device), "cmd_file"
             )
+        logger.info(
+            f"Monitor started: mode={mode}, mode_0={device.monitor_mode_0}, mode_1={device.monitor_mode_1}"
+        )
 
     run_in_device_worker(device, setup, timeout=2.0)
 
