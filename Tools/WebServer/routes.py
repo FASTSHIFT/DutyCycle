@@ -312,6 +312,8 @@ def register_routes(app):
                 "baudrate": device.baudrate,
                 "motor_max": device.motor_max,
                 "motor_min": device.motor_min,
+                "motor_unit_0": getattr(device, "motor_unit_0", "NONE"),
+                "motor_unit_1": getattr(device, "motor_unit_1", "NONE"),
                 "monitor_mode": device.monitor_mode,
                 "monitor_mode_0": getattr(device, "monitor_mode_0", "none"),
                 "monitor_mode_1": getattr(device, "monitor_mode_1", "none"),
@@ -354,6 +356,10 @@ def register_routes(app):
             device.motor_max = int(data["motor_max"])
         if "motor_min" in data:
             device.motor_min = int(data["motor_min"])
+        if "motor_unit_0" in data:
+            device.motor_unit_0 = data["motor_unit_0"]
+        if "motor_unit_1" in data:
+            device.motor_unit_1 = data["motor_unit_1"]
         if "period" in data:
             device.period = float(data["period"])
             update_monitor_period(device, device.period)

@@ -394,6 +394,91 @@ def test_audio_monitor_config():
     )
 
 
+def test_motor_unit_config():
+    """Test motor unit configuration persistence."""
+    safe_print("\n📦 Testing Motor Unit Config...")
+
+    # Test setting motor unit for CH0
+    result = api("/config", "POST", {"motor_unit_0": "HOUR"})
+    check_test(
+        "POST /config with motor_unit_0",
+        result.get("success") is True,
+        result.get("error"),
+    )
+
+    # Verify config was saved
+    result = api("/status")
+    check_test(
+        "motor_unit_0 field present",
+        "motor_unit_0" in result,
+        "Missing motor_unit_0 field",
+    )
+    check_test(
+        "motor_unit_0 set to HOUR",
+        result.get("motor_unit_0") == "HOUR",
+        f"Got: {result.get('motor_unit_0')}",
+    )
+
+    # Test setting motor unit for CH1
+    result = api("/config", "POST", {"motor_unit_1": "MINUTE"})
+    check_test(
+        "POST /config with motor_unit_1",
+        result.get("success") is True,
+        result.get("error"),
+    )
+
+    # Verify config was saved
+    result = api("/status")
+    check_test(
+        "motor_unit_1 field present",
+        "motor_unit_1" in result,
+        "Missing motor_unit_1 field",
+    )
+    check_test(
+        "motor_unit_1 set to MINUTE",
+        result.get("motor_unit_1") == "MINUTE",
+        f"Got: {result.get('motor_unit_1')}",
+    )
+
+    # Test setting both units at once
+    result = api(
+        "/config",
+        "POST",
+        {
+            "motor_unit_0": "HOUR_COS_PHI",
+            "motor_unit_1": "SECOND",
+        },
+    )
+    check_test(
+        "POST /config with both motor units",
+        result.get("success") is True,
+        result.get("error"),
+    )
+
+    # Verify both were saved
+    result = api("/status")
+    check_test(
+        "motor_unit_0 set to HOUR_COS_PHI",
+        result.get("motor_unit_0") == "HOUR_COS_PHI",
+        f"Got: {result.get('motor_unit_0')}",
+    )
+    check_test(
+        "motor_unit_1 set to SECOND",
+        result.get("motor_unit_1") == "SECOND",
+        f"Got: {result.get('motor_unit_1')}",
+    )
+
+    # Reset to NONE
+    api(
+        "/config",
+        "POST",
+        {
+            "motor_unit_0": "NONE",
+            "motor_unit_1": "NONE",
+        },
+    )
+
+
 def test_post_empty_body():
     """Test POST requests with empty body (regression test for 400 Bad Request bug).
 
@@ -530,6 +615,7 @@ def run_tests():
         test_audio_api()
         test_audio_monitor_modes()
         test_audio_monitor_config()
+        test_motor_unit_config()
         test_post_empty_body()
         test_clock_sync_api()
 

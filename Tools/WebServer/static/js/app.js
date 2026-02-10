@@ -622,6 +622,9 @@ async function refreshStatus() {
     document.getElementById('motorMin').value = result.motor_min;
     document.getElementById('motorMax').value = result.motor_max;
 
+    // 恢复电机通道 unit 设置
+    loadMotorUnitConfig(result);
+
     // 恢复音频dB范围配置
     if (result.audio_db_min !== undefined) {
       document.getElementById('audioDbMin').value = result.audio_db_min;
@@ -815,6 +818,53 @@ function initDualChannelUI() {
   }
 }
 
+// 从后端加载电机 unit 配置
+function loadMotorUnitConfig(result) {
+  // 加载 CH0 unit
+  if (result.motor_unit_0) {
+    channelUnits[0] = result.motor_unit_0;
+    const unit0Select = document.getElementById('unitSelect0');
+    if (unit0Select) {
+      unit0Select.value = result.motor_unit_0;
+    }
+  }
+
+  // 加载 CH1 unit
+  if (result.motor_unit_1) {
+    channelUnits[1] = result.motor_unit_1;
+    const unit1Select = document.getElementById('unitSelect1');
+    if (unit1Select) {
+      unit1Select.value = result.motor_unit_1;
+    }
+  }
+
+  // 更新 HOUR_COS_PHI 联动状态
+  if (channelUnits[0] === 'HOUR_COS_PHI') {
+    const unit1Select = document.getElementById('unitSelect1');
+    const slider1 = document.getElementById('motorSlider1');
+    if (unit1Select) {
+      unit1Select.disabled = true;
+      unit1Select.title = 'HOUR_COS_PHI 模式下 CH1 被 CH0 控制';
+    }
+    if (slider1) {
+      slider1.disabled = true;
+    }
+  } else {
+    const unit1Select = document.getElementById('unitSelect1');
+    const slider1 = document.getElementById('motorSlider1');
+    if (unit1Select) {
+      unit1Select.disabled = false;
+      unit1Select.title = '';
+    }
+    if (slider1) {
+      slider1.disabled = false;
+    }
+  }
+
+  // 更新时钟映射选项
+  updateClockMapHourOptions();
+}
+
 // Unit 切换事件
 async function onUnitChange(channelId) {
   const unitSelect = document.getElementById(`unitSelect${channelId}`);
@@ -848,6 +898,11 @@ async function onUnitChange(channelId) {
 
   // 更新时钟映射选项
   updateClockMapHourOptions();
+
+  // 保存到后端配置
+  const configData = {};
+  configData[`motor_unit_${channelId}`] = unit;
+  await api('/config', 'POST', configData);
 
   // 发送到设备
   await api('/motor/unit', 'POST', { unit, motor_id: channelId });

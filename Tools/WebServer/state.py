@@ -27,6 +27,8 @@ DEVICE_PERSISTENT_KEYS = [
     "baudrate",
     "motor_max",
     "motor_min",
+    "motor_unit_0",
+    "motor_unit_1",
     "period",
     "cmd_file",
     "cmd_file_enabled",
@@ -64,6 +66,8 @@ class DeviceState:
         # Motor config
         self.motor_max = 1000
         self.motor_min = 0
+        self.motor_unit_0 = "NONE"  # CH0 unit type
+        self.motor_unit_1 = "NONE"  # CH1 unit type
 
         # Dual-channel monitor state
         self.monitor_mode_0 = "none"  # CH0 monitor mode
