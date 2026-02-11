@@ -165,6 +165,7 @@ void MotorCtrl::listMap()
 
 void MotorCtrl::sweepTest()
 {
+    HAL_LOG_INFO("Motor[%d] sweepTest started", _id);
     _displayState = DISPLAY_STATE::SWEEP_TEST;
     _sweepValueIndex = 0;
     setMotorValue(0);
@@ -213,6 +214,7 @@ bool MotorCtrl::timerHandler()
 {
     /* check if animation is still running */
     if (easing_isok(&_easing)) {
+        HAL_LOG_TRACE("Motor[%d] timerHandler: easing already finished, skip", _id);
         return false;
     }
 
@@ -225,8 +227,18 @@ bool MotorCtrl::timerHandler()
 
     /* when easing is finished, stop timer */
     if (easing_isok(&_easing)) {
-        onMotorFinished();
         HAL_LOG_INFO("Motor[%d] value reached: %d", _id, pos);
+        onMotorFinished();
+
+        /**
+         * Check if onMotorFinished started a new animation
+         * If so, keep the timer running to drive the new animation
+         */
+        if (!easing_isok(&_easing)) {
+            HAL_LOG_INFO("Motor[%d] new animation started in onMotorFinished", _id);
+            return true;
+        }
+
         return false;
     }
 
@@ -282,10 +294,11 @@ void MotorCtrl::onMotorFinished()
     };
 
     if (_sweepValueIndex >= CM_ARRAY_SIZE(testValues)) {
-        HAL_LOG_INFO("Sweep test finished");
+        HAL_LOG_INFO("Motor[%d] sweep test finished", _id);
         return;
     }
 
+    HAL_LOG_INFO("Motor[%d] sweep step %d -> value: %d", _id, _sweepValueIndex, testValues[_sweepValueIndex]);
     setMotorValue(testValues[_sweepValueIndex]);
     _sweepValueIndex++;
 }
