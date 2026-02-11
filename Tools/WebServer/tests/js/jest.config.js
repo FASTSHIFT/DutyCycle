@@ -9,6 +9,14 @@ module.exports = {
   coverageDirectory: '<rootDir>/tests/js/coverage',
   coverageReporters: ['text', 'text-summary', 'html'],
   coverageProvider: 'v8',
+  coverageThreshold: {
+    global: {
+      statements: 85,
+      branches: 85,
+      functions: 85,
+      lines: 85,
+    },
+  },
   setupFilesAfterEnv: ['<rootDir>/tests/js/setup.js'],
   moduleFileExtensions: ['js'],
   verbose: true,
