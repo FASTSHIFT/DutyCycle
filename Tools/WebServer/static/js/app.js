@@ -607,7 +607,7 @@ async function refreshAudioDevices() {
 
 async function onAudioDeviceChange() {
   const deviceId = document.getElementById('audioDevice').value;
-  await api('/audio/select', 'POST', { device_id: deviceId || null });
+  await api('/audio/select', 'POST', { audio_device_id: deviceId || null });
 }
 
 async function refreshStatus() {

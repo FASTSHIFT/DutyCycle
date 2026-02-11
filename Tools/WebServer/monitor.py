@@ -177,10 +177,12 @@ def init_audio_meter(device):
         return False
 
     logger = logging.getLogger(__name__)
+    logger.info(f"Initializing audio meter, requested device_id: {device.audio_device_id}")
 
     if device.audio_device_id is not None:
         try:
             all_mics = sc.all_microphones(include_loopback=True)
+            logger.debug(f"Available audio devices: {[(m.id, m.name) for m in all_mics]}")
             selected_mic = None
             for mic in all_mics:
                 if mic.id == device.audio_device_id:
@@ -198,7 +200,7 @@ def init_audio_meter(device):
                 return True
             else:
                 logger.warning(
-                    f"Selected audio device {device.audio_device_id} not found"
+                    f"Selected audio device {device.audio_device_id} not found in available devices"
                 )
         except Exception as e:
             logger.warning(f"Error initializing selected audio device: {e}")

@@ -771,14 +771,20 @@ def register_routes(app):
     @app.route("/api/audio/select", methods=["POST"])
     def api_audio_select():
         """Select audio input device."""
+        logger = logging.getLogger(__name__)
         data = request.json
-        device_id = data.get("device_id") or state.active_device_id
-        device = state.get_device(device_id)
+        logger.info(f"Audio select request: {data}")
+        # Use serial_device_id to find the DutyCycle device, fallback to active device
+        serial_device_id = data.get("serial_device_id") or state.active_device_id
+        device = state.get_device(serial_device_id)
         if not device:
+            logger.warning(f"Device not found for serial_device_id: {serial_device_id}")
             return jsonify({"success": False, "error": "Device not found"})
 
-        audio_device_id = data.get("device_id")
+        # audio_device_id is the audio input device (microphone/loopback) to use
+        audio_device_id = data.get("audio_device_id") or data.get("device_id")
         device.audio_device_id = audio_device_id if audio_device_id else None
+        logger.info(f"Set audio_device_id to: {device.audio_device_id}")
         state.save_config()
 
         if device.monitor_running and device.monitor_mode == "audio-level":
