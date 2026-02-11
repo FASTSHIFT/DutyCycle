@@ -34,7 +34,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r Tools/requirements.txt
-          pip install flake8 black coverage
+          pip install flake8 black coverage pytest pytest-cov
 
       - name: Code Format & Lint
         working-directory: Tools/WebServer
@@ -42,9 +42,9 @@ jobs:
           ./format.sh --lint --check
 
       - name: Run unit tests with coverage
-        working-directory: Tools/WebServer/test
+        working-directory: Tools/WebServer
         run: |
-          python test_self.py --coverage
+          bash tests/run_tests.sh --unit --coverage
 
   api-tests:
     name: API Tests
@@ -64,19 +64,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r Tools/requirements.txt
+          pip install pytest pytest-cov
 
-      - name: Start WebServer in background
+      - name: Run API tests with auto-start server
         working-directory: Tools/WebServer
         run: |
-          python main.py --port 5001 &
-          sleep 3  # Wait for server to start
-
-      - name: Run API tests
-        working-directory: Tools/WebServer/test
-        run: |
-          python test_api.py --port 5001
-
-      - name: Stop WebServer
-        if: always()
-        run: |
-          pkill -f "python main.py" || true
+          bash tests/run_tests.sh --api --start-server --port 5001

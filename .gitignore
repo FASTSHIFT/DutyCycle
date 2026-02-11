@@ -33,3 +33,4 @@
 # Others
 /.vscode/
 __pycache__/
+.coverage

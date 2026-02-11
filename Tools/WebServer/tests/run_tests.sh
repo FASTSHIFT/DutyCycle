@@ -8,7 +8,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+WEBSERVER_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Colors
 RED='\033[0;31m'
@@ -46,6 +46,7 @@ print_help() {
     echo "  $0                          # Run unit tests"
     echo "  $0 --api --port 5001        # Run API tests on port 5001"
     echo "  $0 --all --coverage --html  # Run all tests with HTML coverage"
+    echo "  $0 --all --start-server --port 5098  # Run all tests, auto-start server"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -95,21 +96,26 @@ done
 TOTAL_PASSED=0
 TOTAL_FAILED=0
 
-# Run unit tests
+# Run unit tests with pytest
 if [ "$RUN_UNIT" = true ]; then
-    echo -e "\n${GREEN}▶ Running Unit Tests...${NC}\n"
+    echo -e "\n${GREEN}▶ Running Unit Tests (pytest)...${NC}\n"
+    
+    PYTEST_ARGS="-v"
     
     if [ "$COVERAGE" = true ]; then
-        COVERAGE_ARGS="--coverage"
+        # Exclude tests directory from coverage
+        PYTEST_ARGS="$PYTEST_ARGS --cov=$WEBSERVER_DIR --cov-report=term"
+        PYTEST_ARGS="$PYTEST_ARGS --cov-config=$SCRIPT_DIR/.coveragerc"
         if [ "$HTML_REPORT" = true ]; then
-            COVERAGE_ARGS="$COVERAGE_ARGS --html"
+            PYTEST_ARGS="$PYTEST_ARGS --cov-report=html:$SCRIPT_DIR/htmlcov"
         fi
-        python3 test_self.py $COVERAGE_ARGS
-    else
-        python3 test_self.py
     fi
     
+    # Exclude test_api.py from pytest (it's a standalone script)
+    python3 -m pytest "$SCRIPT_DIR" $PYTEST_ARGS --ignore="$SCRIPT_DIR/test_api.py" --ignore="$SCRIPT_DIR/js"
+    
     UNIT_RESULT=$?
+    
     if [ $UNIT_RESULT -eq 0 ]; then
         TOTAL_PASSED=$((TOTAL_PASSED + 1))
     else
@@ -126,7 +132,7 @@ if [ "$RUN_API" = true ]; then
     # Start server if requested
     if [ "$START_SERVER" = true ]; then
         echo -e "${YELLOW}Starting server on port $SERVER_PORT...${NC}"
-        python3 main.py --port $SERVER_PORT &
+        python3 "$WEBSERVER_DIR/main.py" --port $SERVER_PORT &
         SERVER_PID=$!
         sleep 2  # Wait for server to start
         
@@ -139,7 +145,7 @@ if [ "$RUN_API" = true ]; then
     fi
     
     # Run API tests
-    python3 test_api.py --port $SERVER_PORT
+    python3 "$SCRIPT_DIR/test_api.py" --port $SERVER_PORT
     API_RESULT=$?
     
     # Stop server if we started it

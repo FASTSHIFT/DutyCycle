@@ -30,7 +30,6 @@ def safe_print(msg):
     try:
         print(msg)
     except UnicodeEncodeError:
-        # Fallback: replace emoji with ASCII equivalents
         replacements = {
             "📦": "[*]",
             "✅": "[PASS]",
@@ -78,11 +77,7 @@ def check_test(name, condition, msg=""):
 
 
 def test_server_alive():
-    """Test if server is running.
-
-    Returns:
-        True if server is responding, False otherwise.
-    """
+    """Test if server is running."""
     safe_print("\n📦 Testing Server Connection...")
 
     result = api("/status")
@@ -480,17 +475,7 @@ def test_motor_unit_config():
 
 
 def test_post_empty_body():
-    """Test POST requests with empty body (regression test for 400 Bad Request bug).
-
-    Bug description:
-        When making POST requests without a body (data=None), the browser's fetch API
-        sends a request with Content-Type: application/json but no body. Flask's
-        request.json then fails to parse the empty body and returns 400 Bad Request.
-
-    Fix:
-        The frontend api() function now always sends a body for non-GET requests,
-        even if it's just an empty object {}.
-    """
+    """Test POST requests with empty body (regression test)."""
     safe_print("\n📦 Testing POST Empty Body (regression test)...")
 
     # Test various endpoints that should accept empty body
@@ -512,11 +497,7 @@ def test_post_empty_body():
         )
 
     # Test that Content-Type header doesn't cause issues
-    # This simulates what the browser does when calling api('/disconnect', 'POST')
-    # without passing data
     try:
-        import urllib.request
-
         url = BASE_URL + "/api/disconnect"
         headers = {"Content-Type": "application/json"}
         req = urllib.request.Request(url, data=b"{}", headers=headers, method="POST")
@@ -566,14 +547,12 @@ def test_clock_sync_api():
 
     # Test POST /clock endpoint (manual sync)
     result = api("/clock", "POST", {})
-    # This may fail if not connected, but should not return 400
     check_test(
         "POST /clock accepts request",
         "success" in result or "error" in result,
         "Invalid response format",
     )
     if not result.get("success"):
-        # Expected to fail if not connected
         check_test(
             "POST /clock error is reasonable",
             "connect" in result.get("error", "").lower()
