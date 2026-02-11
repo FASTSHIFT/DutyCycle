@@ -112,16 +112,8 @@ class TestSetupClockSyncTimer:
 class TestGetDeviceFromRequest:
     """Test get_device_from_request function."""
 
-    def test_get_device_from_request_default(self, app):
-        """Test get_device_from_request returns active device."""
-        from routes import get_device_from_request
-
-        with app.test_request_context("/"):
-            device = get_device_from_request()
-            assert device is not None
-
-    def test_get_device_from_request_with_id(self, app):
-        """Test get_device_from_request with device_id param."""
+    def test_get_device_from_request_with_query_param(self, app):
+        """Test get_device_from_request with device_id query param."""
         from routes import get_device_from_request
         from state import state
 
@@ -132,3 +124,34 @@ class TestGetDeviceFromRequest:
             device = get_device_from_request()
             assert device is not None
             assert device.device_id == device_id
+
+    def test_get_device_from_request_with_json(self, app):
+        """Test get_device_from_request with JSON body."""
+        from routes import get_device_from_request
+        from state import state
+        import json
+
+        # Get first device ID
+        device_id = list(state.devices.keys())[0]
+
+        with app.test_request_context(
+            "/",
+            method="POST",
+            data=json.dumps({"device_id": device_id}),
+            content_type="application/json",
+        ):
+            device = get_device_from_request()
+            assert device is not None
+            assert device.device_id == device_id
+
+    def test_get_device_from_request_default(self, app):
+        """Test get_device_from_request returns active device when no device_id."""
+        from routes import get_device_from_request
+        from state import state
+
+        with app.test_request_context(
+            "/", method="POST", content_type="application/json", data="{}"
+        ):
+            device = get_device_from_request()
+            assert device is not None
+            assert device.device_id == state.active_device_id

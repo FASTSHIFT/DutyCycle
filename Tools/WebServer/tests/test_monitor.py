@@ -653,8 +653,13 @@ class TestGetAudioLevelChannel:
 
     def test_get_audio_level_channel_left(self):
         """Test get_audio_level_channel for left channel."""
-        from monitor import get_audio_level_channel
+        from monitor import get_audio_level_channel, sc
         from state import DeviceState
+
+        # Skip if soundcard not available
+        if sc is None:
+            return
+
         import numpy as np
 
         device = DeviceState("test", "Test")
@@ -673,8 +678,13 @@ class TestGetAudioLevelChannel:
 
     def test_get_audio_level_channel_right(self):
         """Test get_audio_level_channel for right channel."""
-        from monitor import get_audio_level_channel
+        from monitor import get_audio_level_channel, sc
         from state import DeviceState
+
+        # Skip if soundcard not available
+        if sc is None:
+            return
+
         import numpy as np
 
         device = DeviceState("test", "Test")
@@ -692,8 +702,13 @@ class TestGetAudioLevelChannel:
 
     def test_get_audio_level_channel_mix(self):
         """Test get_audio_level_channel for mix channel."""
-        from monitor import get_audio_level_channel
+        from monitor import get_audio_level_channel, sc
         from state import DeviceState
+
+        # Skip if soundcard not available
+        if sc is None:
+            return
+
         import numpy as np
 
         device = DeviceState("test", "Test")
@@ -711,8 +726,13 @@ class TestGetAudioLevelChannel:
 
     def test_get_audio_level_channel_empty_data(self):
         """Test get_audio_level_channel with empty data."""
-        from monitor import get_audio_level_channel
+        from monitor import get_audio_level_channel, sc
         from state import DeviceState
+
+        # Skip if soundcard not available
+        if sc is None:
+            return
+
         import numpy as np
 
         device = DeviceState("test", "Test")
@@ -727,8 +747,13 @@ class TestGetAudioLevelChannel:
 
     def test_get_audio_level_channel_silent(self):
         """Test get_audio_level_channel with silent audio."""
-        from monitor import get_audio_level_channel
+        from monitor import get_audio_level_channel, sc
         from state import DeviceState
+
+        # Skip if soundcard not available
+        if sc is None:
+            return
+
         import numpy as np
 
         device = DeviceState("test", "Test")
@@ -746,8 +771,12 @@ class TestGetAudioLevelChannel:
 
     def test_get_audio_level_channel_exception(self):
         """Test get_audio_level_channel with exception."""
-        from monitor import get_audio_level_channel
+        from monitor import get_audio_level_channel, sc
         from state import DeviceState
+
+        # Skip if soundcard not available
+        if sc is None:
+            return
 
         device = DeviceState("test", "Test")
         mock_recorder = MagicMock()
