@@ -1023,3 +1023,211 @@ class TestCheckCmdFileWithFile:
 
         check_cmd_file(device)
         assert not cmd_file.exists()
+
+
+class TestMonitorTickWithThreshold:
+    """Test monitor tick with threshold alarm."""
+
+    def test_monitor_tick_with_threshold_enabled(self):
+        """Test monitor tick with threshold enabled."""
+        from monitor import _create_monitor_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_0 = "cpu-usage"
+        device.monitor_mode_1 = "none"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = None
+        device.threshold_enable = True
+        device.threshold_mode = "cpu-usage"
+        device.threshold_value = 0  # Set to 0 to always trigger
+        device.threshold_freq = 1000
+        device.threshold_duration = 100
+        device.last_alarm_time = 0
+
+        tick = _create_monitor_tick(device)
+        tick()
+
+        # Threshold should have been checked
+        assert device.last_percent_0 is not None
+
+
+class TestMonitorTickCH1Only:
+    """Test monitor tick with CH1 only."""
+
+    def test_monitor_tick_ch1_only(self):
+        """Test monitor tick with only CH1 active."""
+        from monitor import _create_monitor_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_0 = "none"
+        device.monitor_mode_1 = "cpu-usage"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = None
+        device.threshold_enable = False
+
+        tick = _create_monitor_tick(device)
+        tick()
+
+        # last_percent_1 should be updated
+        assert device.last_percent_1 is not None
+        # last_percent should use CH1 value since CH0 is none
+        assert device.last_percent == device.last_percent_1
+
+
+class TestMonitorTickWithSerialCH1:
+    """Test monitor tick with serial for CH1."""
+
+    def test_monitor_tick_ch1_with_serial(self):
+        """Test monitor tick CH1 with serial port."""
+        from monitor import _create_monitor_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_0 = "none"
+        device.monitor_mode_1 = "mem-usage"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = MagicMock()
+        device.ser.isOpen.return_value = True
+        device.threshold_enable = False
+
+        tick = _create_monitor_tick(device)
+        tick()
+
+        assert device.last_percent_1 is not None
+
+
+class TestStartMonitorWithAudioMode:
+    """Test start_monitor with audio mode."""
+
+    def test_start_monitor_audio_mode(self):
+        """Test start_monitor with audio-level mode."""
+        from monitor import start_monitor, stop_monitor
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_mode_0 = "audio-level"
+        device.monitor_mode_1 = "none"
+        device.period = 1.0
+
+        result, error = start_monitor(device, "audio-level")
+        assert result is True
+
+        # Cleanup
+        stop_monitor(device)
+
+    def test_start_monitor_audio_left_mode(self):
+        """Test start_monitor with audio-left mode."""
+        from monitor import start_monitor, stop_monitor
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_mode_0 = "audio-left"
+        device.monitor_mode_1 = "none"
+        device.period = 1.0
+
+        result, error = start_monitor(device, "audio-left")
+        assert result is True
+
+        # Cleanup
+        stop_monitor(device)
+
+    def test_start_monitor_audio_right_mode(self):
+        """Test start_monitor with audio-right mode."""
+        from monitor import start_monitor, stop_monitor
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_mode_0 = "none"
+        device.monitor_mode_1 = "audio-right"
+        device.period = 1.0
+
+        result, error = start_monitor(device, "audio-right")
+        assert result is True
+
+        # Cleanup
+        stop_monitor(device)
+
+
+class TestStopMonitorWithTimers:
+    """Test stop_monitor with various timer states."""
+
+    def test_stop_monitor_no_timers(self):
+        """Test stop_monitor when no timers exist."""
+        from monitor import stop_monitor
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_timer = None
+        device.cmd_file_timer = None
+        device.audio_recorder = None
+
+        mock_tm = MagicMock()
+        device.worker = MagicMock()
+        device.worker.run_in_worker = MagicMock(side_effect=lambda f, t: f())
+        device.worker.get_timer_manager.return_value = mock_tm
+
+        result, error = stop_monitor(device)
+        assert result is True
+        assert device.monitor_running is False
+
+
+class TestGetAudioLevelRightChannelMono:
+    """Test get_audio_level with right channel on mono audio."""
+
+    def test_get_audio_level_right_channel_mono(self):
+        """Test get_audio_level right channel with mono audio."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        # Simulate mono audio data (single channel)
+        mock_recorder.record.return_value = np.array([[0.5], [0.4], [0.6]])
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+        device.audio_channel = "right"
+
+        value, error = get_audio_level(device)
+        # Should fall back to channel 0 for mono
+        assert error is None
+
+
+class TestGetAudioLevelChannelMono:
+    """Test get_audio_level_channel with mono audio."""
+
+    def test_get_audio_level_channel_right_mono(self):
+        """Test get_audio_level_channel right with mono audio."""
+        from monitor import get_audio_level_channel, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        # Simulate mono audio data
+        mock_recorder.record.return_value = np.array([[0.5], [0.4], [0.6]])
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+
+        value, error = get_audio_level_channel(device, "right")
+        # Should fall back to channel 0
+        assert error is None

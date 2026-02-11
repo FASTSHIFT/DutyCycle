@@ -261,3 +261,63 @@ class TestRestoreState:
         device.auto_connect = False
         device.auto_monitor = False
         device.ser = None
+
+    @patch("main.start_monitor")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_monitor_failed(
+        self, mock_serial_open, mock_start_worker, mock_start_monitor
+    ):
+        """Test restore_state when monitor start fails."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+        mock_start_monitor.return_value = (False, "Monitor failed")
+
+        # Setup device for auto-connect and auto-monitor
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_monitor = True
+        device.auto_monitor_mode = "cpu-usage"
+
+        restore_state()
+
+        mock_start_monitor.assert_called()
+
+        # Cleanup
+        device.auto_connect = False
+        device.auto_monitor = False
+        device.ser = None
+
+    @patch("main.start_monitor")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_no_auto_monitor_mode(
+        self, mock_serial_open, mock_start_worker, mock_start_monitor
+    ):
+        """Test restore_state when auto_monitor_mode is empty."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+
+        # Setup device for auto-connect but no auto_monitor_mode
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_monitor = True
+        device.auto_monitor_mode = None
+
+        restore_state()
+
+        # Should not try to start monitor
+        mock_start_monitor.assert_not_called()
+
+        # Cleanup
+        device.auto_connect = False
+        device.auto_monitor = False
+        device.ser = None

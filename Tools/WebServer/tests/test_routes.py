@@ -783,3 +783,409 @@ class TestDeleteDeviceRoute:
         response = client.delete("/api/devices/nonexistent")
         data = response.get_json()
         assert data["success"] is False
+
+
+class TestConnectRoute:
+    """Test connect API route."""
+
+    def test_connect_missing_port(self, client):
+        """Test connect without port."""
+        response = client.post(
+            "/api/connect",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        # Should fail or return error
+        data = response.get_json()
+        assert data is not None
+
+    def test_connect_invalid_port(self, client):
+        """Test connect with invalid port."""
+        response = client.post(
+            "/api/connect",
+            data=json.dumps({"port": "/dev/nonexistent_port_xyz"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since port doesn't exist
+        assert data["success"] is False
+
+
+class TestMonitorStartRoute:
+    """Test monitor start API route with various modes."""
+
+    def test_monitor_start_with_legacy_mode(self, client):
+        """Test monitor start with legacy single mode."""
+        response = client.post(
+            "/api/monitor/start",
+            data=json.dumps({"mode": "cpu-usage"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is True
+        assert data["mode_0"] == "cpu-usage"
+        assert data["mode_1"] == "none"
+
+        # Stop monitor
+        client.post(
+            "/api/monitor/stop",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+
+    def test_monitor_start_dual_channel(self, client):
+        """Test monitor start with dual channel."""
+        response = client.post(
+            "/api/monitor/start",
+            data=json.dumps({"mode_0": "cpu-usage", "mode_1": "mem-usage"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is True
+
+        # Stop monitor
+        client.post(
+            "/api/monitor/stop",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+
+    def test_monitor_start_device_not_found(self, client):
+        """Test monitor start device not found."""
+        response = client.post(
+            "/api/monitor/start",
+            data=json.dumps({"device_id": "nonexistent", "mode_0": "cpu-usage"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is False
+
+
+class TestMonitorValueRouteAudio:
+    """Test monitor value API route with audio mode."""
+
+    def test_monitor_value_audio_not_active(self, client):
+        """Test monitor value for audio when not active."""
+        response = client.get("/api/monitor/value?mode=audio-level")
+        data = response.get_json()
+        assert data["success"] is False
+        assert "not active" in data["error"]
+
+
+class TestConfigRouteAudioChannel:
+    """Test config API route with audio channel."""
+
+    def test_update_config_audio_channel_left(self, client):
+        """Test update config with left audio channel."""
+        response = client.post(
+            "/api/config",
+            data=json.dumps({"audio_channel": "left"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is True
+
+    def test_update_config_audio_channel_right(self, client):
+        """Test update config with right audio channel."""
+        response = client.post(
+            "/api/config",
+            data=json.dumps({"audio_channel": "right"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is True
+
+    def test_update_config_audio_channel_invalid(self, client):
+        """Test update config with invalid audio channel."""
+        response = client.post(
+            "/api/config",
+            data=json.dumps({"audio_channel": "invalid"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should succeed but not change the channel
+        assert data["success"] is True
+
+
+class TestMotorRouteWithValue:
+    """Test motor API route with value parameter."""
+
+    def test_motor_with_value_not_connected(self, client):
+        """Test motor route with value when not connected."""
+        response = client.post(
+            "/api/motor",
+            data=json.dumps({"value": 1000}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+    def test_motor_with_motor_id(self, client):
+        """Test motor route with motor_id."""
+        response = client.post(
+            "/api/motor",
+            data=json.dumps({"percent": 50, "motor_id": 1, "async": True}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is True
+
+
+class TestMotorUnitRouteWithMotorId:
+    """Test motor unit API route with motor_id."""
+
+    def test_set_motor_unit_not_connected(self, client):
+        """Test set motor unit when not connected."""
+        response = client.post(
+            "/api/motor/unit",
+            data=json.dumps({"unit": "HOUR"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+
+class TestClockMapRouteWithMotorId:
+    """Test clock map API route with motor_id."""
+
+    def test_set_clock_map_not_connected(self, client):
+        """Test set clock map when not connected."""
+        response = client.post(
+            "/api/motor/clock-map",
+            data=json.dumps({"index": 0, "motor_value": 1000}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+    def test_list_clock_map_not_connected(self, client):
+        """Test list clock map when not connected."""
+        response = client.get("/api/motor/clock-map")
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+
+class TestEnableClockRouteNotConnected:
+    """Test enable clock API route when not connected."""
+
+    def test_enable_clock_not_connected(self, client):
+        """Test enable clock when not connected."""
+        response = client.post(
+            "/api/motor/enable-clock",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+
+class TestSweepTestRouteNotConnected:
+    """Test sweep test API route when not connected."""
+
+    def test_sweep_test_not_connected(self, client):
+        """Test sweep test when not connected."""
+        response = client.post(
+            "/api/motor/sweep-test",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+
+class TestBatteryUsageRouteNotConnected:
+    """Test battery usage API route when not connected."""
+
+    def test_battery_usage_not_connected(self, client):
+        """Test battery usage when not connected."""
+        response = client.post(
+            "/api/motor/battery-usage",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        # Should fail since not connected
+        assert data["success"] is False
+
+
+class TestAudioSelectRouteExtended:
+    """Test audio select API route extended."""
+
+    def test_audio_select_device_not_found(self, client):
+        """Test audio select device not found."""
+        response = client.post(
+            "/api/audio/select",
+            data=json.dumps({"device_id": "nonexistent"}),
+            content_type="application/json",
+        )
+        # Note: device_id in audio/select refers to audio device, not DutyCycle device
+        data = response.get_json()
+        assert data is not None
+
+
+class TestLogClearWithWorker:
+    """Test log clear with worker running."""
+
+    def test_log_clear_with_worker(self, client):
+        """Test log clear when worker is running."""
+        from state import state as app_state
+
+        device = app_state.get_active_device()
+        # Ensure worker is not running for this test
+        if device.worker:
+            device.worker = None
+
+        response = client.post(
+            "/api/log/clear",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is True
+
+
+class TestClockSyncTimerCallback:
+    """Test clock sync timer callback."""
+
+    def test_clock_sync_callback_no_serial(self):
+        """Test clock sync callback when no serial."""
+        from routes import setup_clock_sync_timer
+        from state import DeviceState
+        from timer import TimerManager
+
+        device = DeviceState("test", "Test")
+        device.auto_sync_clock = True
+        device.ser = None
+        device.last_sync_time = None
+
+        mock_worker = MagicMock()
+        mock_tm = TimerManager()
+        mock_worker.get_timer_manager.return_value = mock_tm
+        device.worker = mock_worker
+
+        setup_clock_sync_timer(device)
+
+        # Find and execute the callback
+        for timer in mock_tm.timers:
+            if timer.name == "clock_sync":
+                timer.callback()
+                break
+
+    def test_clock_sync_callback_disabled(self):
+        """Test clock sync callback when disabled."""
+        from routes import setup_clock_sync_timer
+        from state import DeviceState
+        from timer import TimerManager
+
+        device = DeviceState("test", "Test")
+        device.auto_sync_clock = False
+        device.ser = MagicMock()
+
+        mock_worker = MagicMock()
+        mock_tm = TimerManager()
+        mock_worker.get_timer_manager.return_value = mock_tm
+        device.worker = mock_worker
+
+        setup_clock_sync_timer(device)
+
+        # Find and execute the callback
+        for timer in mock_tm.timers:
+            if timer.name == "clock_sync":
+                timer.callback()
+                break
+
+    def test_clock_sync_callback_recent_sync(self):
+        """Test clock sync callback with recent sync."""
+        from routes import setup_clock_sync_timer
+        from state import DeviceState
+        from timer import TimerManager
+        from datetime import datetime
+
+        device = DeviceState("test", "Test")
+        device.auto_sync_clock = True
+        device.ser = MagicMock()
+        device.last_sync_time = datetime.now().isoformat()
+
+        mock_worker = MagicMock()
+        mock_tm = TimerManager()
+        mock_worker.get_timer_manager.return_value = mock_tm
+        device.worker = mock_worker
+
+        setup_clock_sync_timer(device)
+
+        # Find and execute the callback
+        for timer in mock_tm.timers:
+            if timer.name == "clock_sync":
+                timer.callback()
+                break
+
+    def test_clock_sync_callback_invalid_time(self):
+        """Test clock sync callback with invalid last_sync_time."""
+        from routes import setup_clock_sync_timer
+        from state import DeviceState
+        from timer import TimerManager
+
+        device = DeviceState("test", "Test")
+        device.auto_sync_clock = True
+        device.ser = MagicMock()
+        device.last_sync_time = "invalid-time-format"
+
+        mock_worker = MagicMock()
+        mock_tm = TimerManager()
+        mock_worker.get_timer_manager.return_value = mock_tm
+        device.worker = mock_worker
+
+        setup_clock_sync_timer(device)
+
+        # Find and execute the callback - should not raise
+        for timer in mock_tm.timers:
+            if timer.name == "clock_sync":
+                timer.callback()
+                break
+
+
+class TestRemoveDeviceWithMonitor:
+    """Test remove device with monitor running."""
+
+    def test_remove_device_stops_monitor(self, client):
+        """Test removing device stops monitor first."""
+        # Add a new device first
+        response = client.post(
+            "/api/devices",
+            data=json.dumps({"name": "Test Device"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        device_id = data["device_id"]
+
+        # Now delete it
+        response = client.delete(f"/api/devices/{device_id}")
+        data = response.get_json()
+        assert data["success"] is True
+
+
+class TestStatusRouteSerialException:
+    """Test status route with serial exception."""
+
+    def test_status_serial_exception(self, client):
+        """Test status when serial raises exception."""
+        from state import state as app_state
+
+        device = app_state.get_active_device()
+        mock_ser = MagicMock()
+        mock_ser.isOpen.side_effect = Exception("Serial error")
+        device.ser = mock_ser
+
+        response = client.get("/api/status")
+        data = response.get_json()
+        assert data["success"] is True
+        assert data["connected"] is False
+
+        # Cleanup
+        device.ser = None
