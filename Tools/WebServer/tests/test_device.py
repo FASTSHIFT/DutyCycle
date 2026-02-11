@@ -8,6 +8,7 @@ Device command tests.
 """
 
 import time
+from unittest.mock import MagicMock
 
 
 class TestMapValue:
@@ -42,6 +43,28 @@ class TestMapValue:
         from device import map_value
 
         assert map_value(-50, 0, 100, 0, 1000) == 0
+
+    def test_map_value_inverted_range(self):
+        """Test map_value with inverted input range."""
+        from device import map_value
+
+        # When in_max < in_min (inverted)
+        result = map_value(50, 100, 0, 0, 1000)
+        assert result == 500
+
+    def test_map_value_inverted_at_in_min(self):
+        """Test inverted range when value >= in_min."""
+        from device import map_value
+
+        result = map_value(100, 100, 0, 0, 1000)
+        assert result == 0
+
+    def test_map_value_inverted_at_in_max(self):
+        """Test inverted range when value <= in_max."""
+        from device import map_value
+
+        result = map_value(0, 100, 0, 0, 1000)
+        assert result == 1000
 
 
 class TestValidUnits:
@@ -137,6 +160,13 @@ class TestDeviceCommandsWithoutSerial:
         _, error = show_battery_usage(mock_device)
         assert error == "Serial port not opened"
 
+    def test_config_clock_without_serial(self, mock_device):
+        """Test config_clock returns error without serial."""
+        from device import config_clock
+
+        _, error = config_clock(mock_device)
+        assert error == "Serial port not opened"
+
     def test_set_motor_unit_invalid_unit(self, mock_device_with_serial):
         """Test set_motor_unit with invalid unit returns error."""
         from device import set_motor_unit
@@ -144,6 +174,64 @@ class TestDeviceCommandsWithoutSerial:
         _, error = set_motor_unit(mock_device_with_serial, "INVALID")
         assert error is not None
         assert "Invalid unit" in error
+
+
+class TestSetMotorValueAsync:
+    """Test set_motor_value async mode."""
+
+    def test_set_motor_value_async(self):
+        """Test set_motor_value in async mode."""
+        from device import set_motor_value
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.ser = MagicMock()
+        device.worker = MagicMock()
+
+        result, error = set_motor_value(device, 500, async_mode=True)
+        assert result is None
+        assert error is None
+
+    def test_set_motor_percent_async(self):
+        """Test set_motor_percent in async mode."""
+        from device import set_motor_percent
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.ser = MagicMock()
+        device.worker = MagicMock()
+
+        result, error = set_motor_percent(device, 50, async_mode=True)
+        assert result is None
+        assert error is None
+
+
+class TestSetMotorValueImmediate:
+    """Test set_motor_value immediate mode."""
+
+    def test_set_motor_value_immediate(self, device_worker):
+        """Test set_motor_value with immediate flag."""
+        from device import set_motor_value
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        set_motor_value(device, 500, immediate=True)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "-I" in device._written_commands[-1]
+
+    def test_set_motor_percent_immediate(self, device_worker):
+        """Test set_motor_percent with immediate flag."""
+        from device import set_motor_percent
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        set_motor_percent(device, 50, immediate=True)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "-I" in device._written_commands[-1]
 
 
 class TestMotorIdHandling:
@@ -257,6 +345,30 @@ class TestMotorIdHandling:
         assert len(device._written_commands) > 0
         assert "--id 1" in device._written_commands[-1]
 
+    def test_list_clock_map_motor_id_0(self, device_worker):
+        """Test list_clock_map motor_id=0: no --id."""
+        from device import list_clock_map
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        list_clock_map(device, motor_id=0)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "--id" not in device._written_commands[-1]
+
+    def test_list_clock_map_motor_id_1(self, device_worker):
+        """Test list_clock_map motor_id=1: --id 1."""
+        from device import list_clock_map
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        list_clock_map(device, motor_id=1)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "--id 1" in device._written_commands[-1]
+
     def test_sweep_test_motor_id_0(self, device_worker):
         """Test sweep_test motor_id=0: no --id."""
         from device import sweep_test
@@ -280,3 +392,78 @@ class TestMotorIdHandling:
 
         assert len(device._written_commands) > 0
         assert "--id 1" in device._written_commands[-1]
+
+    def test_show_battery_usage_motor_id_0(self, device_worker):
+        """Test show_battery_usage motor_id=0: no --id."""
+        from device import show_battery_usage
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        show_battery_usage(device, motor_id=0)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "--id" not in device._written_commands[-1]
+
+    def test_show_battery_usage_motor_id_1(self, device_worker):
+        """Test show_battery_usage motor_id=1: --id 1."""
+        from device import show_battery_usage
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        show_battery_usage(device, motor_id=1)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "--id 1" in device._written_commands[-1]
+
+
+class TestConfigClock:
+    """Test config_clock function."""
+
+    def test_config_clock_command_format(self, device_worker):
+        """Test config_clock sends correct command format."""
+        from device import config_clock
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        config_clock(device)
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        cmd = device._written_commands[-1]
+        assert "clock -c SET" in cmd
+        assert "-y" in cmd
+        assert "-m" in cmd
+        assert "-d" in cmd
+        assert "-H" in cmd
+        assert "-M" in cmd
+        assert "-S" in cmd
+
+
+class TestSetMotorUnitCaseInsensitive:
+    """Test set_motor_unit case handling."""
+
+    def test_set_motor_unit_lowercase(self, device_worker):
+        """Test set_motor_unit with lowercase unit."""
+        from device import set_motor_unit
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        set_motor_unit(device, "hour")
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "--unit HOUR" in device._written_commands[-1]
+
+    def test_set_motor_unit_mixed_case(self, device_worker):
+        """Test set_motor_unit with mixed case unit."""
+        from device import set_motor_unit
+
+        device, worker = device_worker
+        device._written_commands.clear()
+        set_motor_unit(device, "Minute")
+        time.sleep(0.1)
+
+        assert len(device._written_commands) > 0
+        assert "--unit MINUTE" in device._written_commands[-1]
