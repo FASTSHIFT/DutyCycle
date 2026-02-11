@@ -1,4 +1,8 @@
 // DutyCycle Studio JavaScript
+/* eslint-disable no-unused-vars */
+
+// 模块导出支持 (用于测试覆盖率)
+const isNode = typeof module !== 'undefined' && module.exports;
 
 let isConnected = false;
 let isMonitoring = false;
@@ -1779,4 +1783,175 @@ function onMusicIdChange() {
       composerCard.classList.add('disabled-card');
     }
   }
+}
+
+// ===================== 模块导出 (用于测试覆盖率) =====================
+if (isNode) {
+  module.exports = {
+    // 状态变量
+    get isConnected() {
+      return isConnected;
+    },
+    set isConnected(v) {
+      isConnected = v;
+    },
+    get isMonitoring() {
+      return isMonitoring;
+    },
+    set isMonitoring(v) {
+      isMonitoring = v;
+    },
+    get activeDeviceId() {
+      return activeDeviceId;
+    },
+    set activeDeviceId(v) {
+      activeDeviceId = v;
+    },
+    get devices() {
+      return devices;
+    },
+    set devices(v) {
+      devices = v;
+    },
+    get channelUnits() {
+      return channelUnits;
+    },
+    get channelValues() {
+      return channelValues;
+    },
+    get channelMonitorModes() {
+      return channelMonitorModes;
+    },
+    get channelPeriods() {
+      return channelPeriods;
+    },
+    get composerNotes() {
+      return composerNotes;
+    },
+    set composerNotes(v) {
+      composerNotes = v;
+    },
+
+    // 工具函数
+    sleep,
+
+    // Section/UI 函数
+    toggleSection,
+    loadSectionStates,
+    toggleAdvancedSettings,
+    loadAdvancedSettingsState,
+    onAdvancedModeChange,
+    loadAdvancedModeState,
+
+    // API 函数
+    api,
+
+    // 设备管理
+    initDevices,
+    saveDeviceToBackend,
+    setActiveDevice,
+    renderDeviceTabs,
+    switchDevice,
+    addDevice,
+    updateDeviceConnectionStatus,
+    showDeviceSettings,
+    closeDeviceSettings,
+    saveDeviceSettings,
+    deleteCurrentDevice,
+
+    // 连接函数
+    refreshPorts,
+    refreshAudioDevices,
+    onAudioDeviceChange,
+    refreshStatus,
+    updateUI,
+    toggleConnect,
+
+    // 时钟函数
+    syncClock,
+    updateLastSyncTime,
+    onAutoSyncChange,
+    onImmediateModeChange,
+
+    // 电机控制
+    initDualChannelUI,
+    loadMotorUnitConfig,
+    onUnitChange,
+    initClockMapHourSelect,
+    updateClockMapHourOptions,
+    setClockMap,
+    listClockMap,
+    sweepTest,
+    enableClockMap,
+    updateConfig,
+    onMotorSliderInput,
+    updatePwmDisplay,
+    animateSlider,
+    setMotor,
+
+    // 监控函数
+    hasAudioMode,
+    updateAudioSettingsVisibility,
+    onMonitorModeChange,
+    onAudioDbRangeChange,
+    onPeriodChange,
+    updateMonitorConfig,
+    toggleMonitor,
+    startMonitorLoop,
+    stopMonitorLoop,
+    onThresholdChange,
+    onCmdFileChange,
+
+    // 配置函数
+    loadCheckboxStates,
+    loadThresholdSettings,
+    saveThresholdSettings,
+    loadMonitorConfig,
+    refreshMonitorModes,
+
+    // 终端函数
+    initTerminal,
+    sendTerminalCommand,
+    clearTerminal,
+
+    // 日志函数
+    startLogPolling,
+    fetchLogs,
+    clearLog,
+
+    // 闹钟函数
+    alarmCmd,
+    alarmSet,
+    alarmList,
+    alarmSetFilter,
+    alarmPlayHourly,
+    alarmListMusic,
+    alarmPlayMusic,
+    alarmClearMusic,
+    alarmSaveMusic,
+    alarmDelete,
+    alarmSetMusic,
+    alarmPlayTone,
+
+    // 编曲器
+    PITCH_DATA,
+    PITCH_NAMES,
+    BEAT_NAMES,
+    populatePitchSelect,
+    initComposer,
+    renderNoteGrid,
+    selectNote,
+    highlightSelectedNote,
+    loadNoteToEditor,
+    onNoteEditorChange,
+    getAudioContext,
+    stopAllOscillators,
+    playNoteLocal,
+    playAllLocal,
+    playNote,
+    composerClear,
+    composerUpload,
+    composerPlayAll,
+    onMusicIdChange,
+  };
 }

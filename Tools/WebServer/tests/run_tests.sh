@@ -22,8 +22,9 @@ echo -e "${BLUE}  DutyCycle WebServer Test Runner${NC}"
 echo -e "${BLUE}================================================${NC}"
 
 # Parse arguments
-RUN_UNIT=true
+RUN_UNIT=false
 RUN_API=false
+RUN_JS=false
 COVERAGE=false
 HTML_REPORT=false
 SERVER_PORT=5000
@@ -33,9 +34,10 @@ print_help() {
     echo "Usage: $0 [options]"
     echo ""
     echo "Options:"
-    echo "  --unit, -u         Run unit tests (default)"
+    echo "  --unit, -u         Run Python unit tests"
     echo "  --api, -a          Run API tests (requires server running)"
-    echo "  --all              Run all tests"
+    echo "  --js               Run JavaScript tests"
+    echo "  --all              Run all tests (Python + JS)"
     echo "  --coverage, -c     Run with coverage reporting"
     echo "  --html             Generate HTML coverage report"
     echo "  --port PORT        Server port for API tests (default: 5000)"
@@ -43,26 +45,36 @@ print_help() {
     echo "  --help, -h         Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0                          # Run unit tests"
-    echo "  $0 --api --port 5001        # Run API tests on port 5001"
+    echo "  $0 --unit                   # Run Python unit tests"
+    echo "  $0 --js --coverage          # Run JS tests with coverage"
     echo "  $0 --all --coverage --html  # Run all tests with HTML coverage"
-    echo "  $0 --all --start-server --port 5098  # Run all tests, auto-start server"
 }
+
+# Default to unit tests if no specific test type specified
+NO_TEST_TYPE=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --unit|-u)
             RUN_UNIT=true
+            NO_TEST_TYPE=false
             shift
             ;;
         --api|-a)
             RUN_API=true
-            RUN_UNIT=false
+            NO_TEST_TYPE=false
+            shift
+            ;;
+        --js)
+            RUN_JS=true
+            NO_TEST_TYPE=false
             shift
             ;;
         --all)
             RUN_UNIT=true
             RUN_API=true
+            RUN_JS=true
+            NO_TEST_TYPE=false
             shift
             ;;
         --coverage|-c)
@@ -93,12 +105,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Default to unit tests if no test type specified
+if [ "$NO_TEST_TYPE" = true ]; then
+    RUN_UNIT=true
+fi
+
 TOTAL_PASSED=0
 TOTAL_FAILED=0
 
-# Run unit tests with pytest
+# Run Python unit tests with pytest
 if [ "$RUN_UNIT" = true ]; then
-    echo -e "\n${GREEN}▶ Running Unit Tests (pytest)...${NC}\n"
+    echo -e "\n${GREEN}▶ Running Python Unit Tests (pytest)...${NC}\n"
     
     PYTEST_ARGS="-v"
     
@@ -120,6 +137,37 @@ if [ "$RUN_UNIT" = true ]; then
         TOTAL_PASSED=$((TOTAL_PASSED + 1))
     else
         TOTAL_FAILED=$((TOTAL_FAILED + 1))
+    fi
+fi
+
+# Run JavaScript tests with Jest
+if [ "$RUN_JS" = true ]; then
+    echo -e "\n${GREEN}▶ Running JavaScript Tests (Jest)...${NC}\n"
+    
+    JS_TEST_DIR="$SCRIPT_DIR/js"
+    
+    # Check if node_modules exists
+    if [ ! -d "$JS_TEST_DIR/node_modules" ]; then
+        echo -e "${YELLOW}Installing JS test dependencies...${NC}"
+        npm install --prefix "$JS_TEST_DIR"
+    fi
+    
+    JEST_ARGS=""
+    if [ "$COVERAGE" = true ]; then
+        JEST_ARGS="--coverage"
+    fi
+    
+    # Run Jest
+    npm test --prefix "$JS_TEST_DIR" -- $JEST_ARGS
+    
+    JS_RESULT=$?
+    
+    if [ $JS_RESULT -eq 0 ]; then
+        TOTAL_PASSED=$((TOTAL_PASSED + 1))
+        echo -e "\n${GREEN}✅ JavaScript tests passed${NC}"
+    else
+        TOTAL_FAILED=$((TOTAL_FAILED + 1))
+        echo -e "\n${RED}❌ JavaScript tests failed${NC}"
     fi
 fi
 

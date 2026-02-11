@@ -1,0 +1,17 @@
+{
+  "name": "dutycycle-webserver-tests",
+  "version": "1.0.0",
+  "description": "JavaScript tests for DutyCycle WebServer",
+  "scripts": {
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "babel-jest": "^29.7.0"
+  }
+}
