@@ -120,7 +120,13 @@ class TestGetDeviceFromRequest:
         # Get first device ID
         device_id = list(state.devices.keys())[0]
 
-        with app.test_request_context(f"/?device_id={device_id}"):
+        # Use POST with JSON content type to avoid 415 error
+        with app.test_request_context(
+            f"/?device_id={device_id}",
+            method="POST",
+            content_type="application/json",
+            data="{}",
+        ):
             device = get_device_from_request()
             assert device is not None
             assert device.device_id == device_id
