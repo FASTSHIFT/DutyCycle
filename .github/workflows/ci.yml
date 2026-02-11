@@ -44,7 +44,7 @@ jobs:
       - name: Run Python unit tests with coverage
         working-directory: Tools/WebServer
         run: |
-          bash tests/run_tests.sh --unit --coverage
+          bash tests/run_tests.sh --unit --coverage --min-coverage 80
 
   js-test:
     name: JavaScript Test

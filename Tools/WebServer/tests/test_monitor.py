@@ -610,6 +610,70 @@ class TestUpdateMonitorPeriod:
         mock_timer.set_interval.assert_called_once_with(0.5)
 
 
+class TestStartMonitor:
+    """Test start_monitor function."""
+
+    def test_start_monitor_cpu_mode(self):
+        """Test start_monitor with CPU mode."""
+        from monitor import start_monitor, stop_monitor
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_mode_0 = "cpu-usage"
+        device.monitor_mode_1 = "none"
+        device.period = 1.0
+
+        result, error = start_monitor(device, "cpu-usage")
+        assert result is True
+        assert error is None
+        assert device.monitor_running is True
+
+        # Cleanup
+        stop_monitor(device)
+
+
+class TestInitAudioMeter:
+    """Test init_audio_meter function."""
+
+    def test_init_audio_meter_no_soundcard(self):
+        """Test init_audio_meter when soundcard not available."""
+        from monitor import init_audio_meter, sc
+        from state import DeviceState
+
+        if sc is not None:
+            # Skip if soundcard is available
+            return
+
+        device = DeviceState("test", "Test")
+        result = init_audio_meter(device)
+        assert result is False
+
+
+class TestMapValue:
+    """Test map_value function from device module."""
+
+    def test_map_value_basic(self):
+        """Test basic value mapping."""
+        from device import map_value
+
+        result = map_value(50, 0, 100, 0, 1000)
+        assert result == 500
+
+    def test_map_value_min(self):
+        """Test mapping minimum value."""
+        from device import map_value
+
+        result = map_value(0, 0, 100, 500, 2500)
+        assert result == 500
+
+    def test_map_value_max(self):
+        """Test mapping maximum value."""
+        from device import map_value
+
+        result = map_value(100, 0, 100, 500, 2500)
+        assert result == 2500
+
+
 class TestGetAudioLevel:
     """Test get_audio_level function."""
 
@@ -786,3 +850,176 @@ class TestGetAudioLevelChannel:
         value, error = get_audio_level_channel(device, "left")
         assert value is None
         assert error is not None
+
+
+class TestGetAudioLevelWithChannel:
+    """Test get_audio_level with different channel settings."""
+
+    def test_get_audio_level_left_channel(self):
+        """Test get_audio_level with left channel."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        mock_recorder.record.return_value = np.array(
+            [[0.5, 0.3], [0.4, 0.2], [0.6, 0.4]]
+        )
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+        device.audio_channel = "left"
+
+        value, error = get_audio_level(device)
+        assert error is None
+
+    def test_get_audio_level_right_channel(self):
+        """Test get_audio_level with right channel."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        mock_recorder.record.return_value = np.array(
+            [[0.5, 0.3], [0.4, 0.2], [0.6, 0.4]]
+        )
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+        device.audio_channel = "right"
+
+        value, error = get_audio_level(device)
+        assert error is None
+
+    def test_get_audio_level_mix_channel(self):
+        """Test get_audio_level with mix channel."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        mock_recorder.record.return_value = np.array(
+            [[0.5, 0.3], [0.4, 0.2], [0.6, 0.4]]
+        )
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+        device.audio_channel = "mix"
+
+        value, error = get_audio_level(device)
+        assert error is None
+
+    def test_get_audio_level_empty_samples(self):
+        """Test get_audio_level with empty samples."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        mock_recorder.record.return_value = np.array([])
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+
+        value, error = get_audio_level(device)
+        assert value == 0 or error is None
+
+    def test_get_audio_level_silent(self):
+        """Test get_audio_level with silent audio."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        import numpy as np
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        mock_recorder.record.return_value = np.array(
+            [[0.00001, 0.00001], [0.00001, 0.00001]]
+        )
+        device.audio_recorder = mock_recorder
+        device.audio_db_min = -60
+        device.audio_db_max = 0
+
+        value, error = get_audio_level(device)
+        assert error is None
+        assert value == 0
+
+    def test_get_audio_level_exception(self):
+        """Test get_audio_level with exception."""
+        from monitor import get_audio_level, sc
+        from state import DeviceState
+
+        if sc is None:
+            return
+
+        device = DeviceState("test", "Test")
+        mock_recorder = MagicMock()
+        mock_recorder.record.side_effect = Exception("Record error")
+        device.audio_recorder = mock_recorder
+
+        value, error = get_audio_level(device)
+        assert value is None
+        assert error is not None
+
+
+class TestCheckCmdFileWithFile:
+    """Test check_cmd_file with actual file operations."""
+
+    def test_cmd_file_process(self, tmp_path):
+        """Test processing command file."""
+        from monitor import check_cmd_file
+        from state import DeviceState
+
+        # Create a temp command file
+        cmd_file = tmp_path / "cmd.txt"
+        cmd_file.write_text("test_command\n")
+
+        device = DeviceState("test", "Test")
+        device.cmd_file_enabled = True
+        device.cmd_file = str(cmd_file)
+        device.ser = MagicMock()
+        device.ser.isOpen.return_value = True
+
+        check_cmd_file(device)
+
+        # File should be removed after processing
+        assert not cmd_file.exists()
+
+    def test_cmd_file_with_crlf(self, tmp_path):
+        """Test processing command file with CRLF."""
+        from monitor import check_cmd_file
+        from state import DeviceState
+
+        cmd_file = tmp_path / "cmd.txt"
+        cmd_file.write_text("test_command\r\n")
+
+        device = DeviceState("test", "Test")
+        device.cmd_file_enabled = True
+        device.cmd_file = str(cmd_file)
+        device.ser = MagicMock()
+
+        check_cmd_file(device)
+        assert not cmd_file.exists()

@@ -29,6 +29,7 @@ COVERAGE=false
 HTML_REPORT=false
 SERVER_PORT=5000
 START_SERVER=false
+MIN_COVERAGE=0
 
 print_help() {
     echo "Usage: $0 [options]"
@@ -39,15 +40,17 @@ print_help() {
     echo "  --js               Run JavaScript tests"
     echo "  --all              Run all tests (Python + JS)"
     echo "  --coverage, -c     Run with coverage reporting"
+    echo "  --min-coverage N   Minimum coverage percentage required (default: 0, disabled)"
     echo "  --html             Generate HTML coverage report"
     echo "  --port PORT        Server port for API tests (default: 5000)"
     echo "  --start-server     Start server before API tests"
     echo "  --help, -h         Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --unit                   # Run Python unit tests"
-    echo "  $0 --js --coverage          # Run JS tests with coverage"
-    echo "  $0 --all --coverage --html  # Run all tests with HTML coverage"
+    echo "  $0 --unit                          # Run Python unit tests"
+    echo "  $0 --js --coverage                 # Run JS tests with coverage"
+    echo "  $0 --all --coverage --html         # Run all tests with HTML coverage"
+    echo "  $0 --unit --coverage --min-coverage 80  # Fail if coverage < 80%"
 }
 
 # Default to unit tests if no specific test type specified
@@ -81,6 +84,10 @@ while [[ $# -gt 0 ]]; do
             COVERAGE=true
             shift
             ;;
+        --min-coverage)
+            MIN_COVERAGE=$2
+            shift 2
+            ;;
         --html)
             HTML_REPORT=true
             shift
@@ -112,6 +119,7 @@ fi
 
 TOTAL_PASSED=0
 TOTAL_FAILED=0
+PY_COVERAGE=0
 
 # Run Python unit tests with pytest
 if [ "$RUN_UNIT" = true ]; then
@@ -129,14 +137,26 @@ if [ "$RUN_UNIT" = true ]; then
     fi
     
     # Exclude test_api.py from pytest (it's a standalone script)
-    python3 -m pytest "$SCRIPT_DIR" $PYTEST_ARGS --ignore="$SCRIPT_DIR/test_api.py" --ignore="$SCRIPT_DIR/js"
+    # Capture output to extract coverage percentage
+    set +e
+    PYTEST_OUTPUT=$(python3 -m pytest "$SCRIPT_DIR" $PYTEST_ARGS --ignore="$SCRIPT_DIR/test_api.py" --ignore="$SCRIPT_DIR/js" 2>&1)
+    PYTEST_EXIT_CODE=$?
+    set -e
+    echo "$PYTEST_OUTPUT"
     
-    UNIT_RESULT=$?
-    
-    if [ $UNIT_RESULT -eq 0 ]; then
+    # Check if tests passed based on exit code
+    if [ $PYTEST_EXIT_CODE -eq 0 ]; then
         TOTAL_PASSED=$((TOTAL_PASSED + 1))
     else
         TOTAL_FAILED=$((TOTAL_FAILED + 1))
+    fi
+    
+    # Extract coverage percentage from output (look for TOTAL line)
+    if [ "$COVERAGE" = true ]; then
+        PY_COVERAGE=$(echo "$PYTEST_OUTPUT" | grep "^TOTAL" | awk '{print $NF}' | tr -d '%')
+        if [ -n "$PY_COVERAGE" ]; then
+            echo -e "\n${BLUE}Python Coverage: ${PY_COVERAGE}%${NC}"
+        fi
     fi
 fi
 
@@ -214,6 +234,16 @@ fi
 echo -e "\n${BLUE}================================================${NC}"
 echo -e "${BLUE}  Final Summary${NC}"
 echo -e "${BLUE}================================================${NC}"
+
+# Check minimum coverage requirement
+if [ "$COVERAGE" = true ] && [ "$MIN_COVERAGE" -gt 0 ] && [ -n "$PY_COVERAGE" ]; then
+    if [ "$PY_COVERAGE" -lt "$MIN_COVERAGE" ]; then
+        echo -e "${RED}❌ Coverage ${PY_COVERAGE}% is below minimum ${MIN_COVERAGE}%${NC}"
+        TOTAL_FAILED=$((TOTAL_FAILED + 1))
+    else
+        echo -e "${GREEN}✅ Coverage ${PY_COVERAGE}% meets minimum ${MIN_COVERAGE}%${NC}"
+    fi
+fi
 
 if [ $TOTAL_FAILED -eq 0 ]; then
     echo -e "${GREEN}✅ All test suites passed!${NC}"
