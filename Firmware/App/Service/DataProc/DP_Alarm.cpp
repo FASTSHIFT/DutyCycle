@@ -88,7 +88,7 @@ private:
     int setAlarmMusic(const Alarm_Info_t* info);
     int playAlarmMusic(int musicID);
     int playAlarmHourlyMusic(int hour);
-    int playTone(uint32_t freq, uint32_t duration);
+    int playTone(int freq, int duration);
     void listAlarms();
     void listAlarmMusic();
 };
@@ -404,8 +404,13 @@ int DP_Alarm::playAlarmHourlyMusic(int hour)
     return _audio.play(AUDIO_HELPER_SEQ_DEF(_seq));
 }
 
-int DP_Alarm::playTone(uint32_t freq, uint32_t duration)
+int DP_Alarm::playTone(int freq, int duration)
 {
+    if (freq < 0 || duration < 0) {
+        HAL_LOG_WARN("Error input parameters: freq: %dHz, duration: %dms", freq, duration);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
     _seq[0].frequency = freq;
     _seq[0].duration = duration;
     return _audio.play(_seq, 1, 0, true);
