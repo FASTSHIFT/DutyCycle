@@ -8,7 +8,7 @@ Monitor module tests.
 """
 
 import time
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 class TestGetMonitorValue:
@@ -280,49 +280,56 @@ class TestCheckThresholdAlarm:
 
         device = DeviceState("test", "Test")
         device.threshold_enable = False
+        device.threshold_mode = "cpu-usage"
         # Should not raise any exception
-        check_threshold_alarm(device, 100, "cpu-usage")
+        check_threshold_alarm(device)
 
-    def test_threshold_mode_mismatch(self):
-        """Test when mode doesn't match threshold mode."""
+    def test_threshold_mode_none(self):
+        """Test when threshold mode is none."""
         from monitor import check_threshold_alarm
         from state import DeviceState
 
         device = DeviceState("test", "Test")
         device.threshold_enable = True
-        device.threshold_mode = "cpu-usage"
-        # Should not trigger alarm for different mode
-        check_threshold_alarm(device, 100, "mem-usage")
+        device.threshold_mode = "none"
+        # Should not trigger alarm
+        check_threshold_alarm(device)
 
-    def test_threshold_value_none(self):
-        """Test when value is None."""
+    @patch("monitor.get_monitor_value")
+    def test_threshold_value_none(self, mock_get_value):
+        """Test when get_monitor_value returns None."""
         from monitor import check_threshold_alarm
         from state import DeviceState
 
+        mock_get_value.return_value = (None, "Error")
         device = DeviceState("test", "Test")
         device.threshold_enable = True
         device.threshold_mode = "cpu-usage"
         # Should not raise any exception
-        check_threshold_alarm(device, None, "cpu-usage")
+        check_threshold_alarm(device)
 
-    def test_threshold_below_value(self):
+    @patch("monitor.get_monitor_value")
+    def test_threshold_below_value(self, mock_get_value):
         """Test when value is below threshold."""
         from monitor import check_threshold_alarm
         from state import DeviceState
 
+        mock_get_value.return_value = (50, None)
         device = DeviceState("test", "Test")
         device.threshold_enable = True
         device.threshold_mode = "cpu-usage"
         device.threshold_value = 80
         device.last_alarm_time = 0
         # Should not trigger alarm
-        check_threshold_alarm(device, 50, "cpu-usage")
+        check_threshold_alarm(device)
 
-    def test_threshold_triggered(self):
+    @patch("monitor.get_monitor_value")
+    def test_threshold_triggered(self, mock_get_value):
         """Test when threshold is exceeded."""
         from monitor import check_threshold_alarm
         from state import DeviceState
 
+        mock_get_value.return_value = (90, None)
         device = DeviceState("test", "Test")
         device.threshold_enable = True
         device.threshold_mode = "cpu-usage"
@@ -332,15 +339,17 @@ class TestCheckThresholdAlarm:
         device.last_alarm_time = 0
         device.ser = None  # No serial, but should still update last_alarm_time
 
-        check_threshold_alarm(device, 90, "cpu-usage")
+        check_threshold_alarm(device)
         # last_alarm_time should be updated
         assert device.last_alarm_time > 0
 
-    def test_threshold_cooldown(self):
+    @patch("monitor.get_monitor_value")
+    def test_threshold_cooldown(self, mock_get_value):
         """Test threshold cooldown period."""
         from monitor import check_threshold_alarm
         from state import DeviceState
 
+        mock_get_value.return_value = (90, None)
         device = DeviceState("test", "Test")
         device.threshold_enable = True
         device.threshold_mode = "cpu-usage"
@@ -351,15 +360,17 @@ class TestCheckThresholdAlarm:
         device.ser = None
 
         old_time = device.last_alarm_time
-        check_threshold_alarm(device, 90, "cpu-usage")
+        check_threshold_alarm(device)
         # Should not update due to cooldown
         assert device.last_alarm_time == old_time
 
-    def test_threshold_with_serial(self):
+    @patch("monitor.get_monitor_value")
+    def test_threshold_with_serial(self, mock_get_value):
         """Test threshold alarm with serial port."""
         from monitor import check_threshold_alarm
         from state import DeviceState
 
+        mock_get_value.return_value = (90, None)
         device = DeviceState("test", "Test")
         device.threshold_enable = True
         device.threshold_mode = "cpu-usage"
@@ -370,7 +381,7 @@ class TestCheckThresholdAlarm:
         device.ser = MagicMock()
         device.ser.isOpen.return_value = True
 
-        check_threshold_alarm(device, 90, "cpu-usage")
+        check_threshold_alarm(device)
         assert device.last_alarm_time > 0
 
 

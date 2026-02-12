@@ -252,15 +252,22 @@ def cleanup_audio_meter(device):
             logger.debug(f"Audio recorder cleanup: {e}")
 
 
-def check_threshold_alarm(device, value, current_mode):
-    """Check if value exceeds threshold and trigger alarm."""
+def check_threshold_alarm(device):
+    """Check if threshold is exceeded and trigger alarm.
+
+    The threshold check is independent of the current monitor mode.
+    It fetches the value based on device.threshold_mode separately.
+    """
     if not device.threshold_enable:
         return
 
-    if current_mode != device.threshold_mode:
+    threshold_mode = device.threshold_mode
+    if not threshold_mode or threshold_mode == "none":
         return
 
-    if value is None:
+    # Get value based on threshold_mode (independent of monitor mode)
+    value, error = get_monitor_value(threshold_mode)
+    if error or value is None:
         return
 
     now = time.time()
@@ -271,7 +278,7 @@ def check_threshold_alarm(device, value, current_mode):
             serial_write_direct(device, cmd)
         logger = logging.getLogger(__name__)
         logger.info(
-            f"Threshold alarm triggered: {value:.1f}% > {device.threshold_value}%"
+            f"Threshold alarm triggered: {threshold_mode}={value:.1f}% > {device.threshold_value}%"
         )
 
 
@@ -404,9 +411,8 @@ def _create_monitor_tick(device):
         # 更新 legacy last_percent (用于兼容)
         device.last_percent = percent_0 if percent_0 is not None else (percent_1 or 0)
 
-        # 阈值报警检查 (使用 CH0 的值)
-        if percent_0 is not None:
-            check_threshold_alarm(device, percent_0, mode_0)
+        # 阈值报警检查 (独立于监控模式)
+        check_threshold_alarm(device)
 
     return monitor_tick
 
