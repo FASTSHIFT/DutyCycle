@@ -373,52 +373,48 @@ def _get_channel_value(device, mode):
     return None, f"Unknown mode: {mode}", False
 
 
-def _create_monitor_tick(device):
-    """Create a monitor tick callback bound to a specific device."""
+def _create_channel_tick(device, channel):
+    """Create a monitor tick callback for a specific channel (0 or 1)."""
 
-    def monitor_tick():
+    def channel_tick():
         if not device.monitor_running:
             return
 
-        # CH0 监控
-        mode_0 = getattr(device, "monitor_mode_0", "none")
-        percent_0, error_0, immediate_0 = _get_channel_value(device, mode_0)
+        if channel == 0:
+            mode = getattr(device, "monitor_mode_0", "none")
+        else:
+            mode = getattr(device, "monitor_mode_1", "none")
 
-        if error_0 is None and percent_0 is not None:
-            device.last_percent_0 = percent_0
-            motor_value_0 = map_value(
-                percent_0, 0, 100, device.motor_min, device.motor_max
-            )
-            # CH0: --id is omitted since firmware defaults to 0
-            cmd_str_0 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_0)}"
-            if immediate_0:
-                cmd_str_0 += " -I"
+        percent, error, immediate = _get_channel_value(device, mode)
+
+        if error is None and percent is not None:
+            if channel == 0:
+                device.last_percent_0 = percent
+            else:
+                device.last_percent_1 = percent
+
+            motor_value = map_value(percent, 0, 100, device.motor_min, device.motor_max)
+
+            if channel == 0:
+                cmd_str = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)}"
+            else:
+                cmd_str = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value)} --id 1"
+
+            if immediate:
+                cmd_str += " -I"
             if device.ser:
-                serial_write_direct(device, f"{cmd_str_0}\r\n")
-
-        # CH1 监控
-        mode_1 = getattr(device, "monitor_mode_1", "none")
-        percent_1, error_1, immediate_1 = _get_channel_value(device, mode_1)
-
-        if error_1 is None and percent_1 is not None:
-            device.last_percent_1 = percent_1
-            motor_value_1 = map_value(
-                percent_1, 0, 100, device.motor_min, device.motor_max
-            )
-            # CH1: --id 1 is required for non-zero motor ID
-            cmd_str_1 = f"ctrl -c SET_MOTOR_VALUE -M {int(motor_value_1)} --id 1"
-            if immediate_1:
-                cmd_str_1 += " -I"
-            if device.ser:
-                serial_write_direct(device, f"{cmd_str_1}\r\n")
+                serial_write_direct(device, f"{cmd_str}\r\n")
 
         # 更新 legacy last_percent (用于兼容)
-        device.last_percent = percent_0 if percent_0 is not None else (percent_1 or 0)
+        p0 = device.last_percent_0
+        p1 = device.last_percent_1
+        device.last_percent = p0 if p0 is not None else (p1 or 0)
 
-        # 阈值报警检查 (独立于监控模式)
-        check_threshold_alarm(device)
+        # 阈值报警检查 (独立于监控模式，仅在 CH0 tick 中执行避免重复)
+        if channel == 0:
+            check_threshold_alarm(device)
 
-    return monitor_tick
+    return channel_tick
 
 
 def _create_cmd_file_tick(device):
@@ -462,14 +458,24 @@ def start_monitor(device, mode):
         device.monitor_running = True
         tm = get_device_timer_manager(device)
         if tm is not None:
-            device.monitor_timer = tm.add(
-                device.period, _create_monitor_tick(device), "monitor"
-            )
+            # CH0 独立定时器
+            mode_0 = getattr(device, "monitor_mode_0", "none")
+            if mode_0 and mode_0 != "none":
+                device.monitor_timer_0 = tm.add(
+                    device.period_0, _create_channel_tick(device, 0), "monitor_ch0"
+                )
+            # CH1 独立定时器
+            mode_1 = getattr(device, "monitor_mode_1", "none")
+            if mode_1 and mode_1 != "none":
+                device.monitor_timer_1 = tm.add(
+                    device.period_1, _create_channel_tick(device, 1), "monitor_ch1"
+                )
             device.cmd_file_timer = tm.add(
                 1.0, _create_cmd_file_tick(device), "cmd_file"
             )
         logger.info(
-            f"Monitor started: mode={mode}, mode_0={device.monitor_mode_0}, mode_1={device.monitor_mode_1}"
+            f"Monitor started: mode={mode}, mode_0={device.monitor_mode_0}@{device.period_0}s, "
+            f"mode_1={device.monitor_mode_1}@{device.period_1}s"
         )
 
     run_in_device_worker(device, setup, timeout=2.0)
@@ -485,9 +491,12 @@ def stop_monitor(device):
         device.monitor_mode = None
         tm = get_device_timer_manager(device)
         if tm is not None:
-            if device.monitor_timer is not None:
-                tm.remove(device.monitor_timer)
-                device.monitor_timer = None
+            if device.monitor_timer_0 is not None:
+                tm.remove(device.monitor_timer_0)
+                device.monitor_timer_0 = None
+            if device.monitor_timer_1 is not None:
+                tm.remove(device.monitor_timer_1)
+                device.monitor_timer_1 = None
             if device.cmd_file_timer is not None:
                 tm.remove(device.cmd_file_timer)
                 device.cmd_file_timer = None
@@ -498,7 +507,17 @@ def stop_monitor(device):
     return True, None
 
 
-def update_monitor_period(device, period):
-    """Update monitor timer period for a device."""
-    if device.monitor_timer is not None:
-        device.monitor_timer.set_interval(period)
+def update_monitor_period(device, period, channel=None):
+    """Update monitor timer period for a device.
+
+    Args:
+        device: Device state object.
+        period: New period in seconds.
+        channel: None for both, 0 for CH0, 1 for CH1.
+    """
+    if channel is None or channel == 0:
+        if device.monitor_timer_0 is not None:
+            device.monitor_timer_0.set_interval(period)
+    if channel is None or channel == 1:
+        if device.monitor_timer_1 is not None:
+            device.monitor_timer_1.set_interval(period)

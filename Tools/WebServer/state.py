@@ -30,6 +30,8 @@ DEVICE_PERSISTENT_KEYS = [
     "motor_unit_0",
     "motor_unit_1",
     "period",
+    "period_0",
+    "period_1",
     "cmd_file",
     "cmd_file_enabled",
     "audio_db_min",
@@ -120,7 +122,8 @@ class DeviceState:
         self.worker = None
 
         # Monitor timer references
-        self.monitor_timer = None
+        self.monitor_timer_0 = None  # CH0 independent timer
+        self.monitor_timer_1 = None  # CH1 independent timer
         self.cmd_file_timer = None
 
     def to_dict(self):

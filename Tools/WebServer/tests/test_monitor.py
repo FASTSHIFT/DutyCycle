@@ -467,7 +467,8 @@ class TestMonitorStartStop:
 
         device = DeviceState("test", "Test")
         device.monitor_running = True
-        device.monitor_timer = MagicMock()
+        device.monitor_timer_0 = MagicMock()
+        device.monitor_timer_1 = MagicMock()
         device.cmd_file_timer = MagicMock()
         device.audio_recorder = None
 
@@ -479,67 +480,122 @@ class TestMonitorStartStop:
         result, error = stop_monitor(device)
         assert result is True
         assert device.monitor_running is False
-        assert device.monitor_timer is None
+        assert device.monitor_timer_0 is None
+        assert device.monitor_timer_1 is None
         assert device.cmd_file_timer is None
 
 
-class TestCreateMonitorTick:
-    """Test _create_monitor_tick function."""
+class TestCreateChannelTick:
+    """Test _create_channel_tick function."""
 
-    def test_monitor_tick_not_running(self):
-        """Test monitor tick when not running."""
-        from monitor import _create_monitor_tick
+    def test_channel_tick_not_running(self):
+        """Test channel tick when not running."""
+        from monitor import _create_channel_tick
         from state import DeviceState
 
         device = DeviceState("test", "Test")
         device.monitor_running = False
 
-        tick = _create_monitor_tick(device)
+        tick = _create_channel_tick(device, 0)
         # Should not raise any exception
         tick()
 
-    def test_monitor_tick_with_cpu_mode(self):
-        """Test monitor tick with CPU mode."""
-        from monitor import _create_monitor_tick
+    def test_channel_tick_ch0_cpu_mode(self):
+        """Test channel tick CH0 with CPU mode."""
+        from monitor import _create_channel_tick
         from state import DeviceState
 
         device = DeviceState("test", "Test")
         device.monitor_running = True
         device.monitor_mode_0 = "cpu-usage"
-        device.monitor_mode_1 = "none"
-        device.motor_min = 0
-        device.motor_max = 1000
-        device.ser = None  # No serial
-        device.threshold_enable = False
-
-        tick = _create_monitor_tick(device)
-        tick()
-
-        # last_percent_0 should be updated
-        assert device.last_percent_0 is not None
-
-    def test_monitor_tick_with_mem_mode(self):
-        """Test monitor tick with memory mode."""
-        from monitor import _create_monitor_tick
-        from state import DeviceState
-
-        device = DeviceState("test", "Test")
-        device.monitor_running = True
-        device.monitor_mode_0 = "mem-usage"
-        device.monitor_mode_1 = "none"
         device.motor_min = 0
         device.motor_max = 1000
         device.ser = None
         device.threshold_enable = False
 
-        tick = _create_monitor_tick(device)
+        tick = _create_channel_tick(device, 0)
+        tick()
+
+        # last_percent_0 should be updated
+        assert device.last_percent_0 is not None
+
+    def test_channel_tick_ch0_mem_mode(self):
+        """Test channel tick CH0 with memory mode."""
+        from monitor import _create_channel_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_0 = "mem-usage"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = None
+        device.threshold_enable = False
+
+        tick = _create_channel_tick(device, 0)
         tick()
 
         assert device.last_percent_0 is not None
 
-    def test_monitor_tick_dual_channel(self):
-        """Test monitor tick with dual channel."""
-        from monitor import _create_monitor_tick
+    def test_channel_tick_ch1_mem_mode(self):
+        """Test channel tick CH1 with memory mode."""
+        from monitor import _create_channel_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_1 = "mem-usage"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = None
+        device.threshold_enable = False
+
+        tick = _create_channel_tick(device, 1)
+        tick()
+
+        assert device.last_percent_1 is not None
+
+    def test_channel_tick_ch0_with_serial(self):
+        """Test channel tick CH0 with serial port."""
+        from monitor import _create_channel_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_0 = "cpu-usage"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = MagicMock()
+        device.ser.isOpen.return_value = True
+        device.threshold_enable = False
+
+        tick = _create_channel_tick(device, 0)
+        tick()
+
+        assert device.last_percent_0 is not None
+
+    def test_channel_tick_ch1_with_serial(self):
+        """Test channel tick CH1 sends --id 1 command."""
+        from monitor import _create_channel_tick
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.monitor_running = True
+        device.monitor_mode_1 = "cpu-usage"
+        device.motor_min = 0
+        device.motor_max = 1000
+        device.ser = MagicMock()
+        device.ser.isOpen.return_value = True
+        device.threshold_enable = False
+
+        tick = _create_channel_tick(device, 1)
+        tick()
+
+        assert device.last_percent_1 is not None
+
+    def test_channel_tick_threshold_only_on_ch0(self):
+        """Test threshold alarm is only checked in CH0 tick."""
+        from monitor import _create_channel_tick
         from state import DeviceState
 
         device = DeviceState("test", "Test")
@@ -549,33 +605,23 @@ class TestCreateMonitorTick:
         device.motor_min = 0
         device.motor_max = 1000
         device.ser = None
-        device.threshold_enable = False
+        device.threshold_enable = True
+        device.threshold_mode = "cpu-usage"
+        device.threshold_value = 0  # Always trigger
+        device.threshold_freq = 1000
+        device.threshold_duration = 100
+        device.last_alarm_time = 0
 
-        tick = _create_monitor_tick(device)
-        tick()
+        # CH0 tick should check threshold
+        tick_0 = _create_channel_tick(device, 0)
+        tick_0()
+        alarm_time_after_ch0 = device.last_alarm_time
 
-        assert device.last_percent_0 is not None
-        assert device.last_percent_1 is not None
-
-    def test_monitor_tick_with_serial(self):
-        """Test monitor tick with serial port."""
-        from monitor import _create_monitor_tick
-        from state import DeviceState
-
-        device = DeviceState("test", "Test")
-        device.monitor_running = True
-        device.monitor_mode_0 = "cpu-usage"
-        device.monitor_mode_1 = "none"
-        device.motor_min = 0
-        device.motor_max = 1000
-        device.ser = MagicMock()
-        device.ser.isOpen.return_value = True
-        device.threshold_enable = False
-
-        tick = _create_monitor_tick(device)
-        tick()
-
-        assert device.last_percent_0 is not None
+        # CH1 tick should NOT check threshold
+        device.last_alarm_time = 0
+        tick_1 = _create_channel_tick(device, 1)
+        tick_1()
+        assert device.last_alarm_time == 0  # Not updated by CH1
 
 
 class TestCreateCmdFileTick:
@@ -603,22 +649,54 @@ class TestUpdateMonitorPeriod:
         from state import DeviceState
 
         device = DeviceState("test", "Test")
-        device.monitor_timer = None
 
         # Should not raise
         update_monitor_period(device, 0.5)
 
-    def test_update_period_with_timer(self):
-        """Test update_monitor_period with timer."""
+    def test_update_period_ch0_only(self):
+        """Test update_monitor_period for CH0 only."""
         from monitor import update_monitor_period
         from state import DeviceState
 
         device = DeviceState("test", "Test")
-        mock_timer = MagicMock()
-        device.monitor_timer = mock_timer
+        mock_timer_0 = MagicMock()
+        mock_timer_1 = MagicMock()
+        device.monitor_timer_0 = mock_timer_0
+        device.monitor_timer_1 = mock_timer_1
 
-        update_monitor_period(device, 0.5)
-        mock_timer.set_interval.assert_called_once_with(0.5)
+        update_monitor_period(device, 0.5, channel=0)
+        mock_timer_0.set_interval.assert_called_once_with(0.5)
+        mock_timer_1.set_interval.assert_not_called()
+
+    def test_update_period_ch1_only(self):
+        """Test update_monitor_period for CH1 only."""
+        from monitor import update_monitor_period
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        mock_timer_0 = MagicMock()
+        mock_timer_1 = MagicMock()
+        device.monitor_timer_0 = mock_timer_0
+        device.monitor_timer_1 = mock_timer_1
+
+        update_monitor_period(device, 2.0, channel=1)
+        mock_timer_0.set_interval.assert_not_called()
+        mock_timer_1.set_interval.assert_called_once_with(2.0)
+
+    def test_update_period_both_channels(self):
+        """Test update_monitor_period for both channels."""
+        from monitor import update_monitor_period
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        mock_timer_0 = MagicMock()
+        mock_timer_1 = MagicMock()
+        device.monitor_timer_0 = mock_timer_0
+        device.monitor_timer_1 = mock_timer_1
+
+        update_monitor_period(device, 1.0)
+        mock_timer_0.set_interval.assert_called_once_with(1.0)
+        mock_timer_1.set_interval.assert_called_once_with(1.0)
 
 
 class TestStartMonitor:
@@ -1041,13 +1119,12 @@ class TestMonitorTickWithThreshold:
 
     def test_monitor_tick_with_threshold_enabled(self):
         """Test monitor tick with threshold enabled."""
-        from monitor import _create_monitor_tick
+        from monitor import _create_channel_tick
         from state import DeviceState
 
         device = DeviceState("test", "Test")
         device.monitor_running = True
         device.monitor_mode_0 = "cpu-usage"
-        device.monitor_mode_1 = "none"
         device.motor_min = 0
         device.motor_max = 1000
         device.ser = None
@@ -1058,7 +1135,7 @@ class TestMonitorTickWithThreshold:
         device.threshold_duration = 100
         device.last_alarm_time = 0
 
-        tick = _create_monitor_tick(device)
+        tick = _create_channel_tick(device, 0)
         tick()
 
         # Threshold should have been checked
@@ -1070,25 +1147,22 @@ class TestMonitorTickCH1Only:
 
     def test_monitor_tick_ch1_only(self):
         """Test monitor tick with only CH1 active."""
-        from monitor import _create_monitor_tick
+        from monitor import _create_channel_tick
         from state import DeviceState
 
         device = DeviceState("test", "Test")
         device.monitor_running = True
-        device.monitor_mode_0 = "none"
         device.monitor_mode_1 = "cpu-usage"
         device.motor_min = 0
         device.motor_max = 1000
         device.ser = None
         device.threshold_enable = False
 
-        tick = _create_monitor_tick(device)
+        tick = _create_channel_tick(device, 1)
         tick()
 
         # last_percent_1 should be updated
         assert device.last_percent_1 is not None
-        # last_percent should use CH1 value since CH0 is none
-        assert device.last_percent == device.last_percent_1
 
 
 class TestMonitorTickWithSerialCH1:
@@ -1096,12 +1170,11 @@ class TestMonitorTickWithSerialCH1:
 
     def test_monitor_tick_ch1_with_serial(self):
         """Test monitor tick CH1 with serial port."""
-        from monitor import _create_monitor_tick
+        from monitor import _create_channel_tick
         from state import DeviceState
 
         device = DeviceState("test", "Test")
         device.monitor_running = True
-        device.monitor_mode_0 = "none"
         device.monitor_mode_1 = "mem-usage"
         device.motor_min = 0
         device.motor_max = 1000
@@ -1109,7 +1182,7 @@ class TestMonitorTickWithSerialCH1:
         device.ser.isOpen.return_value = True
         device.threshold_enable = False
 
-        tick = _create_monitor_tick(device)
+        tick = _create_channel_tick(device, 1)
         tick()
 
         assert device.last_percent_1 is not None
@@ -1177,7 +1250,8 @@ class TestStopMonitorWithTimers:
 
         device = DeviceState("test", "Test")
         device.monitor_running = True
-        device.monitor_timer = None
+        device.monitor_timer_0 = None
+        device.monitor_timer_1 = None
         device.cmd_file_timer = None
         device.audio_recorder = None
 

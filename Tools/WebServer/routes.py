@@ -672,13 +672,13 @@ def register_routes(app):
             device.monitor_mode_1 = data["mode_1"]
         if "period_0" in data:
             device.period_0 = float(data["period_0"])
+            update_monitor_period(device, device.period_0, channel=0)
         if "period_1" in data:
             device.period_1 = float(data["period_1"])
+            update_monitor_period(device, device.period_1, channel=1)
 
-        # 使用最小周期作为统一周期
-        min_period = min(device.period_0, device.period_1)
-        device.period = min_period
-        update_monitor_period(device, min_period)
+        # 同步 legacy period 为最小值（兼容）
+        device.period = min(device.period_0, device.period_1)
 
         state.save_config()
         return jsonify({"success": True})
