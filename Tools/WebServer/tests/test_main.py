@@ -321,3 +321,99 @@ class TestRestoreState:
         device.auto_connect = False
         device.auto_monitor = False
         device.ser = None
+
+    @patch("main.start_monitor")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_dual_channel_mode(
+        self, mock_serial_open, mock_start_worker, mock_start_monitor
+    ):
+        """Test restore_state correctly parses dual-channel auto_monitor_mode."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+        mock_start_monitor.return_value = (True, None)
+
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_monitor = True
+        device.auto_monitor_mode = "cpu-usage,mem-usage"
+
+        restore_state()
+
+        # Should parse dual-channel mode correctly
+        assert device.monitor_mode_0 == "cpu-usage"
+        assert device.monitor_mode_1 == "mem-usage"
+        # effective_mode should be CH0
+        mock_start_monitor.assert_called_once_with(device, "cpu-usage")
+
+        # Cleanup
+        device.auto_connect = False
+        device.auto_monitor = False
+        device.ser = None
+
+    @patch("main.start_monitor")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_single_channel_mode(
+        self, mock_serial_open, mock_start_worker, mock_start_monitor
+    ):
+        """Test restore_state with single-channel auto_monitor_mode (no comma)."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+        mock_start_monitor.return_value = (True, None)
+
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_monitor = True
+        device.auto_monitor_mode = "cpu-usage"
+
+        restore_state()
+
+        assert device.monitor_mode_0 == "cpu-usage"
+        assert device.monitor_mode_1 == "none"
+        mock_start_monitor.assert_called_once_with(device, "cpu-usage")
+
+        # Cleanup
+        device.auto_connect = False
+        device.auto_monitor = False
+        device.ser = None
+
+    @patch("main.start_monitor")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_ch0_none_fallback_ch1(
+        self, mock_serial_open, mock_start_worker, mock_start_monitor
+    ):
+        """Test restore_state falls back to CH1 when CH0 is 'none'."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+        mock_start_monitor.return_value = (True, None)
+
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_monitor = True
+        device.auto_monitor_mode = "none,mem-usage"
+
+        restore_state()
+
+        assert device.monitor_mode_0 == "none"
+        assert device.monitor_mode_1 == "mem-usage"
+        # effective_mode should fall back to CH1
+        mock_start_monitor.assert_called_once_with(device, "mem-usage")
+
+        # Cleanup
+        device.auto_connect = False
+        device.auto_monitor = False
+        device.ser = None

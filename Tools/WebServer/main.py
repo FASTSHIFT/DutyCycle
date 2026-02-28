@@ -129,10 +129,26 @@ def restore_state():
         if not device.auto_monitor or not device.auto_monitor_mode:
             continue
 
+        # Parse dual-channel monitor mode (e.g. "cpu-usage,mem-usage")
+        auto_mode = device.auto_monitor_mode
+        if "," in auto_mode:
+            parts = auto_mode.split(",", 1)
+            device.monitor_mode_0 = parts[0].strip()
+            device.monitor_mode_1 = parts[1].strip()
+        else:
+            device.monitor_mode_0 = auto_mode.strip()
+            device.monitor_mode_1 = "none"
+
+        # Determine effective mode for start_monitor
+        effective_mode = device.monitor_mode_0
+        if effective_mode == "none":
+            effective_mode = device.monitor_mode_1
+
         logger.info(
-            f"[{device.name}] Auto-starting monitor: {device.auto_monitor_mode}"
+            f"[{device.name}] Auto-starting monitor: {auto_mode} "
+            f"(CH0={device.monitor_mode_0}, CH1={device.monitor_mode_1})"
         )
-        success, error = start_monitor(device, device.auto_monitor_mode)
+        success, error = start_monitor(device, effective_mode)
         if error:
             logger.warning(f"[{device.name}] Auto-start monitor failed: {error}")
             continue
