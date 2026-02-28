@@ -18,18 +18,25 @@ import serial.tools.list_ports
 from device_worker import start_worker, stop_worker
 
 
+def _is_hidden_serial_device(device_path):
+    """Return True if serial device should be hidden from UI list."""
+    return device_path.startswith("/dev/ttyS")
+
+
 def scan_serial_ports():
     """Scan for available serial ports."""
     ports = serial.tools.list_ports.comports()
     result = [
-        {"device": port.device, "description": port.description} for port in ports
+        {"device": port.device, "description": port.description}
+        for port in ports
+        if not _is_hidden_serial_device(port.device)
     ]
 
     # Also scan for CH341 USB serial devices which may not be detected by pyserial
     ch341_devices = glob.glob("/dev/ttyCH341USB*")
     existing_devices = {item["device"] for item in result}
     for dev in ch341_devices:
-        if dev not in existing_devices:
+        if dev not in existing_devices and not _is_hidden_serial_device(dev):
             result.append({"device": dev, "description": "CH341 USB Serial"})
 
     return result

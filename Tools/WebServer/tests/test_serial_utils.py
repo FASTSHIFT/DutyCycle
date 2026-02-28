@@ -24,6 +24,29 @@ class TestScanSerialPorts:
             assert "device" in port
             assert "description" in port
 
+    @patch("serial_utils.serial.tools.list_ports.comports")
+    @patch("serial_utils.glob.glob")
+    def test_scan_serial_ports_filters_ttys(self, mock_glob, mock_comports):
+        """Test /dev/ttyS* devices are filtered from scan result."""
+        from serial_utils import scan_serial_ports
+
+        mock_comports.return_value = [
+            MagicMock(device="/dev/ttyUSB0", description="USB Serial"),
+            MagicMock(device="/dev/ttyS0", description="Onboard UART"),
+            MagicMock(device="/dev/ttyACM0", description="CDC ACM"),
+            MagicMock(device="/dev/ttyS3", description="Legacy UART"),
+        ]
+        mock_glob.return_value = ["/dev/ttyCH341USB0"]
+
+        ports = scan_serial_ports()
+        devices = [port["device"] for port in ports]
+
+        assert "/dev/ttyUSB0" in devices
+        assert "/dev/ttyACM0" in devices
+        assert "/dev/ttyCH341USB0" in devices
+        assert "/dev/ttyS0" not in devices
+        assert "/dev/ttyS3" not in devices
+
 
 class TestSerialOpen:
     """Test serial_open function."""

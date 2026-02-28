@@ -9,7 +9,7 @@ Routes module tests.
 
 import json
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 
 @pytest.fixture
@@ -130,6 +130,29 @@ class TestPortsRoute:
         data = response.get_json()
         assert data["success"] is True
         assert "ports" in data
+
+    @patch("serial_utils.serial.tools.list_ports.comports")
+    @patch("serial_utils.glob.glob")
+    def test_get_ports_filters_ttys(self, mock_glob, mock_comports, client):
+        """Test get ports response does not include /dev/ttyS* devices."""
+        mock_comports.return_value = [
+            MagicMock(device="/dev/ttyUSB0", description="USB Serial"),
+            MagicMock(device="/dev/ttyS2", description="Legacy UART"),
+            MagicMock(device="/dev/ttyACM0", description="CDC ACM"),
+        ]
+        mock_glob.return_value = ["/dev/ttyCH341USB0"]
+
+        response = client.get("/api/ports")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
+
+        devices = [port["device"] for port in data["ports"]]
+        assert "/dev/ttyUSB0" in devices
+        assert "/dev/ttyACM0" in devices
+        assert "/dev/ttyCH341USB0" in devices
+        assert "/dev/ttyS2" not in devices
+        assert all(not device.startswith("/dev/ttyS") for device in devices)
 
 
 class TestStatusRoute:
