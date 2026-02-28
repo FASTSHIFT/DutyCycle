@@ -43,8 +43,9 @@ def install_service(
     user = os.environ.get("SUDO_USER") or os.getlogin()
     # Get actual user's UID for PulseAudio access
     import pwd
+
     uid = pwd.getpwnam(user).pw_uid
-    
+
     service_content = f"""[Unit]
 Description=DutyCycle Script Service
 After=network.target pulseaudio.service
@@ -158,7 +159,7 @@ def main():
         help="Custom service name",
     )
 
-     # Check command
+    # Check command
     check_parser = subparsers.add_parser(
         "check", help="Check the DutyCycle service status"
     )
@@ -179,6 +180,27 @@ def main():
         )
         service_path = f"/etc/systemd/system/dutycycle.{args.service_name}.service"
         params = " ".join(args.params) if args.params else ""
+
+        # Check if service already exists and is running
+        if os.path.exists(service_path):
+            is_active = (
+                subprocess.run(
+                    f"systemctl is-active --quiet dutycycle.{args.service_name}.service",
+                    shell=True,
+                ).returncode
+                == 0
+            )
+            status = "running" if is_active else "installed but not running"
+            print(
+                f"Service dutycycle.{args.service_name}.service already exists ({status})."
+            )
+            answer = input("Overwrite and reinstall? [y/N]: ").strip().lower()
+            if answer != "y":
+                print("Installation cancelled.")
+                sys.exit(0)
+            if is_active:
+                run_command(f"systemctl stop dutycycle.{args.service_name}.service")
+
         install_service(
             python_bin, args.service_name, script_path, service_path, params, pwd
         )
