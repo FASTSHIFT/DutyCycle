@@ -621,6 +621,52 @@ class TestCommandRoute:
         assert data["success"] is False
 
 
+class TestTerminalInputRoute:
+    """Test terminal passthrough input API route."""
+
+    def test_terminal_input_missing_data(self, client):
+        """Test terminal input route missing data."""
+        response = client.post(
+            "/api/terminal/input",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is False
+        assert "Missing data" in data["error"]
+
+    def test_terminal_input_empty_data(self, client):
+        """Test terminal input route with empty data."""
+        response = client.post(
+            "/api/terminal/input",
+            data=json.dumps({"data": ""}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is False
+        assert "Missing data" in data["error"]
+
+    def test_terminal_input_not_connected(self, client):
+        """Test terminal input route when not connected."""
+        response = client.post(
+            "/api/terminal/input",
+            data=json.dumps({"data": "a"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is False
+
+    def test_terminal_input_device_not_found(self, client):
+        """Test terminal input device not found."""
+        response = client.post(
+            "/api/terminal/input",
+            data=json.dumps({"device_id": "nonexistent", "data": "a"}),
+            content_type="application/json",
+        )
+        data = response.get_json()
+        assert data["success"] is False
+
+
 class TestConnectDisconnectRoute:
     """Test connect/disconnect API routes."""
 

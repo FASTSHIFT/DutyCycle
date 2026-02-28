@@ -19,6 +19,7 @@ from serial_utils import (
     scan_serial_ports,
     serial_open,
     serial_write,
+    serial_write_async,
     start_device_worker,
     stop_device_worker,
     run_in_device_worker,
@@ -588,6 +589,25 @@ def register_routes(app):
         if error:
             return jsonify({"success": False, "error": error})
         return jsonify({"success": True, "responses": responses})
+
+    @app.route("/api/terminal/input", methods=["POST"])
+    def api_terminal_input():
+        """Passthrough raw terminal input to device (fire-and-forget)."""
+        data = request.json
+        device_id = data.get("device_id") or state.active_device_id
+        device = state.get_device(device_id)
+        if not device:
+            return jsonify({"success": False, "error": "Device not found"})
+
+        raw_data = data.get("data", "")
+        if not raw_data:
+            return jsonify({"success": False, "error": "Missing data"})
+
+        if device.ser is None:
+            return jsonify({"success": False, "error": "Serial port not opened"})
+
+        serial_write_async(device, raw_data)
+        return jsonify({"success": True})
 
     @app.route("/api/log", methods=["GET"])
     def api_log():

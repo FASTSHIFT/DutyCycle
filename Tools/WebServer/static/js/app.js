@@ -13,8 +13,7 @@ let lastLogIndex = 0;
 // xterm.js terminal instance
 let term = null;
 let fitAddon = null;
-let currentLine = '';
-let sendingCommand = false; // 防止重复发送
+let currentLine = ''; // kept for compatibility but unused in passthrough mode
 
 // Dual channel state
 let channelUnits = ['NONE', 'NONE']; // Unit for each channel
@@ -474,31 +473,10 @@ function initTerminal() {
     if (fitAddon) fitAddon.fit();
   });
 
-  // Handle user input
+  // Passthrough mode: forward all user input directly to device
+  // Device shell handles echo, line editing, history, etc.
   term.onData((data) => {
-    // Handle special keys
-    if (data === '\r') {
-      // Enter key - send command
-      term.write('\r\n');
-      if (currentLine.trim()) {
-        sendTerminalCommand(currentLine);
-      }
-      currentLine = '';
-    } else if (data === '\x7f' || data === '\b') {
-      // Backspace
-      if (currentLine.length > 0) {
-        currentLine = currentLine.slice(0, -1);
-        term.write('\b \b');
-      }
-    } else if (data === '\x03') {
-      // Ctrl+C
-      currentLine = '';
-      term.write('^C\r\n');
-    } else if (data >= ' ' || data === '\t') {
-      // Printable characters
-      currentLine += data;
-      term.write(data);
-    }
+    sendTerminalData(data);
   });
 
   term.writeln('\x1b[36m[DutyCycle Terminal]\x1b[0m Ready.');
@@ -506,14 +484,22 @@ function initTerminal() {
 }
 
 async function sendTerminalCommand(command) {
-  if (!command || sendingCommand) return;
-  sendingCommand = true;
+  // Legacy API: send a complete command string (adds \r\n)
+  if (!command) return;
   try {
     await api('/command', 'POST', { command });
-  } finally {
-    setTimeout(() => {
-      sendingCommand = false;
-    }, 50);
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function sendTerminalData(data) {
+  // Passthrough mode: send raw keystrokes to device without local echo
+  if (!data) return;
+  try {
+    await api('/terminal/input', 'POST', { data });
+  } catch (e) {
+    // ignore
   }
 }
 
@@ -544,13 +530,8 @@ async function fetchLogs() {
       if (result.logs && result.logs.length > 0) {
         result.logs.forEach((entry) => {
           if (term && entry.dir === 'RX') {
-            let text = entry.data;
-            // 过滤设备提示符（如 "device>"）
-            text = text.replace(/^[a-zA-Z_][a-zA-Z0-9_]*>\\s*$/gm, '');
-            // 只有非空内容才写入
-            if (text && text.trim()) {
-              term.write(text);
-            }
+            // Passthrough mode: write RX data directly without filtering
+            term.write(entry.data);
           }
         });
       }
@@ -1912,6 +1893,7 @@ if (isNode) {
     // 终端函数
     initTerminal,
     sendTerminalCommand,
+    sendTerminalData,
     clearTerminal,
 
     // 日志函数

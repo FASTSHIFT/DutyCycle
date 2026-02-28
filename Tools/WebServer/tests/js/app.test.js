@@ -2373,6 +2373,37 @@ describe('sendTerminalCommand', () => {
   });
 });
 
+describe('sendTerminalData', () => {
+  test('sends raw data to backend via passthrough', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true }),
+    });
+
+    await app.sendTerminalData('a');
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/terminal/input',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  test('sends enter key as raw data', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true }),
+    });
+
+    await app.sendTerminalData('\r');
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/terminal/input',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  test('does nothing for empty data', async () => {
+    await app.sendTerminalData('');
+    // Should not call fetch
+  });
+});
+
 describe('fetchLogs', () => {
   beforeEach(() => {
     document.body.innerHTML = '<div id="terminal-container"></div>';
