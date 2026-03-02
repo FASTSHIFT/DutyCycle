@@ -1132,7 +1132,9 @@ class TestMonitorTickWithThreshold:
         device.ser = None
         device.threshold_enable = True
         device.threshold_mode = "cpu-usage"
-        device.threshold_value = 0  # Set to 0 to always trigger
+        device.threshold_value = (
+            -1
+        )  # Negative to guarantee trigger regardless of CPU value
         device.threshold_freq = 1000
         device.threshold_duration = 100
         device.last_alarm_time = 0
