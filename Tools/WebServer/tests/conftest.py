@@ -9,10 +9,30 @@ Pytest configuration and shared fixtures for DutyCycle WebServer tests.
 
 import os
 import sys
+import tempfile
 import pytest
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Redirect config file to /tmp BEFORE any test imports state module,
+# so the real config.json is never touched during tests.
+import state as _state_module  # noqa: E402
+
+_test_config_file = os.path.join(tempfile.gettempdir(), "dutycycle_test_config.json")
+_state_module.CONFIG_FILE = _test_config_file
+
+
+@pytest.fixture(autouse=True)
+def _clean_test_config():
+    """Ensure each test starts with a clean config file."""
+    # Remove leftover config before test
+    if os.path.exists(_test_config_file):
+        os.remove(_test_config_file)
+    yield
+    # Cleanup after test
+    if os.path.exists(_test_config_file):
+        os.remove(_test_config_file)
 
 
 @pytest.fixture
