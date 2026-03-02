@@ -81,7 +81,7 @@ def test_server_alive():
     safe_print("\n📦 Testing Server Connection...")
 
     result = api("/status")
-    return check_test(
+    check_test(
         "Server responding",
         result.get("success") is True,
         result.get("error", "Unknown error"),
@@ -578,7 +578,8 @@ def run_tests():
 
     try:
         # First check if server is alive
-        if not test_server_alive():
+        result = api("/status")
+        if not result.get("success"):
             safe_print("\n⚠️  Server not responding. Make sure the server is running:")
             print(f"   python3 main.py --port {BASE_URL.split(':')[-1]}")
             return 1

@@ -615,7 +615,7 @@ class TestCreateChannelTick:
         # CH0 tick should check threshold
         tick_0 = _create_channel_tick(device, 0)
         tick_0()
-        alarm_time_after_ch0 = device.last_alarm_time
+        assert device.last_alarm_time > 0
 
         # CH1 tick should NOT check threshold
         device.last_alarm_time = 0

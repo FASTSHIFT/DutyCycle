@@ -131,9 +131,7 @@ def get_audio_level(device):
         return None, "Audio recorder not initialized"
 
     try:
-        data = device.audio_recorder.record(numframes=512)
-
-        # 获取音频通道设置
+        data = _get_cached_audio_data(device)
         audio_channel = getattr(device, "audio_channel", "mix")
 
         if audio_channel == "left":
@@ -248,6 +246,7 @@ def cleanup_audio_meter(device):
     logger = logging.getLogger(__name__)
     recorder = device.audio_recorder
     device.audio_recorder = None
+    device._audio_cache = None
 
     if recorder is not None:
         try:
@@ -297,6 +296,27 @@ def get_monitor_value(mode):
     return None, f"Unknown mode: {mode}"
 
 
+def _get_cached_audio_data(device):
+    """Get audio data with caching to avoid duplicate blocking reads.
+
+    When two independent channel timers both need audio data,
+    the second read would block waiting for new samples (~12ms).
+    This cache lets both channels share the same record() result
+    within a short time window.
+    """
+    now = time.time()
+    cache_ttl = 0.05  # 50ms cache window
+    cached = getattr(device, "_audio_cache", None)
+    if cached is not None:
+        cached_time, cached_data = cached
+        if now - cached_time < cache_ttl:
+            return cached_data
+
+    data = device.audio_recorder.record(numframes=512)
+    device._audio_cache = (now, data)
+    return data
+
+
 def get_audio_level_channel(device, channel):
     """Get audio level for a specific channel (left/right/mix)."""
     if sc is None:
@@ -306,7 +326,7 @@ def get_audio_level_channel(device, channel):
         return None, "Audio recorder not initialized"
 
     try:
-        data = device.audio_recorder.record(numframes=512)
+        data = _get_cached_audio_data(device)
 
         if channel == "left":
             samples = [frame[0] for frame in data if len(frame) > 0]
