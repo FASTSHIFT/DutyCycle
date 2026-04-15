@@ -20,6 +20,7 @@ from serial_utils import (
     serial_open,
     serial_write,
     serial_write_async,
+    serial_write_direct,
     start_device_worker,
     stop_device_worker,
     run_in_device_worker,
@@ -83,13 +84,15 @@ def setup_clock_sync_timer(device):
 
         if need_sync:
             logger.info(f"[{device.name}] Auto clock sync triggered")
-            _, error = config_clock(device)
-            if not error:
-                device.last_sync_time = datetime.now().isoformat()
-                state.save_config()
-                logger.info(f"[{device.name}] Clock synced at {device.last_sync_time}")
-            else:
-                logger.warning(f"[{device.name}] Clock sync failed: {error}")
+            now = datetime.now()
+            command = (
+                f"clock -c SET -y {now.year} -m {now.month} -d {now.day}"
+                f" -H {now.hour} -M {now.minute} -S {now.second}\r\n"
+            )
+            serial_write_direct(device, command)
+            device.last_sync_time = now.isoformat()
+            state.save_config()
+            logger.info(f"[{device.name}] Clock synced at {device.last_sync_time}")
 
     timer_manager.add(CLOCK_SYNC_CHECK_INTERVAL, check_clock_sync, "clock_sync")
     logger.info(

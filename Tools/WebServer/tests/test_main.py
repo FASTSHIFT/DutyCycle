@@ -417,3 +417,58 @@ class TestRestoreState:
         device.auto_connect = False
         device.auto_monitor = False
         device.ser = None
+
+    @patch("main.setup_clock_sync_timer")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_starts_clock_sync_timer(
+        self, mock_serial_open, mock_start_worker, mock_setup_timer
+    ):
+        """Test restore_state starts clock sync timer when auto_sync_clock is enabled."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_sync_clock = True
+        device.auto_monitor = False
+
+        restore_state()
+
+        mock_setup_timer.assert_called_once_with(device)
+
+        # Cleanup
+        device.auto_connect = False
+        device.auto_sync_clock = False
+        device.ser = None
+
+    @patch("main.setup_clock_sync_timer")
+    @patch("main.start_device_worker")
+    @patch("main.serial_open")
+    def test_restore_state_no_clock_sync_timer_when_disabled(
+        self, mock_serial_open, mock_start_worker, mock_setup_timer
+    ):
+        """Test restore_state does not start clock sync timer when auto_sync_clock is disabled."""
+        from main import restore_state
+        from state import state
+
+        mock_serial = MagicMock()
+        mock_serial_open.return_value = (mock_serial, None)
+
+        device = list(state.devices.values())[0]
+        device.auto_connect = True
+        device.port = "/dev/ttyUSB0"
+        device.auto_sync_clock = False
+        device.auto_monitor = False
+
+        restore_state()
+
+        mock_setup_timer.assert_not_called()
+
+        # Cleanup
+        device.auto_connect = False
+        device.ser = None

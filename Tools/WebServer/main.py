@@ -43,7 +43,7 @@ import socket
 from flask import Flask
 from flask_cors import CORS
 
-from routes import register_routes
+from routes import register_routes, setup_clock_sync_timer
 from state import state
 from serial_utils import serial_open, start_device_worker
 from monitor import start_monitor
@@ -124,6 +124,10 @@ def restore_state():
 
         device.ser = ser
         logger.info(f"[{device.name}] Auto-connected to {device.port}")
+
+        # Setup periodic clock sync timer
+        if device.auto_sync_clock:
+            setup_clock_sync_timer(device)
 
         # Check auto-monitor conditions
         if not device.auto_monitor or not device.auto_monitor_mode:

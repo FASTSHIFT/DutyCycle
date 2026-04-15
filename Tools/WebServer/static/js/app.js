@@ -8,6 +8,7 @@ let isConnected = false;
 let isMonitoring = false;
 let monitorInterval = null;
 let logInterval = null;
+let syncTimeInterval = null;
 let lastLogIndex = 0;
 
 // xterm.js terminal instance
@@ -316,6 +317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshStatus();
   initTerminal();
   startLogPolling();
+  startSyncTimePolling();
   initComposer();
   // 初始化时钟映射下拉菜单
   initClockMapHourSelect();
@@ -514,6 +516,19 @@ function clearTerminal() {
 // ===================== Log Functions =====================
 
 let fetchingLogs = false; // 防止重叠请求
+
+function startSyncTimePolling() {
+  if (syncTimeInterval) clearInterval(syncTimeInterval);
+  syncTimeInterval = setInterval(pollSyncTime, 60000); // 60秒轮询
+}
+
+async function pollSyncTime() {
+  if (!isConnected) return;
+  const result = await api('/status');
+  if (result.success && result.last_sync_time) {
+    updateLastSyncTime(result.last_sync_time);
+  }
+}
 
 function startLogPolling() {
   if (logInterval) clearInterval(logInterval);
@@ -1898,6 +1913,8 @@ if (isNode) {
 
     // 日志函数
     startLogPolling,
+    startSyncTimePolling,
+    pollSyncTime,
     fetchLogs,
     clearLog,
 

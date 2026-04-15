@@ -1957,6 +1957,41 @@ describe('startLogPolling', () => {
   });
 });
 
+describe('startSyncTimePolling', () => {
+  test('starts sync time polling interval', () => {
+    app.startSyncTimePolling();
+    // Should not throw
+    expect(true).toBe(true);
+  });
+});
+
+describe('pollSyncTime', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<span id="lastSyncTime"></span>';
+  });
+
+  test('updates last sync time when connected', async () => {
+    app.isConnected = true;
+    global.fetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({
+          success: true,
+          last_sync_time: '2025-06-01T12:00:00',
+        }),
+    });
+
+    await app.pollSyncTime();
+    expect(document.getElementById('lastSyncTime').textContent).not.toBe('--');
+  });
+
+  test('does nothing when not connected', async () => {
+    app.isConnected = false;
+    await app.pollSyncTime();
+    // fetch should not be called
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
 describe('clearLog', () => {
   test('clears log via API', async () => {
     global.fetch.mockResolvedValueOnce({

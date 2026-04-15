@@ -1218,6 +1218,72 @@ class TestClockSyncTimerCallback:
                 timer.callback()
                 break
 
+    @patch("routes.serial_write_direct")
+    @patch("routes.state")
+    def test_clock_sync_callback_uses_serial_write_direct(
+        self, mock_state, mock_write_direct
+    ):
+        """Test clock sync callback uses serial_write_direct (not serial_write)."""
+        from routes import setup_clock_sync_timer
+        from state import DeviceState
+        from timer import TimerManager
+
+        device = DeviceState("test", "Test")
+        device.auto_sync_clock = True
+        device.ser = MagicMock()
+        device.last_sync_time = None  # Force sync
+
+        mock_worker = MagicMock()
+        mock_tm = TimerManager()
+        mock_worker.get_timer_manager.return_value = mock_tm
+        device.worker = mock_worker
+
+        setup_clock_sync_timer(device)
+
+        # Execute the callback
+        for timer in mock_tm.timers:
+            if timer.name == "clock_sync":
+                timer.callback()
+                break
+
+        # Should call serial_write_direct, not serial_write
+        mock_write_direct.assert_called_once()
+        cmd = mock_write_direct.call_args[0][1]
+        assert "clock -c SET" in cmd
+        assert device.last_sync_time is not None
+        mock_state.save_config.assert_called()
+
+    @patch("routes.serial_write_direct")
+    @patch("routes.state")
+    def test_clock_sync_callback_expired_sync_triggers(
+        self, mock_state, mock_write_direct
+    ):
+        """Test clock sync triggers when last sync is older than 24h."""
+        from routes import setup_clock_sync_timer
+        from state import DeviceState
+        from timer import TimerManager
+        from datetime import datetime, timedelta
+
+        device = DeviceState("test", "Test")
+        device.auto_sync_clock = True
+        device.ser = MagicMock()
+        # Set last sync to 25 hours ago
+        device.last_sync_time = (datetime.now() - timedelta(hours=25)).isoformat()
+
+        mock_worker = MagicMock()
+        mock_tm = TimerManager()
+        mock_worker.get_timer_manager.return_value = mock_tm
+        device.worker = mock_worker
+
+        setup_clock_sync_timer(device)
+
+        for timer in mock_tm.timers:
+            if timer.name == "clock_sync":
+                timer.callback()
+                break
+
+        mock_write_direct.assert_called_once()
+
 
 class TestRemoveDeviceWithMonitor:
     """Test remove device with monitor running."""
