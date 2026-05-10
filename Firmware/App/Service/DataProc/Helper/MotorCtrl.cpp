@@ -305,6 +305,24 @@ void MotorCtrl::onMotorFinished()
 
 int MotorCtrl::timestampToMotorValue(int timestamp)
 {
+    auto findPrevValidIndex = [&](int start, int minIndex) {
+        for (int i = start; i >= minIndex; i--) {
+            if (_valueMap[i] != MOTOR_VALUE_INVALID) {
+                return i;
+            }
+        }
+        return -1;
+    };
+
+    auto findNextValidIndex = [&](int start, int maxIndex) {
+        for (int i = start; i <= maxIndex; i++) {
+            if (_valueMap[i] != MOTOR_VALUE_INVALID) {
+                return i;
+            }
+        }
+        return -1;
+    };
+
     switch (_unit) {
     case UNIT::HOUR_COS_PHI: {
         int motorValue = 0;
@@ -334,21 +352,8 @@ int MotorCtrl::timestampToMotorValue(int timestamp)
             return timestampMap(timestamp, 24, 24);
         }
 
-        int prevHour = -1;
-        for (int i = currentHour; i >= 0; i--) {
-            if (_valueMap[i] != MOTOR_VALUE_INVALID) {
-                prevHour = i;
-                break;
-            }
-        }
-
-        int nextHour = -1;
-        for (int i = currentHour + 1; i < CM_ARRAY_SIZE(_valueMap); i++) {
-            if (_valueMap[i] != MOTOR_VALUE_INVALID) {
-                nextHour = i;
-                break;
-            }
-        }
+        int prevHour = findPrevValidIndex(currentHour, 0);
+        int nextHour = findNextValidIndex(currentHour + 1, 24);
 
         if (prevHour < 0 || nextHour < 0) {
             HAL_LOG_ERROR("currentHour: %d not found in hourMotorMap", currentHour);
@@ -362,29 +367,45 @@ int MotorCtrl::timestampToMotorValue(int timestamp)
 
     case UNIT::MINUTE:
     case UNIT::SECOND: {
-        /*
-         * For MINUTE/SECOND unit, timestamp here is 0-60 value
-         * _valueMap[0]~_valueMap[6] maps to 0, 10, 20, 30, 40, 50, 60
-         */
-        const int mapIndex = timestamp / 10; /* 0-6 */
-        if (mapIndex >= 6) {
-            return _valueMap[6];
+        int current = timestamp;
+        if (current < 0) {
+            current = 0;
+        } else if (current > 60) {
+            current = 60;
         }
 
-        if (mapIndex < 0) {
-            return _valueMap[0];
-        }
+        const int currentSlot = current / 10;
+        int prevSlot = findPrevValidIndex(currentSlot, 0);
+        int nextSlot = findNextValidIndex(currentSlot + 1, 6);
 
-        /* Check if current and next index are valid */
-        if (_valueMap[mapIndex] == MOTOR_VALUE_INVALID || _valueMap[mapIndex + 1] == MOTOR_VALUE_INVALID) {
-            HAL_LOG_ERROR("Invalid valueMap at index: %d or %d", mapIndex, mapIndex + 1);
+        if (prevSlot < 0 && nextSlot < 0) {
+            HAL_LOG_ERROR("No valid map point for %s", _unit == UNIT::MINUTE ? "MINUTE" : "SECOND");
+            listMap();
             return 0;
         }
 
-        /* Interpolate between mapIndex and mapIndex+1 */
-        int32_t min_in = mapIndex * 10;
-        int32_t max_in = (mapIndex + 1) * 10;
-        return valueMap(timestamp, min_in, max_in, _valueMap[mapIndex], _valueMap[mapIndex + 1]);
+        if (prevSlot < 0) {
+            return _valueMap[nextSlot];
+        }
+
+        if (nextSlot < 0) {
+            return _valueMap[prevSlot];
+        }
+
+        const int prevPos = prevSlot * 10;
+        const int nextPos = nextSlot * 10;
+
+        if (current <= prevPos) {
+            return _valueMap[prevSlot];
+        }
+
+        HAL_LOG_TRACE("%s current:%d, prev:%d, next:%d",
+            _unit == UNIT::MINUTE ? "MINUTE" : "SECOND",
+            current,
+            prevPos,
+            nextPos);
+
+        return valueMap(current, prevPos, nextPos, _valueMap[prevSlot], _valueMap[nextSlot]);
     } break;
 
     default:
