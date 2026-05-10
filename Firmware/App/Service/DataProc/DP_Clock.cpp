@@ -41,6 +41,7 @@ private:
     const DataNode* _nodeGlobal;
     KVDB_Helper _kvdb;
     DeviceObject* _dev;
+    uint32_t _pollPeriodMs;
     uint16_t _calPeriod;
     int16_t _calOffset;
 
@@ -55,6 +56,7 @@ DP_Clock::DP_Clock(DataNode* node)
     : _node(node)
     , _kvdb(node)
     , _dev(nullptr)
+    , _pollPeriodMs(2000)
     , _calPeriod(0)
     , _calOffset(0)
 {
@@ -73,7 +75,7 @@ DP_Clock::DP_Clock(DataNode* node)
             return ctx->onEvent(param);
         });
 
-    node->startTimer(2000);
+    node->startTimer(_pollPeriodMs);
 }
 
 int DP_Clock::onEvent(DataNode::EventParam_t* param)
@@ -130,6 +132,20 @@ int DP_Clock::onNotify(const Clock_Info_t* info)
         return retval == DeviceObject::RES_OK ? DataNode::RES_OK : DataNode::RES_NO_DATA;
     }
 
+    case CLOCK_CMD::SET_POLL_PERIOD: {
+        if (info->pollPeriodMs < 100 || info->pollPeriodMs > 10000) {
+            HAL_LOG_ERROR("Invalid poll period: %dms", info->pollPeriodMs);
+            return DataNode::RES_PARAM_ERROR;
+        }
+
+        _pollPeriodMs = info->pollPeriodMs;
+        _node->setTimerPeriod(_pollPeriodMs);
+        KVDB_SET(_pollPeriodMs);
+
+        HAL_LOG_INFO("Clock poll period set to %dms", _pollPeriodMs);
+        return DataNode::RES_OK;
+    }
+
     default:
         break;
     }
@@ -140,8 +156,16 @@ int DP_Clock::onNotify(const Clock_Info_t* info)
 int DP_Clock::onGlobalEvent(const Global_Info_t* info)
 {
     if (info->event == GLOBAL_EVENT::APP_STARTED) {
+        KVDB_GET(_pollPeriodMs);
         KVDB_GET(_calPeriod);
         KVDB_GET(_calOffset);
+
+        if (_pollPeriodMs < 100 || _pollPeriodMs > 10000) {
+            _pollPeriodMs = 2000;
+        }
+
+        _node->setTimerPeriod(_pollPeriodMs);
+        HAL_LOG_INFO("Clock poll period restored: %dms", _pollPeriodMs);
 
         if (_calPeriod) {
             HAL::Clock_Info_t clock = { 0 };

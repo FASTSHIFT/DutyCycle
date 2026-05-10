@@ -341,6 +341,7 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     int second = info.second;
     int calPeriodSec = 0;
     int calOffset = 0;
+    int pollPeriodMs = 0;
 
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -353,6 +354,7 @@ int DP_Shell::cmdClock(int argc, const char** argv)
         OPT_INTEGER('S', "second", &second, "second", nullptr, 0, 0),
         OPT_INTEGER(0, "cal-period", &calPeriodSec, "calibration period in seconds", nullptr, 0, 0),
         OPT_INTEGER(0, "cal-offset", &calOffset, "calibration offset in clock cycles", nullptr, 0, 0),
+        OPT_INTEGER(0, "poll-ms", &pollPeriodMs, "RTC poll period in milliseconds", nullptr, 0, 0),
         OPT_END(),
     };
 
@@ -369,31 +371,42 @@ int DP_Shell::cmdClock(int argc, const char** argv)
     clockInfo.base.second = second;
     clockInfo.base.calPeriodSec = calPeriodSec;
     clockInfo.base.calOffsetClk = calOffset;
-
-    switch (calPeriodSec) {
-    case 0:
-    case 8:
-    case 16:
-    case 32:
-        break;
-
-    default:
-        shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid calibration period, must be 8, 16, or 32 seconds");
-        return SHELL_RET_FAILURE;
-    }
-
-    if (calOffset < -511 || calOffset > 511) {
-        shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid calibration offset, must be between -511 and 511");
-        return SHELL_RET_FAILURE;
-    }
+    clockInfo.pollPeriodMs = pollPeriodMs;
 
     static constexpr CMD_PAIR<CLOCK_CMD> cmd_map[] = {
         CMD_PAIR_DEF(CLOCK_CMD, SET),
+        CMD_PAIR_DEF(CLOCK_CMD, SET_POLL_PERIOD),
     };
 
     static constexpr CmdMapHelper<CLOCK_CMD> cmdMap(cmd_map, CM_ARRAY_SIZE(cmd_map));
     if (!cmdMap.get(cmd, &clockInfo.cmd)) {
         return SHELL_RET_FAILURE;
+    }
+
+    if (clockInfo.cmd == CLOCK_CMD::SET) {
+        switch (calPeriodSec) {
+        case 0:
+        case 8:
+        case 16:
+        case 32:
+            break;
+
+        default:
+            shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid calibration period, must be 8, 16, or 32 seconds");
+            return SHELL_RET_FAILURE;
+        }
+
+        if (calOffset < -511 || calOffset > 511) {
+            shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid calibration offset, must be between -511 and 511");
+            return SHELL_RET_FAILURE;
+        }
+    }
+
+    if (clockInfo.cmd == CLOCK_CMD::SET_POLL_PERIOD) {
+        if (pollPeriodMs < 100 || pollPeriodMs > 10000) {
+            shell_print_error(E_SHELL_ERR_OUTOFRANGE, "invalid poll period, must be between 100 and 10000 ms");
+            return SHELL_RET_FAILURE;
+        }
     }
 
     if (!nodeClock.notify(&clockInfo)) {
@@ -415,6 +428,10 @@ int DP_Shell::cmdClock(int argc, const char** argv)
             "Clock calibration set: period %d seconds, offset %d clocks\r\n",
             clockInfo.base.calPeriodSec,
             clockInfo.base.calOffsetClk);
+    }
+
+    if (clockInfo.cmd == CLOCK_CMD::SET_POLL_PERIOD) {
+        shell_printf("Clock poll period set: %d ms\r\n", clockInfo.pollPeriodMs);
     }
 
     return SHELL_RET_SUCCESS;

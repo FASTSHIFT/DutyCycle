@@ -31,16 +31,19 @@ namespace DataProc {
 enum class CLOCK_CMD {
     NONE,
     SET,
+    SET_POLL_PERIOD,
 };
 
 typedef struct Clock_Info {
     Clock_Info()
         : cmd(CLOCK_CMD::NONE)
         , base { 0 }
+        , pollPeriodMs(2000)
     {
     }
     CLOCK_CMD cmd;
     HAL::Clock_Info_t base;
+    uint32_t pollPeriodMs;
 } Clock_Info_t;
 
 } // namespace DataProc
