@@ -191,10 +191,12 @@ void DP_Clock::setCompileTimeToClock()
 {
     HAL_LOG_INFO("Build: %s %s", __DATE__, __TIME__);
 
-    int day, year;
-    char month[4];
-
-    sscanf(__DATE__, "%3s %d %d", month, &day, &year); // "Sep 29 2023"
+    /* Parse __DATE__ "May 16 2026" without sscanf */
+    const char* date_str = __DATE__;
+    char month[4] = { date_str[0], date_str[1], date_str[2], '\0' };
+    int day = (date_str[4] == ' ' ? 0 : (date_str[4] - '0') * 10) + (date_str[5] - '0');
+    int year = (date_str[7] - '0') * 1000 + (date_str[8] - '0') * 100
+             + (date_str[9] - '0') * 10 + (date_str[10] - '0');
 
     int month_int = 0;
     static const char* month_names[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -206,11 +208,13 @@ void DP_Clock::setCompileTimeToClock()
         }
     }
 
-    int hour, minute, second;
-    sscanf(__TIME__, "%d:%d:%d", &hour, &minute, &second); // "14:55:30"
+    /* Parse __TIME__ "14:55:30" without sscanf */
+    const char* time_str = __TIME__;
+    int hour = (time_str[0] - '0') * 10 + (time_str[1] - '0');
+    int minute = (time_str[3] - '0') * 10 + (time_str[4] - '0');
+    int second = (time_str[6] - '0') * 10 + (time_str[7] - '0');
 
-    HAL::Clock_Info_t info;
-    memset(&info, 0, sizeof(info));
+    HAL::Clock_Info_t info = {};
     info.year = year;
     info.month = month_int;
     info.day = day;
