@@ -30,13 +30,13 @@ static void Memory_DumpStackInfo()
 {
     HAL_LOG_INFO(
         "Stack: %d%% used (total: %d, free: %d)",
-        (int)(StackInfo_GetMaxUtilization() * 100),
+        (int)StackInfo_GetMaxUtilization(),
         StackInfo_GetTotalSize(),
         StackInfo_GetMinFreeSize());
 }
 #endif
 
-#if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB)
+#if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB) && defined(__ARMCC_VERSION)
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ void HAL_MemoryDumpInfo()
     Memory_DumpStackInfo();
 #endif
 
-#if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB)
+#if CONFIG_MEMORY_HEAP_INFO && !defined(__MICROLIB) && defined(__ARMCC_VERSION)
     Memory_DumpHeapInfo();
 #endif
 

@@ -31,7 +31,8 @@ using namespace DataProc;
 #define MOTOR_VALUE_MAX 1000
 #define MOTOR_VALUE_INVALID -32768
 #define MOTOR_TIMER_PERIOD 60
-#define MOTOR_ANIM_SPEED_FACTOR 0.15f
+#define MOTOR_ANIM_SPEED_FACTOR_NUM 15
+#define MOTOR_ANIM_SPEED_FACTOR_DEN 100
 
 /* Optimize variables that can be calculated at compile time */
 static constexpr int getTimestamp(int hour, int minute = 0, int second = 0)
@@ -56,7 +57,7 @@ MotorCtrl::MotorCtrl()
     easing_init(
         &_easing,
         EASING_MODE_DEFAULT,
-        _easing_calc_InOutQuad,
+        easing_calc_in_out_quad,
         0,
         MOTOR_TIMER_PERIOD,
         0);
@@ -108,11 +109,11 @@ void MotorCtrl::setMotorValue(int value, bool immediate)
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
     /* Calculate the number of frames to animate */
-    _easing.nFrameCount = ABS(value - currentValue) * MOTOR_ANIM_SPEED_FACTOR;
+    _easing.frame_count = ABS(value - currentValue) * MOTOR_ANIM_SPEED_FACTOR_NUM / MOTOR_ANIM_SPEED_FACTOR_DEN;
 
     /* Limit the minimum number of frames */
-    if (_easing.nFrameCount < MOTOR_TIMER_PERIOD / 2) {
-        _easing.nFrameCount = MOTOR_TIMER_PERIOD / 2;
+    if (_easing.frame_count < MOTOR_TIMER_PERIOD / 2) {
+        _easing.frame_count = MOTOR_TIMER_PERIOD / 2;
     }
 
     easing_start_absolute(&_easing, currentValue, value);

@@ -70,19 +70,16 @@ void Timer_ClockCmd(tmr_type* TIMx, bool Enable)
     }
 }
 
-static float Qsqrt(float number)
+static uint32_t Qsqrt(uint32_t n)
 {
-    long i;
-    float x2, y;
-    const float threehalfs = 1.5f;
-    x2 = number * 0.5f;
-    y  = number;
-    i  = *(long*)&y;
-    i  = 0x5f3759df - (i >> 1);
-    y  = *(float*)&i;
-    y  = y * (threehalfs - (x2 * y * y));
-    y  = y * (threehalfs - (x2 * y * y));
-    return 1.0f / y;
+    if (n == 0) return 0;
+    uint32_t x = n;
+    uint32_t y = (x + 1) >> 1;
+    while (y < x) {
+        x = y;
+        y = (x + n / x) >> 1;
+    }
+    return x;
 }
 
 /**

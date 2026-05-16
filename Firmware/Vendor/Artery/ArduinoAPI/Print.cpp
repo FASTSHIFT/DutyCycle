@@ -138,7 +138,12 @@ size_t Print::print(unsigned long n, int base)
 
 size_t Print::print(double n, int digits)
 {
+#ifndef PRINT_DISABLE_FLOAT
     return printFloat(n, digits);
+#else
+    (void)digits;
+    return print((long)n);
+#endif
 }
 
 size_t Print::println(const __FlashStringHelper* ifsh)
@@ -249,6 +254,7 @@ size_t Print::printNumber(unsigned long n, uint8_t base)
     return write(str);
 }
 
+#ifndef PRINT_DISABLE_FLOAT
 size_t Print::printFloat(double number, uint8_t digits)
 {
     size_t n = 0;
@@ -295,6 +301,7 @@ size_t Print::printFloat(double number, uint8_t digits)
 
     return n;
 }
+#endif /* PRINT_DISABLE_FLOAT */
 
 int Print::printf(const char* __restrict __format, ...)
 {

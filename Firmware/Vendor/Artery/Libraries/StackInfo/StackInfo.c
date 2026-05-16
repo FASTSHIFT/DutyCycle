@@ -87,7 +87,7 @@ uint32_t StackInfo_GetMinFreeSize(void)
     return StackInfo_GetTotalSize() - StackInfo_GetMaxUsageSize();
 }
 
-float StackInfo_GetMaxUtilization(void)
+uint32_t StackInfo_GetMaxUtilization(void)
 {
-    return (float)StackInfo_GetMaxUsageSize() / StackInfo_GetTotalSize();
+    return (uint32_t)StackInfo_GetMaxUsageSize() * 100 / StackInfo_GetTotalSize();
 }

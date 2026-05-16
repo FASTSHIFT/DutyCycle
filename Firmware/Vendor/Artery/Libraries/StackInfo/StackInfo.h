@@ -34,7 +34,7 @@ extern "C" {
 uint32_t StackInfo_GetTotalSize(void);
 uint32_t StackInfo_GetMaxUsageSize(void);
 uint32_t StackInfo_GetMinFreeSize(void);
-float StackInfo_GetMaxUtilization(void);
+uint32_t StackInfo_GetMaxUtilization(void);
 
 #ifdef __cplusplus
 }
