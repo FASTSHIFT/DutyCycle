@@ -4,6 +4,7 @@
 [submodule "Firmware/External/argparse"]
 	path = Firmware/External/argparse
 	url = https://github.com/FASTSHIFT/argparse.git
+	branch = embedded
 [submodule "Firmware/External/umm_malloc"]
 	path = Firmware/External/umm_malloc
 	url = git@github.com:FASTSHIFT/umm_malloc.git
