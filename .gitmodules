@@ -7,3 +7,4 @@
 [submodule "Firmware/External/umm_malloc"]
 	path = Firmware/External/umm_malloc
 	url = git@github.com:FASTSHIFT/umm_malloc.git
+	branch = no-float
