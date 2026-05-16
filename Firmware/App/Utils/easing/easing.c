@@ -1,331 +1,274 @@
-/**
- * @file easing.c
- * @author uYanki (https://github.com/uYanki)
- * @brief https://github.com/uYanki/board-stm32f103rc-berial/blob/main/7.Example/HAL/19.GUI/03%20u8g2/02%20menu/Lib/easing/easing.c
- * @version 0.1
- * @date 2023-01-15
- *
- * @copyright Copyright (c) 2023
- *
+/*  Easing animation library (fixed-point Q1.15 version)
+    Based on original work by uYanki (https://github.com/uYanki)
+    Fixed-point conversion Copyright (C) 2026 _VIFEXTech
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the MIT License.
  */
 
 #include "easing.h"
 #include <string.h>
 
-#define PI 3.1415926f
+/*-------------------------------------------------------------*
+ *		Private variables				*
+ *-------------------------------------------------------------*/
 
-static easing_tick_cb_t g_easing_tick_cb = 0;
+static easing_tick_cb_t tick_callback = 0;
 
-#define easing_mills() g_easing_tick_cb()
+#define get_tick_ms() tick_callback()
 
-static const float DH = 1.0f / 22.0f;
-static const float D1 = 1.0f / 11.0f;
-static const float D2 = 2.0f / 11.0f;
-static const float D3 = 3.0f / 11.0f;
-// static const float D4 = 4.0f / 11.0f;
-static const float D5 = 5.0f / 11.0f;
-static const float D7 = 7.0f / 11.0f;
-static const float IH = 1.0f / (1.0f / 22.0f);
-static const float I1 = 1.0f / (1.0f / 11.0f);
-static const float I2 = 1.0f / (2.0f / 11.0f);
-static const float I4D = 1.0f / (4.0f / 11.0f) / (4.0f / 11.0f);
-// static const float IH  = 1.0f / DH;
-// static const float I1  = 1.0f / D1;
-// static const float I2  = 1.0f / D2;
-// static const float I4D = 1.0f / D4 / D4;
+/*-------------------------------------------------------------*
+ *		Curve implementations (Q1.15)		*
+ *-------------------------------------------------------------*/
 
-float _easing_calc_InBounce(const float t)
+easing_frac_t easing_calc_linear(easing_frac_t t)
 {
-    float s;
-    if (t < D1) {
-        s = t - DH;
-        s = DH - s * s * IH;
-    } else if (t < D3) {
-        s = t - D2;
-        s = D1 - s * s * I1;
-    } else if (t < D7) {
-        s = t - D5;
-        s = D2 - s * s * I2;
-    } else {
-        s = t - 1;
-        s = 1 - s * s * I4D;
-    }
-    return s;
+	return t;
 }
 
-float _easing_calc_OutBounce(const float t)
+easing_frac_t easing_calc_in_quad(easing_frac_t t)
 {
-    return 1.0f - _easing_calc_InBounce(1.0f - t);
+	return EASING_FRAC_MUL(t, t);
 }
 
-float _easing_calc_InOutBounce(const float t)
+easing_frac_t easing_calc_out_quad(easing_frac_t t)
 {
-    return (t < 0.5f) ? _easing_calc_InBounce(t * 2.0f) * 0.5f : 1 - _easing_calc_InBounce(2.0f - t * 2.0f) * 0.5f;
+	easing_frac_t inv = EASING_FRAC_ONE - t;
+	return EASING_FRAC_ONE - EASING_FRAC_MUL(inv, inv);
 }
 
-float _easing_calc_InCirc(const float t)
+easing_frac_t easing_calc_in_out_quad(easing_frac_t t)
 {
-    return 1.0f - sqrtf(1.0f - t * t);
+	if (t < EASING_FRAC_HALF) {
+		int32_t t2 = (int32_t)t * 2;
+		return (easing_frac_t)(EASING_FRAC_MUL(t2, t2) >> 1);
+	} else {
+		int32_t inv = ((int32_t)EASING_FRAC_ONE - t) * 2;
+		return (easing_frac_t)(EASING_FRAC_ONE - (EASING_FRAC_MUL(inv, inv) >> 1));
+	}
 }
 
-float _easing_calc_OutCirc(const float t)
+easing_frac_t easing_calc_in_cubic(easing_frac_t t)
 {
-    return 1.0f - _easing_calc_InCirc(1.0f - t);
+	return EASING_FRAC_MUL(EASING_FRAC_MUL(t, t), t);
 }
 
-float _easing_calc_InOutCirc(const float t)
+easing_frac_t easing_calc_out_cubic(easing_frac_t t)
 {
-    return (t < 0.5f) ? _easing_calc_InCirc(t * 2.0f) * 0.5f : 1 - _easing_calc_InCirc(2.0f - t * 2.0f) * 0.5f;
+	easing_frac_t inv = EASING_FRAC_ONE - t;
+	return EASING_FRAC_ONE - EASING_FRAC_MUL(EASING_FRAC_MUL(inv, inv), inv);
 }
 
-float _easing_calc_InCubic(const float t)
+easing_frac_t easing_calc_in_out_cubic(easing_frac_t t)
 {
-    return t * t * t;
+	if (t < EASING_FRAC_HALF) {
+		int32_t t2 = (int32_t)t * 2;
+		return (easing_frac_t)(EASING_FRAC_MUL(EASING_FRAC_MUL(t2, t2), t2) >> 1);
+	} else {
+		int32_t inv = ((int32_t)EASING_FRAC_ONE - t) * 2;
+		return (easing_frac_t)(EASING_FRAC_ONE - (EASING_FRAC_MUL(EASING_FRAC_MUL(inv, inv), inv) >> 1));
+	}
 }
 
-float _easing_calc_OutCubic(const float t)
+easing_frac_t easing_calc_in_quart(easing_frac_t t)
 {
-    return 1.0f - _easing_calc_InCubic(1.0f - t);
+	easing_frac_t t2 = EASING_FRAC_MUL(t, t);
+	return EASING_FRAC_MUL(t2, t2);
 }
 
-float _easing_calc_InOutCubic(const float t)
+easing_frac_t easing_calc_out_quart(easing_frac_t t)
 {
-    return (t < 0.5f) ? _easing_calc_InCubic(t * 2.0f) * 0.5f : 1 - _easing_calc_InCubic(2.0f - t * 2.0f) * 0.5f;
+	easing_frac_t inv = EASING_FRAC_ONE - t;
+	easing_frac_t inv2 = EASING_FRAC_MUL(inv, inv);
+	return EASING_FRAC_ONE - EASING_FRAC_MUL(inv2, inv2);
 }
 
-float _easing_calc_OutElastic(const float t)
+easing_frac_t easing_calc_in_out_quart(easing_frac_t t)
 {
-    float s = 1 - t;
-    return 1 - powf(s, 8) + sinf(t * t * 6 * PI) * s * s;
+	if (t < EASING_FRAC_HALF) {
+		int32_t t2 = (int32_t)t * 2;
+		easing_frac_t t2sq = EASING_FRAC_MUL(t2, t2);
+		return (easing_frac_t)(EASING_FRAC_MUL(t2sq, t2sq) >> 1);
+	} else {
+		int32_t inv = ((int32_t)EASING_FRAC_ONE - t) * 2;
+		easing_frac_t inv2 = EASING_FRAC_MUL(inv, inv);
+		return (easing_frac_t)(EASING_FRAC_ONE - (EASING_FRAC_MUL(inv2, inv2) >> 1));
+	}
 }
 
-float _easing_calc_InElastic(const float t)
+easing_frac_t easing_calc_in_quint(easing_frac_t t)
 {
-    return 1.0f - _easing_calc_OutElastic(1.0f - t);
+	easing_frac_t t2 = EASING_FRAC_MUL(t, t);
+	return EASING_FRAC_MUL(EASING_FRAC_MUL(t2, t2), t);
 }
 
-float _easing_calc_InOutElastic(const float t)
+easing_frac_t easing_calc_out_quint(easing_frac_t t)
 {
-    return (t < 0.5f) ? _easing_calc_InElastic(t * 2.0f) * 0.5f : 1 - _easing_calc_InElastic(2.0f - t * 2.0f) * 0.5f;
+	easing_frac_t inv = EASING_FRAC_ONE - t;
+	easing_frac_t inv2 = EASING_FRAC_MUL(inv, inv);
+	return EASING_FRAC_ONE - EASING_FRAC_MUL(EASING_FRAC_MUL(inv2, inv2), inv);
 }
 
-float _easing_calc_InExpo(const float t)
+easing_frac_t easing_calc_in_out_quint(easing_frac_t t)
 {
-    return powf(2, 10 * (t - 1));
+	if (t < EASING_FRAC_HALF) {
+		int32_t t2 = (int32_t)t * 2;
+		easing_frac_t t2sq = EASING_FRAC_MUL(t2, t2);
+		return (easing_frac_t)(EASING_FRAC_MUL(EASING_FRAC_MUL(t2sq, t2sq), t2) >> 1);
+	} else {
+		int32_t inv = ((int32_t)EASING_FRAC_ONE - t) * 2;
+		easing_frac_t inv2 = EASING_FRAC_MUL(inv, inv);
+		return (easing_frac_t)(EASING_FRAC_ONE - (EASING_FRAC_MUL(EASING_FRAC_MUL(inv2, inv2), inv) >> 1));
+	}
 }
 
-float _easing_calc_OutExpo(const float t)
+easing_frac_t easing_calc_in_back(easing_frac_t t)
 {
-    return 1.0f - powf(2, -10 * t);
+	/* 3t^3 - 2t^2 */
+	easing_frac_t t2 = EASING_FRAC_MUL(t, t);
+	easing_frac_t t3 = EASING_FRAC_MUL(t2, t);
+	return (easing_frac_t)((int32_t)t3 * 3 - (int32_t)t2 * 2);
 }
 
-float _easing_calc_InOutExpo(const float t)
+easing_frac_t easing_calc_out_back(easing_frac_t t)
 {
-    return (t < 0.5f) ? _easing_calc_InExpo(t * 2.0f) * 0.5f : 1 - _easing_calc_InExpo(2.0f - t * 2.0f) * 0.5f;
+	return EASING_FRAC_ONE - easing_calc_in_back(EASING_FRAC_ONE - t);
 }
 
-float _easing_calc_Linear(const float t)
+easing_frac_t easing_calc_in_out_back(easing_frac_t t)
 {
-    return t;
+	if (t < EASING_FRAC_HALF) {
+		easing_frac_t t2 = (easing_frac_t)((int32_t)t * 2);
+		return (easing_frac_t)(easing_calc_in_back(t2) >> 1);
+	} else {
+		easing_frac_t inv = (easing_frac_t)(((int32_t)EASING_FRAC_ONE - t) * 2);
+		return (easing_frac_t)(EASING_FRAC_ONE - (easing_calc_in_back(inv) >> 1));
+	}
 }
 
-float _easing_calc_InQuad(const float t)
-{
-    return t * t;
-}
-
-float _easing_calc_OutQuad(const float t)
-{
-    return 1.0f - _easing_calc_InQuad(1.0f - t);
-}
-
-float _easing_calc_InOutQuad(const float t)
-{
-    return (t < 0.5f) ? _easing_calc_InQuad(t * 2.0f) * 0.5f : 1 - _easing_calc_InQuad(2.0f - t * 2.0f) * 0.5f;
-}
-
-float _easing_calc_InQuart(const float t)
-{
-    return t * t * t * t;
-}
-
-float _easing_calc_OutQuart(const float t)
-{
-    return 1.0f - _easing_calc_InQuart(1.0f - t);
-}
-
-float _easing_calc_InOutQuart(const float t)
-{
-    return (t < 0.5f) ? _easing_calc_InQuart(t * 2.0f) * 0.5f : 1 - _easing_calc_InQuart(2.0f - t * 2.0f) * 0.5f;
-}
-
-float _easing_calc_InQuint(const float t)
-{
-    return t * t * t * t * t;
-}
-
-float _easing_calc_OutQuint(const float t)
-{
-    return 1.0f - _easing_calc_InQuint(1.0f - t);
-}
-
-float _easing_calc_InOutQuint(const float t)
-{
-    return (t < 0.5f) ? _easing_calc_InQuint(t * 2.0f) * 0.5f : 1 - _easing_calc_InQuint(2.0f - t * 2.0f) * 0.5f;
-}
-
-float _easing_calc_InSine(const float t)
-{
-    return 1.0f - cosf(t * (PI / 2));
-}
-
-float _easing_calc_OutSine(const float t)
-{
-    return 1.0f - _easing_calc_InSine(1.0f - t);
-}
-
-float _easing_calc_InOutSine(const float t)
-{
-    return (t < 0.5f) ? _easing_calc_InSine(t * 2.0f) * 0.5f : 1 - _easing_calc_InSine(2.0f - t * 2.0f) * 0.5f;
-}
-
-float _easing_calc_InBack(const float t)
-{
-    return 3 * t * t * t - 2 * t * t;
-}
-
-float _easing_calc_OutBack(const float t)
-{
-    return 1.0f - _easing_calc_InBack(1.0f - t);
-}
-
-float _easing_calc_InOutBack(const float t)
-{
-    return (t < 0.5f) ? _easing_calc_InBack(t * 2.0f) * 0.5f : 1 - _easing_calc_InBack(2.0f - t * 2.0f) * 0.5f;
-}
-
-////////////////////////////////////////////////////////////////////////////////////
+/*-------------------------------------------------------------*
+ *		API implementation				*
+ *-------------------------------------------------------------*/
 
 void easing_set_tick_callback(easing_tick_cb_t tick_cb)
 {
-    g_easing_tick_cb = tick_cb;
+	tick_callback = tick_cb;
 }
 
 void easing_init(
-    easing_t* pEasing,
-    easing_mode_t dwMode,
-    easing_calc_t lpfnCalc,
-    easing_pos_t nOffset,
-    uint16_t nFrameCount,
-    uint16_t nInterval)
+	easing_t* e,
+	easing_mode_t mode,
+	easing_calc_t calc,
+	easing_pos_t offset,
+	uint16_t frame_count,
+	uint16_t interval)
 {
-    memset(pEasing, 0, sizeof(easing_t));
-    pEasing->dwMode = dwMode;
-    pEasing->lpfnCalc = lpfnCalc == 0 ? _easing_calc_Linear : lpfnCalc;
-    pEasing->nOffset = nOffset;
-    pEasing->nFrameCount = (nFrameCount < 2) ? 2 : nFrameCount;
-    pEasing->nInterval = nInterval;
-    pEasing->bDirection = dwMode & EASING_DIR_REVERSE;
+	memset(e, 0, sizeof(easing_t));
+	e->mode = mode;
+	e->calc = (calc == 0) ? easing_calc_linear : calc;
+	e->offset = offset;
+	e->frame_count = (frame_count < 2) ? 2 : frame_count;
+	e->interval = interval;
+	e->reverse = mode & EASING_DIR_REVERSE;
 }
 
-void easing_start_absolute(
-    easing_t* pEasing,
-    easing_pos_t nStart,
-    easing_pos_t nStop)
+void easing_start_absolute(easing_t* e, easing_pos_t start, easing_pos_t stop)
 {
-    pEasing->nStart = nStart;
-    pEasing->nStop = nStop;
-    pEasing->nDelta = nStop - nStart;
+	e->start = start;
+	e->stop = stop;
+	e->delta = stop - start;
 
-    pEasing->nFrameIndex = 0; // first frame is nStart
-    pEasing->fProgress = 0.0f;
+	e->frame_index = 0;
+	e->progress = 0;
 
-    pEasing->bDirection = pEasing->dwMode & EASING_DIR_REVERSE;
+	e->reverse = e->mode & EASING_DIR_REVERSE;
 
-    if (pEasing->dwMode & EASING_TIMES_INFINITE) {
-        pEasing->nTimes = -1;
-    } else {
-        pEasing->nTimes = (pEasing->dwMode & EASING_TIMES_MANYTIMES) ? (pEasing->dwMode >> EASING_TIMES_SET) : 1;
-        if (pEasing->dwMode & EASING_DIR_BACKANDFORTH)
-            pEasing->nTimes *= 2;
-    }
+	if (e->mode & EASING_TIMES_INFINITE) {
+		e->times = -1;
+	} else {
+		e->times = (e->mode & EASING_TIMES_MANYTIMES)
+			? (e->mode >> EASING_TIMES_SET) : 1;
+		if (e->mode & EASING_DIR_BACKANDFORTH)
+			e->times *= 2;
+	}
 
-#ifdef easing_mills
-    pEasing->nMills = easing_mills();
+#ifdef get_tick_ms
+	e->tick_ms = get_tick_ms();
 #endif
 }
 
-void easing_start_relative(
-    easing_t* pEasing,
-    easing_pos_t nDistance)
+void easing_start_relative(easing_t* e, easing_pos_t distance)
 {
-    easing_start_absolute(
-        pEasing,
-#if 1
-        pEasing->nCurrent, // from current pos
-#else
-        easing->nStop, // from stop pos
-#endif
-        pEasing->nStop + nDistance);
+	easing_start_absolute(e, e->current, e->stop + distance);
 }
 
-void easing_update(easing_t* pEasing)
+void easing_update(easing_t* e)
 {
-    // isok
-    if (pEasing->nTimes == 0)
-        return;
+	/* Check if finished */
+	if (e->times == 0)
+		return;
 
-#ifdef easing_mills
-    if (pEasing->nInterval > 0) {
-        if (easing_mills() < pEasing->nMills)
-            return;
-        pEasing->nMills = easing_mills() + pEasing->nInterval;
-    }
+#ifdef get_tick_ms
+	/* Interval timing control */
+	if (e->interval > 0) {
+		if (get_tick_ms() < e->tick_ms)
+			return;
+		e->tick_ms = get_tick_ms() + e->interval;
+	}
 #endif
 
-    // next frame
-    ++pEasing->nFrameIndex;
+	/* Advance frame */
+	++e->frame_index;
 
-    if (pEasing->nFrameIndex > pEasing->nFrameCount) {
-        if (pEasing->dwMode & EASING_DIR_BACKANDFORTH) {
-            // reverse direction
-            pEasing->bDirection = !pEasing->bDirection;
-            // skip once nStart/nStop pos
-            pEasing->nFrameIndex = 2;
-        } else {
-            // at first frame
-            pEasing->nFrameIndex = 1;
-        }
-    }
+	if (e->frame_index > e->frame_count) {
+		if (e->mode & EASING_DIR_BACKANDFORTH) {
+			e->reverse = !e->reverse;
+			e->frame_index = 2;
+		} else {
+			e->frame_index = 1;
+		}
+	}
 
-    if (pEasing->nFrameIndex == pEasing->nFrameCount) {
-        // at last frame
-        pEasing->fProgress = 1.0f;
-        pEasing->nCurrent = pEasing->bDirection ? pEasing->nStart : pEasing->nStop;
-        // decrease times
-        if (!(pEasing->dwMode & EASING_TIMES_INFINITE))
-            if (--pEasing->nTimes)
-                return;
-    } else {
-        // calculate progress
-        pEasing->fProgress = (float)(pEasing->nFrameIndex - 1) / (pEasing->nFrameCount - 1);
-        // calculate position
-        pEasing->nCurrent = pEasing->bDirection ? (pEasing->nStop - pEasing->nDelta * pEasing->lpfnCalc(pEasing->fProgress)) : (pEasing->nStart + pEasing->nDelta * pEasing->lpfnCalc(pEasing->fProgress));
-    }
+	if (e->frame_index == e->frame_count) {
+		/* Last frame: snap to endpoint */
+		e->progress = EASING_FRAC_ONE;
+		e->current = e->reverse ? e->start : e->stop;
+
+		if (!(e->mode & EASING_TIMES_INFINITE))
+			if (--e->times)
+				return;
+	} else {
+		/* Calculate progress Q1.15 */
+		e->progress = (easing_frac_t)(
+			(int32_t)(e->frame_index - 1) * EASING_FRAC_ONE
+			/ (e->frame_count - 1));
+
+		/* Apply curve function */
+		easing_frac_t curve = e->calc(e->progress);
+
+		/* Calculate integer position */
+		if (e->reverse) {
+			e->current = e->stop
+				- (int32_t)e->delta * curve / EASING_FRAC_ONE;
+		} else {
+			e->current = e->start
+				+ (int32_t)e->delta * curve / EASING_FRAC_ONE;
+		}
+	}
 }
 
-bool easing_isok(easing_t* pEasing)
+bool easing_isok(easing_t* e)
 {
-    return pEasing->nTimes == 0;
+	return e->times == 0;
 }
 
-void easing_stop(easing_t* pEasing, easing_pos_t nCurrent)
+void easing_stop(easing_t* e, easing_pos_t current)
 {
-    pEasing->nTimes = 0;
-    pEasing->nCurrent = nCurrent;
+	e->times = 0;
+	e->current = current;
 }
 
-easing_pos_t easing_curpos(easing_t* pEasing)
+easing_pos_t easing_curpos(easing_t* e)
 {
-    return pEasing->nCurrent + pEasing->nOffset;
+	return e->current + e->offset;
 }
