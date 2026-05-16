@@ -1,0 +1,58 @@
+# MIT License
+# Copyright (c) 2026 _VIFEXTech
+#
+# GitHub Actions workflow for DutyCycle Firmware build (ARM GCC)
+
+name: Firmware Build
+
+on:
+  push:
+    paths:
+      - 'Firmware/**'
+      - '.github/workflows/firmware.yml'
+  pull_request:
+    paths:
+      - 'Firmware/**'
+      - '.github/workflows/firmware.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build AT32F421 (arm-none-eabi-gcc)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install ARM GCC toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Configure CMake
+        working-directory: Firmware/Vendor/Artery/Platform/AT32F421
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build firmware
+        working-directory: Firmware/Vendor/Artery/Platform/AT32F421
+        run: cmake --build build
+
+      - name: Verify no floating-point symbols
+        working-directory: Firmware/Vendor/Artery/Platform/AT32F421
+        run: ../../Tools/check_float.sh
+
+      - name: Print size report
+        working-directory: Firmware/Vendor/Artery/Platform/AT32F421
+        run: arm-none-eabi-size build/DutyCycle.elf
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DutyCycle-AT32F421-firmware
+          path: |
+            Firmware/Vendor/Artery/Platform/AT32F421/build/DutyCycle.hex
+            Firmware/Vendor/Artery/Platform/AT32F421/build/DutyCycle.bin
+            Firmware/Vendor/Artery/Platform/AT32F421/build/DutyCycle.elf
