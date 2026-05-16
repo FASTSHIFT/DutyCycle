@@ -6,4 +6,4 @@
 	url = https://github.com/FASTSHIFT/argparse.git
 [submodule "Firmware/External/umm_malloc"]
 	path = Firmware/External/umm_malloc
-	url = https://github.com/rhempel/umm_malloc.git
+	url = git@github.com:FASTSHIFT/umm_malloc.git
