@@ -268,7 +268,7 @@ add_executable(
 # ==============================================================================
 # Project code: strict warnings
 set(PROJECT_WARNING_FLAGS
-    "-Wall;-Wextra;-Wno-unused-parameter;-Wno-missing-field-initializers")
+    "-Wall;-Wextra;-Werror")
 set_source_files_properties(
   ${CORE_SOURCES} ${APPLICATION_HAL_SOURCES} ${APPLICATION_PORT_SOURCES}
   ${APPLICATION_MAIN_SOURCES} ${APP_SOURCES} ${FRAMEWORKS_SOURCES}

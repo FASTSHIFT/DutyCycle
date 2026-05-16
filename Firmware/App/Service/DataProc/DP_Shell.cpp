@@ -257,7 +257,7 @@ bool DP_Shell::argparseHelper(int argc, const char** argv, struct argparse_optio
     return true;
 }
 
-int DP_Shell::cmdHelp(int argc, const char** argv)
+int DP_Shell::cmdHelp(int /*argc*/, const char** /*argv*/)
 {
     shell_print_commands();
     return SHELL_RET_SUCCESS;
@@ -274,14 +274,14 @@ int DP_Shell::cmdLogLevel(int argc, const char** argv)
     return SHELL_RET_SUCCESS;
 }
 
-int DP_Shell::cmdPs(int argc, const char** argv)
+int DP_Shell::cmdPs(int /*argc*/, const char** /*argv*/)
 {
     extern void HAL_MemoryDumpInfo();
     HAL_MemoryDumpInfo();
     return SHELL_RET_SUCCESS;
 }
 
-int DP_Shell::cmdVersion(int argc, const char** argv)
+int DP_Shell::cmdVersion(int /*argc*/, const char** /*argv*/)
 {
     ShellNodeHelper<nullptr_t, nullptr_t> nodeVersion("Version");
     if (!nodeVersion) {

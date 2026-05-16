@@ -40,7 +40,7 @@ struct AppContext {
     } global;
 };
 
-AppContext_t* App_CreateContext(int argc, const char* argv[])
+AppContext_t* App_CreateContext(int /*argc*/, const char* /*argv*/[])
 {
     AppContext_t* context = new AppContext_t;
 

@@ -48,9 +48,9 @@ extern "C" {
 typedef int32_t easing_pos_t;
 
 /**
- * Fractional type: Q1.15 fixed-point, range [0, EASING_FRAC_ONE]
+ * Fractional type: Q0.16 unsigned fixed-point, range [0, EASING_FRAC_ONE]
  */
-typedef int16_t easing_frac_t;
+typedef uint16_t easing_frac_t;
 
 /**
  * Easing curve calculation function pointer.

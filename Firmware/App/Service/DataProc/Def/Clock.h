@@ -37,7 +37,7 @@ enum class CLOCK_CMD {
 typedef struct Clock_Info {
     Clock_Info()
         : cmd(CLOCK_CMD::NONE)
-        , base { 0 }
+        , base {}
         , pollPeriodMs(2000)
     {
     }

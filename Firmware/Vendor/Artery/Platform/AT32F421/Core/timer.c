@@ -40,7 +40,7 @@ static Timer_CallbackFunction_t Timer_CallbackFunction[TIMER_MAX] = { 0 };
   */
 void Timer_ClockCmd(tmr_type* TIMx, bool Enable)
 {
-    int index;
+    uint32_t index;
     typedef struct
     {
         tmr_type* tmr;

@@ -70,7 +70,7 @@ DP_WatchDog::DP_WatchDog(DataNode* node)
 #endif
 }
 
-int DP_WatchDog::onEvent(DataNode::EventParam_t* param)
+int DP_WatchDog::onEvent(DataNode::EventParam_t* /*param*/)
 {
     if (_dev->ioctl(WATCHDOG_IOCMD_KEEP_ALIVE) != DeviceObject::RES_OK) {
         return DataNode::RES_UNKNOWN;

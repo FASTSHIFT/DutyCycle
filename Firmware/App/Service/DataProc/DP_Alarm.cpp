@@ -146,7 +146,7 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
 {
     switch (info->cmd) {
     case ALARM_CMD::SET: {
-        if (info->id < 0 || info->id >= CM_ARRAY_SIZE(_alarmParam.alarms)) {
+        if (info->id < 0 || info->id >= (int)CM_ARRAY_SIZE(_alarmParam.alarms)) {
             HAL_LOG_ERROR("Invalid alarm ID: %d", info->id);
             return DataNode::RES_PARAM_ERROR;
         }
@@ -189,7 +189,7 @@ int DP_Alarm::onNotify(const Alarm_Info_t* info)
         break;
 
     case ALARM_CMD::CLEAR_ALARM_MUSIC:
-        memset(&_alarmMusicCustom, 0, sizeof(_alarmMusicCustom));
+        _alarmMusicCustom = {};
         HAL_LOG_INFO("Alarm music cleared");
         break;
 
@@ -236,7 +236,7 @@ void DP_Alarm::onHourChanged(int hour)
 
 void DP_Alarm::onMinuteChanged(int hour, int minute)
 {
-    for (int i = 0; i < CM_ARRAY_SIZE(_alarmParam.alarms); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_alarmParam.alarms); i++) {
         if (_alarmParam.alarms[i].hour < 0) {
             continue;
         }
@@ -254,7 +254,7 @@ void DP_Alarm::onMinuteChanged(int hour, int minute)
 int DP_Alarm::setAlarmMusic(const Alarm_Info_t* info)
 {
     if (info->index >= 0) {
-        if (info->index >= CM_ARRAY_SIZE(_alarmMusicCustom.sequence)) {
+        if (info->index >= (int)CM_ARRAY_SIZE(_alarmMusicCustom.sequence)) {
             HAL_LOG_ERROR("index: %d out of range: 0~%d", info->index, CM_ARRAY_SIZE(_alarmMusicCustom.sequence));
             return DataNode::RES_PARAM_ERROR;
         }
@@ -364,7 +364,7 @@ int DP_Alarm::playAlarmMusic(int musicID)
         { _alarmMusicCustom.sequence, CM_ARRAY_SIZE(_alarmMusicCustom.sequence), _alarmMusicCustom.bpm }
     };
 
-    if (musicID < 0 || musicID >= CM_ARRAY_SIZE(musics)) {
+    if (musicID < 0 || musicID >= (int)CM_ARRAY_SIZE(musics)) {
         HAL_LOG_ERROR("Invalid music ID: %d", musicID);
         return DataNode::RES_PARAM_ERROR;
     }
@@ -419,7 +419,7 @@ int DP_Alarm::playTone(int freq, int duration)
 void DP_Alarm::listAlarms()
 {
     HAL_LOG_INFO("Hourly alarm filter: 0x%08X", _alarmParam.hourlyAlarmFilter);
-    for (int i = 0; i < CM_ARRAY_SIZE(_alarmParam.alarms); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_alarmParam.alarms); i++) {
         if (_alarmParam.alarms[i].hour < 0) {
             continue;
         }
@@ -431,7 +431,7 @@ void DP_Alarm::listAlarms()
 
 void DP_Alarm::listAlarmMusic()
 {
-    for (int i = 0; i < CM_ARRAY_SIZE(_alarmMusicCustom.sequence); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_alarmMusicCustom.sequence); i++) {
         HAL_LOG_INFO("[%d]: %d Hz, duration: %d ms, time: %d ms",
             i, _alarmMusicCustom.sequence[i].frequency, _alarmMusicCustom.sequence[i].duration,
             _alarmMusicCustom.sequence[i].time);

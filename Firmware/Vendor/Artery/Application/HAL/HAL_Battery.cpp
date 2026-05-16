@@ -78,7 +78,7 @@ int Battery::onRead(void* buffer, size_t size)
     return sizeof(Battery_Info_t);
 }
 
-int Battery::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+int Battery::onIoctl(DeviceObject::IO_Cmd_t cmd, void* /*data*/)
 {
     switch (cmd.full) {
     case BATTERY_IOCMD_WAKEUP:

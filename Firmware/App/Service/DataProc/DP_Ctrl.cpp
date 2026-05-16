@@ -68,7 +68,7 @@ DP_Ctrl::DP_Ctrl(DataNode* node)
         return;
     }
 
-    for (int i = 0; i < CM_ARRAY_SIZE(_mctrl); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_mctrl); i++) {
         _mctrl[i].setID(i);
         _mctrl[i].setNode(node);
         _mctrl[i].setDevice(_devMotor);
@@ -168,7 +168,7 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
 void DP_Ctrl::onTimer()
 {
     int activeMotorCount = 0;
-    for (int i = 0; i < CM_ARRAY_SIZE(_mctrl); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_mctrl); i++) {
         activeMotorCount += _mctrl[i].timerHandler();
     }
 

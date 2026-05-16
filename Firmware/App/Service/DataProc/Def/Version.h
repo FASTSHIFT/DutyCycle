@@ -39,7 +39,7 @@ typedef struct Version_Info {
         , compiler(nullptr)
         , buildDate(nullptr)
         , buildTime(nullptr)
-        , uid { 0 }
+        , uid {}
     {
     }
     const char* name;

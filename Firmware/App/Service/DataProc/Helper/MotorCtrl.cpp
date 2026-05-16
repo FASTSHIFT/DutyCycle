@@ -48,7 +48,7 @@ MotorCtrl::MotorCtrl()
     , _id(0)
     , _displayState(DISPLAY_STATE::CLOCK_MAP)
 {
-    for (int i = 0; i < CM_ARRAY_SIZE(_valueMap); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_valueMap); i++) {
         _valueMap[i] = MOTOR_VALUE_INVALID;
     }
 
@@ -156,7 +156,7 @@ void MotorCtrl::listMap()
 {
     HAL_LOG_INFO("ID: %d", _id);
     HAL_LOG_INFO("Unit: %d", _unit);
-    for (int i = 0; i < CM_ARRAY_SIZE(_valueMap); i++) {
+    for (size_t i = 0; i < CM_ARRAY_SIZE(_valueMap); i++) {
         if (_valueMap[i] == MOTOR_VALUE_INVALID) {
             continue;
         }
@@ -185,7 +185,7 @@ void MotorCtrl::showLevel(int16_t level)
         uint32_t timestamp = 0;
         static const uint32_t demarcationPct = timestamp_5_0_0 * 100 / timestamp_23_59_59;
 
-        if (level >= demarcationPct) {
+        if ((uint32_t)level >= demarcationPct) {
             timestamp = valueMap(level, 100, demarcationPct, timestamp_5_0_0, timestamp_23_59_59);
         } else {
             timestamp = valueMap(level, demarcationPct, 0, timestamp_0_0_0, timestamp_5_0_0);
@@ -294,7 +294,7 @@ void MotorCtrl::onMotorFinished()
         0,
     };
 
-    if (_sweepValueIndex >= CM_ARRAY_SIZE(testValues)) {
+    if (_sweepValueIndex >= (int8_t)CM_ARRAY_SIZE(testValues)) {
         HAL_LOG_INFO("Motor[%d] sweep test finished", _id);
         return;
     }
@@ -425,7 +425,7 @@ int32_t MotorCtrl::timestampMap(int32_t x, int32_t hour_start, int32_t hour_end,
 
 int32_t MotorCtrl::timestampMap(int32_t x, int32_t hour_start, int32_t hour_end)
 {
-    if (hour_start >= CM_ARRAY_SIZE(_valueMap) || hour_end >= CM_ARRAY_SIZE(_valueMap) || hour_start < 0 || hour_end < 0) {
+    if (hour_start >= (int32_t)CM_ARRAY_SIZE(_valueMap) || hour_end >= (int32_t)CM_ARRAY_SIZE(_valueMap) || hour_start < 0 || hour_end < 0) {
         HAL_LOG_ERROR("Invalid hour: %d, %d", hour_start, hour_end);
         return 0;
     }

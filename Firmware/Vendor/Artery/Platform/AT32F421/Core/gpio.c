@@ -189,7 +189,7 @@ void GPIOx_Init(
 scfg_port_source_type GPIO_GetPortNum(uint8_t Pin)
 {
     uint8_t retval = 0xFF;
-    int i;
+    uint32_t i;
     gpio_type* GPIOx = PIN_MAP[Pin].GPIOx;
 
     static const gpio_type* GPIO_Map[] =

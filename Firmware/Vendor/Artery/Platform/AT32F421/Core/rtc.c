@@ -158,6 +158,7 @@ bool RTC_SetTime(uint16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t 
 
 bool RTC_SetAlarm(uint16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t min, uint8_t sec)
 {
+    (void)year; (void)mon; (void)day; (void)hour; (void)min; (void)sec;
     return false;
 }
 

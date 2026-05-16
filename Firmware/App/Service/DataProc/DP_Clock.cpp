@@ -168,7 +168,7 @@ int DP_Clock::onGlobalEvent(const Global_Info_t* info)
         HAL_LOG_INFO("Clock poll period restored: %dms", _pollPeriodMs);
 
         if (_calPeriod) {
-            HAL::Clock_Info_t clock = { 0 };
+            HAL::Clock_Info_t clock = {};
             clock.calPeriodSec = _calPeriod;
             clock.calOffsetClk = _calOffset;
 
@@ -199,7 +199,7 @@ void DP_Clock::setCompileTimeToClock()
     int month_int = 0;
     static const char* month_names[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    for (int i = 0; i < sizeof(month_names) / sizeof(month_names[0]); i++) {
+    for (size_t i = 0; i < sizeof(month_names) / sizeof(month_names[0]); i++) {
         if (strcmp(month, month_names[i]) == 0) {
             month_int = i + 1;
             break;

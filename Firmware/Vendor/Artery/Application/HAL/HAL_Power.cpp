@@ -47,7 +47,7 @@ int Power::onInit()
     return DeviceObject::RES_OK;
 }
 
-int Power::onIoctl(DeviceObject::IO_Cmd_t cmd, void* data)
+int Power::onIoctl(DeviceObject::IO_Cmd_t cmd, void* /*data*/)
 {
     switch (cmd.full) {
     case POWER_IOCMD_WFI:

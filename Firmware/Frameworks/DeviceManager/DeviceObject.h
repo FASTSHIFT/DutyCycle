@@ -131,9 +131,9 @@ private:
 
 private:
     virtual int onInit() { return RES_NO_IMPLEMENTED; };
-    virtual int onRead(void* buffer, size_t size) { return RES_NO_IMPLEMENTED; }
-    virtual int onWrite(const void* buffer, size_t size) { return RES_NO_IMPLEMENTED; }
-    virtual int onIoctl(IO_Cmd_t cmd, void* data) { return RES_NO_IMPLEMENTED; }
+    virtual int onRead(void* buffer, size_t size) { (void)buffer; (void)size; return RES_NO_IMPLEMENTED; }
+    virtual int onWrite(const void* buffer, size_t size) { (void)buffer; (void)size; return RES_NO_IMPLEMENTED; }
+    virtual int onIoctl(IO_Cmd_t cmd, void* data) { (void)cmd; (void)data; return RES_NO_IMPLEMENTED; }
 };
 
 #endif

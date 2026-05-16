@@ -46,7 +46,7 @@ void HAL::Init()
     HAL_LOG_INFO("begin");
     HAL_MPU_Init();
 
-    Manager()->init([](DeviceManager* manager, DeviceObject* dev, int retval) {
+    Manager()->init([](DeviceManager*, DeviceObject* dev, int retval) {
         if (retval < 0) {
             HAL_LOG_ERROR("[%s] init fail: %d", dev->getName(), retval);
         } else {
