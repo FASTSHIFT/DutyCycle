@@ -10,7 +10,7 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.3.0",
-    "@babel/core": "^7.23.0",
+    "@babel/core": "^7.29.6",
     "@babel/preset-env": "^7.23.0",
     "babel-jest": "^29.7.0"
   }
