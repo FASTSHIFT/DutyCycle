@@ -120,3 +120,41 @@ void PWM_Write(uint8_t Pin, uint32_t Value)
 {
     Timer_SetCompare(PIN_MAP[Pin].TIMx, PIN_MAP[Pin].TimerChannel, Value);
 }
+
+/**
+  * @brief  使能或关闭比较寄存器预装载
+  * @note   使能后 PWM_Write 写入的值在下一个更新事件才生效，
+  *         避免周期中途改变占空比产生毛刺
+  * @param  Pin: 引脚编号
+  * @param  Enable: true: 使能预装载
+  * @retval 无
+  */
+void PWM_SetPreload(uint8_t Pin, bool Enable)
+{
+    tmr_channel_select_type channel;
+
+    if(!IS_PWM_PIN(Pin))
+    {
+        return;
+    }
+
+    switch(PIN_MAP[Pin].TimerChannel)
+    {
+    case 1:
+        channel = TMR_SELECT_CHANNEL_1;
+        break;
+    case 2:
+        channel = TMR_SELECT_CHANNEL_2;
+        break;
+    case 3:
+        channel = TMR_SELECT_CHANNEL_3;
+        break;
+    case 4:
+        channel = TMR_SELECT_CHANNEL_4;
+        break;
+    default:
+        return;
+    }
+
+    tmr_output_channel_buffer_enable(PIN_MAP[Pin].TIMx, channel, Enable ? TRUE : FALSE);
+}

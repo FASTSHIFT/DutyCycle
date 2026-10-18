@@ -24,6 +24,7 @@
 #define __PWM_H
 
 #include "mcu_type.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,6 +34,7 @@ extern "C" {
 
 uint8_t PWM_Init(uint8_t Pin, uint32_t Resolution, uint32_t Frequency);
 void PWM_Write(uint8_t Pin, uint32_t Value);
+void PWM_SetPreload(uint8_t Pin, bool Enable);
 
 #ifdef __cplusplus
 }
