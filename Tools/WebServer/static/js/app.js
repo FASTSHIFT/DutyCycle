@@ -390,8 +390,9 @@ function loadMonitorConfig(result) {
     if (period1) period1.value = channelPeriods[1];
   }
 
-  // 更新音频设置显示
+  // 更新音频、网速设置显示
   updateAudioSettingsVisibility();
+  updateNetSettingsVisibility();
 }
 
 function loadCheckboxStates() {
@@ -631,6 +632,12 @@ async function refreshStatus() {
     }
     if (result.audio_db_max !== undefined) {
       document.getElementById('audioDbMax').value = result.audio_db_max;
+    }
+
+    // 恢复网速满量程配置
+    const netMaxInput = document.getElementById('netMaxMbps');
+    if (netMaxInput && result.net_max_mbps !== undefined) {
+      netMaxInput.value = result.net_max_mbps;
     }
 
     // 恢复双通道监控配置
@@ -1175,6 +1182,20 @@ function updateAudioSettingsVisibility() {
   }
 }
 
+// 检查是否有网速模式
+function hasNetMode() {
+  const netModes = ['net-down', 'net-up'];
+  return channelMonitorModes.some((m) => netModes.includes(m));
+}
+
+// 更新网速设置区域显示
+function updateNetSettingsVisibility() {
+  const netSettingsRow = document.getElementById('netSettingsRow');
+  if (netSettingsRow) {
+    netSettingsRow.style.display = hasNetMode() ? '' : 'none';
+  }
+}
+
 async function onMonitorModeChange(channel) {
   const modeSelect = document.getElementById(`monitorMode${channel}`);
   const periodInput = document.getElementById(`period${channel}`);
@@ -1195,13 +1216,23 @@ async function onMonitorModeChange(channel) {
     channelPeriods[channel] = 1000;
   }
 
-  // 更新音频设置显示
+  // 更新音频、网速设置显示
   updateAudioSettingsVisibility();
+  updateNetSettingsVisibility();
 
   // 如果正在监控，实时更新配置
   if (isMonitoring) {
     await updateMonitorConfig();
   }
+}
+
+async function onNetMaxChange() {
+  const netMax = parseFloat(document.getElementById('netMaxMbps').value);
+  if (!(netMax > 0)) {
+    alert('网速满量程必须大于 0');
+    return;
+  }
+  await api('/config', 'POST', { net_max_mbps: netMax });
 }
 
 async function onAudioDbRangeChange() {
@@ -1890,6 +1921,9 @@ if (isNode) {
     updateAudioSettingsVisibility,
     onMonitorModeChange,
     onAudioDbRangeChange,
+    hasNetMode,
+    updateNetSettingsVisibility,
+    onNetMaxChange,
     onPeriodChange,
     updateMonitorConfig,
     toggleMonitor,

@@ -45,6 +45,7 @@ from monitor import (
     get_cpu_usage,
     get_mem_usage,
     get_gpu_usage,
+    get_monitor_value,
     get_audio_devices,
     GPUtil,
     sc,
@@ -331,6 +332,7 @@ def register_routes(app):
                 "audio_db_min": device.audio_db_min,
                 "audio_db_max": device.audio_db_max,
                 "audio_device_id": device.audio_device_id,
+                "net_max_mbps": device.net_max_mbps,
                 "auto_sync_clock": device.auto_sync_clock,
                 "last_sync_time": device.last_sync_time,
                 "threshold_enable": device.threshold_enable,
@@ -386,6 +388,13 @@ def register_routes(app):
         if "audio_channel" in data:
             if data["audio_channel"] in ("mix", "left", "right"):
                 device.audio_channel = data["audio_channel"]
+        if "net_max_mbps" in data:
+            net_max_mbps = float(data["net_max_mbps"])
+            if net_max_mbps <= 0:
+                return jsonify(
+                    {"success": False, "error": "net_max_mbps must be greater than 0"}
+                )
+            device.net_max_mbps = net_max_mbps
         if "auto_sync_clock" in data:
             device.auto_sync_clock = bool(data["auto_sync_clock"])
         if "threshold_enable" in data:
@@ -654,6 +663,8 @@ def register_routes(app):
         ]
         if GPUtil is not None:
             modes.append({"value": "gpu-usage", "label": "GPU 占用率"})
+        modes.append({"value": "net-down", "label": "网络下载速度"})
+        modes.append({"value": "net-up", "label": "网络上传速度"})
         if sc is not None:
             modes.append({"value": "audio-level", "label": "音频响度"})
             modes.append({"value": "audio-left", "label": "音频 左声道"})
@@ -776,6 +787,8 @@ def register_routes(app):
             value, error = get_mem_usage()
         elif mode == "gpu-usage":
             value, error = get_gpu_usage()
+        elif mode in ("net-down", "net-up"):
+            value, error = get_monitor_value(mode, device)
         else:
             return jsonify({"success": False, "error": "Invalid or no mode specified"})
 

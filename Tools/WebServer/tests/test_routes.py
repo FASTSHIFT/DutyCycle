@@ -232,6 +232,39 @@ class TestConfigRoute:
         data = response.get_json()
         assert data["success"] is True
 
+    def test_update_config_net_max_mbps(self, client):
+        """Test net full scale is stored and reported."""
+        from state import state
+
+        device = state.get_device(state.active_device_id)
+        old = device.net_max_mbps
+        try:
+            response = client.post(
+                "/api/config",
+                data=json.dumps({"net_max_mbps": 250}),
+                content_type="application/json",
+            )
+            assert response.get_json()["success"] is True
+            assert device.net_max_mbps == 250.0
+            assert client.get("/api/status").get_json()["net_max_mbps"] == 250.0
+        finally:
+            device.net_max_mbps = old
+
+    @pytest.mark.parametrize("value", [0, -1])
+    def test_update_config_net_max_mbps_invalid(self, client, value):
+        """Test net full scale must be positive."""
+        from state import state
+
+        device = state.get_device(state.active_device_id)
+        old = device.net_max_mbps
+        response = client.post(
+            "/api/config",
+            data=json.dumps({"net_max_mbps": value}),
+            content_type="application/json",
+        )
+        assert response.get_json()["success"] is False
+        assert device.net_max_mbps == old
+
     def test_update_config_device_not_found(self, client):
         """Test update config device not found."""
         response = client.post(
@@ -254,6 +287,13 @@ class TestMonitorModesRoute:
         assert data is not None
         assert "modes" in data
         assert isinstance(data["modes"], list)
+
+    def test_monitor_modes_include_network(self, client):
+        """Test monitor modes include the network speed sources."""
+        data = client.get("/api/monitor/modes").get_json()
+        values = [m["value"] for m in data["modes"]]
+        assert "net-down" in values
+        assert "net-up" in values
 
 
 class TestMonitorConfigRoute:
@@ -338,6 +378,24 @@ class TestMonitorValueRoute:
         assert response.status_code == 200
         data = response.get_json()
         assert data["success"] is True
+
+    @pytest.mark.parametrize("mode", ["net-down", "net-up"])
+    def test_get_monitor_value_net(self, client, mode):
+        """Test get monitor value for network speed."""
+        with patch("routes.get_monitor_value", return_value=(12.345, None)):
+            response = client.get(f"/api/monitor/value?mode={mode}")
+        data = response.get_json()
+        assert data["success"] is True
+        assert data["value"] == 12.35
+        assert data["mode"] == mode
+
+    def test_get_monitor_value_net_error(self, client):
+        """Test get monitor value for network speed failing."""
+        with patch("routes.get_monitor_value", return_value=(None, "no nic")):
+            response = client.get("/api/monitor/value?mode=net-down")
+        data = response.get_json()
+        assert data["success"] is False
+        assert data["error"] == "no nic"
 
     def test_get_monitor_value_invalid_mode(self, client):
         """Test get monitor value with invalid mode."""

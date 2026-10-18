@@ -8,7 +8,10 @@ Monitor module tests.
 """
 
 import time
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 class TestGetMonitorValue:
@@ -1320,3 +1323,190 @@ class TestGetAudioLevelChannelMono:
         value, error = get_audio_level_channel(device, "right")
         # Should fall back to channel 0
         assert error is None
+
+
+@pytest.fixture
+def net_state():
+    """Give each test a clean network speed baseline."""
+    import monitor
+
+    saved = dict(monitor._net_state)
+    monitor._net_state.update(time=None, recv=0, sent=0, down=0.0, up=0.0)
+    yield monitor
+    monitor._net_state.update(saved)
+
+
+class TestNetRates:
+    """Test network speed measurement."""
+
+    def test_first_call_takes_baseline(self, net_state):
+        """The first call has nothing to compare with and reports 0."""
+        with patch("monitor._read_net_counters", return_value=(1000, 500)):
+            rates, error = net_state.get_net_rates()
+        assert error is None
+        assert rates == (0.0, 0.0)
+
+    def test_rates_between_calls(self, net_state):
+        """Speed is the byte delta over the elapsed time."""
+        counters = [(1000, 500), (1000 + 2_000_000, 500 + 1_000_000)]
+        with patch("monitor._read_net_counters", side_effect=counters), patch(
+            "monitor.time.monotonic", side_effect=[100.0, 102.0]
+        ):
+            net_state.get_net_rates()
+            rates, error = net_state.get_net_rates()
+        assert error is None
+        assert rates == (1_000_000, 500_000)
+
+    def test_short_interval_reuses_last_rates(self, net_state):
+        """Consumers calling close together share one measurement."""
+        counters = [(0, 0), (1_000_000, 0)]
+        with patch("monitor._read_net_counters", side_effect=counters) as read, patch(
+            "monitor.time.monotonic", side_effect=[100.0, 101.0, 101.1]
+        ):
+            net_state.get_net_rates()
+            first, _ = net_state.get_net_rates()
+            second, _ = net_state.get_net_rates()
+        assert read.call_count == 2
+        assert first == second == (1_000_000, 0)
+
+    def test_counter_reset_is_not_negative(self, net_state):
+        """A counter that went backwards must not give a negative speed."""
+        counters = [(5_000_000, 5_000_000), (1000, 1000)]
+        with patch("monitor._read_net_counters", side_effect=counters), patch(
+            "monitor.time.monotonic", side_effect=[100.0, 101.0]
+        ):
+            net_state.get_net_rates()
+            rates, _ = net_state.get_net_rates()
+        assert rates == (0, 0)
+
+    def test_read_error(self, net_state):
+        """A failing counter read is reported as an error."""
+        with patch("monitor._read_net_counters", side_effect=OSError("boom")):
+            rates, error = net_state.get_net_rates()
+        assert rates is None
+        assert "boom" in error
+
+
+class TestNetUsage:
+    """Test conversion of network speed to percent."""
+
+    def test_download_percent(self, net_state):
+        """1 MB/s is 8 Mbit/s, which is 8% of 100 Mbit/s."""
+        with patch("monitor.get_net_rates", return_value=((1_000_000, 0), None)):
+            value, error = net_state.get_net_usage("down", 100)
+        assert error is None
+        assert value == pytest.approx(8.0)
+
+    def test_upload_percent(self, net_state):
+        """Upload uses the second rate."""
+        with patch("monitor.get_net_rates", return_value=((0, 250_000), None)):
+            value, error = net_state.get_net_usage("up", 10)
+        assert error is None
+        assert value == pytest.approx(20.0)
+
+    def test_clamped_to_100(self, net_state):
+        """Speeds above the full scale stay at 100%."""
+        with patch("monitor.get_net_rates", return_value=((1e9, 0), None)):
+            value, _ = net_state.get_net_usage("down", 100)
+        assert value == 100.0
+
+    @pytest.mark.parametrize("max_mbps", [0, -5, None])
+    def test_invalid_full_scale(self, net_state, max_mbps):
+        """A full scale that is not positive is rejected."""
+        value, error = net_state.get_net_usage("down", max_mbps)
+        assert value is None
+        assert "greater than 0" in error
+
+    def test_rate_error_is_passed_on(self, net_state):
+        """Errors from the measurement are passed on."""
+        with patch("monitor.get_net_rates", return_value=(None, "failed")):
+            value, error = net_state.get_net_usage("down", 100)
+        assert value is None
+        assert error == "failed"
+
+
+class TestReadNetCounters:
+    """Test which interfaces count towards the network speed."""
+
+    def test_skips_virtual_and_down_interfaces(self):
+        """Only physical interfaces that are up are summed."""
+        from monitor import _read_net_counters
+
+        def nic(recv, sent):
+            return SimpleNamespace(bytes_recv=recv, bytes_sent=sent)
+
+        counters = {
+            "lo": nic(1000, 1000),
+            "ens33": nic(10, 20),
+            "docker0": nic(1000, 1000),
+            "veth1234": nic(1000, 1000),
+            "utun": nic(1000, 1000),
+            "Local Area Connection": nic(1, 2),
+            "Loopback Pseudo-Interface 1": nic(1000, 1000),
+            "vEthernet (Default Switch)": nic(1000, 1000),
+            "VMware Network Adapter VMnet8": nic(1000, 1000),
+            "eth1": nic(1000, 1000),
+        }
+        stats = {name: SimpleNamespace(isup=True) for name in counters}
+        stats["eth1"] = SimpleNamespace(isup=False)
+
+        with patch("monitor.psutil.net_io_counters", return_value=counters), patch(
+            "monitor.psutil.net_if_stats", return_value=stats
+        ):
+            assert _read_net_counters() == (11, 22)
+
+
+class TestNetModes:
+    """Test the net-down and net-up monitor modes."""
+
+    def test_monitor_value_uses_device_full_scale(self):
+        """The device full scale is used when a device is given."""
+        from monitor import get_monitor_value
+
+        device = SimpleNamespace(net_max_mbps=20.0)
+        with patch("monitor.get_net_usage", return_value=(5.0, None)) as usage:
+            assert get_monitor_value("net-down", device) == (5.0, None)
+        usage.assert_called_once_with("down", 20.0)
+
+    def test_monitor_value_default_full_scale(self):
+        """Without a device the default full scale is used."""
+        from monitor import NET_MAX_MBPS_DEFAULT, get_monitor_value
+
+        with patch("monitor.get_net_usage", return_value=(5.0, None)) as usage:
+            get_monitor_value("net-up")
+        usage.assert_called_once_with("up", NET_MAX_MBPS_DEFAULT)
+
+    @pytest.mark.parametrize("mode", ["net-down", "net-up"])
+    def test_channel_value(self, mode):
+        """Network modes are applied through the easing path."""
+        from monitor import _get_channel_value
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        with patch("monitor.get_net_usage", return_value=(42.0, None)):
+            assert _get_channel_value(device, mode) == (42.0, None, False)
+
+    def test_threshold_alarm_passes_device(self):
+        """The threshold check hands the device over for its settings."""
+        from monitor import check_threshold_alarm
+        from state import DeviceState
+
+        device = DeviceState("test", "Test")
+        device.threshold_enable = True
+        device.threshold_mode = "net-down"
+        with patch("monitor.get_monitor_value", return_value=(1, None)) as get_value:
+            check_threshold_alarm(device)
+        get_value.assert_called_once_with("net-down", device)
+
+    def test_link_state_unavailable(self):
+        """Interfaces are still counted when the link state cannot be read."""
+        from monitor import _read_net_counters
+
+        counters = {
+            "Ethernet": SimpleNamespace(bytes_recv=7, bytes_sent=9),
+            "docker0": SimpleNamespace(bytes_recv=1000, bytes_sent=1000),
+        }
+        with patch("monitor.psutil.net_io_counters", return_value=counters), patch(
+            "monitor.psutil.net_if_stats", side_effect=OSError("unsupported")
+        ):
+            assert _read_net_counters() == (7, 9)

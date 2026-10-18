@@ -389,6 +389,8 @@
                             <option value="cpu-usage">CPU 使用率</option>
                             <option value="mem-usage">内存使用率</option>
                             <option value="gpu-usage">GPU 使用率</option>
+                            <option value="net-down">网络下载速度</option>
+                            <option value="net-up">网络上传速度</option>
                             <option value="audio-level">音频响度</option>
                             <option value="audio-left">音频 左声道</option>
                             <option value="audio-right">音频 右声道</option>
@@ -430,6 +432,8 @@
                             <option value="cpu-usage">CPU 使用率</option>
                             <option value="mem-usage">内存使用率</option>
                             <option value="gpu-usage">GPU 使用率</option>
+                            <option value="net-down">网络下载速度</option>
+                            <option value="net-up">网络上传速度</option>
                             <option value="audio-level">音频响度</option>
                             <option value="audio-left">音频 左声道</option>
                             <option value="audio-right">音频 右声道</option>
@@ -450,6 +454,29 @@
                             />
                             <span class="input-unit">ms</span>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 网速共享设置 -->
+                    <div class="form-row net-shared-settings" id="netSettingsRow" style="display: none">
+                      <div class="form-group">
+                        <label class="form-label"
+                          >网速满量程
+                          <span class="form-hint" title="网速达到此值时对应 100%，下载和上传共用">ⓘ</span>
+                        </label>
+                        <div class="input-with-unit">
+                          <input
+                            type="number"
+                            id="netMaxMbps"
+                            class="form-control form-control-sm"
+                            value="100"
+                            min="0.1"
+                            step="any"
+                            title="网速满量程(映射到100%)"
+                            onchange="onNetMaxChange()"
+                          />
+                          <span class="input-unit">Mbps</span>
                         </div>
                       </div>
                     </div>

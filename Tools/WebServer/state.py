@@ -38,6 +38,7 @@ DEVICE_PERSISTENT_KEYS = [
     "audio_db_max",
     "audio_device_id",
     "audio_channel",
+    "net_max_mbps",
     "auto_connect",
     "auto_monitor",
     "auto_monitor_mode",
@@ -98,6 +99,9 @@ class DeviceState:
         self.audio_db_max = 0
         self.audio_device_id = None
         self.audio_channel = "mix"  # 'mix', 'left', 'right'
+
+        # Network speed mapping: this link speed (Mbit/s) maps to 100%
+        self.net_max_mbps = 100.0
 
         # Multi-channel motor state
         self.last_percent_0 = 0  # CH0

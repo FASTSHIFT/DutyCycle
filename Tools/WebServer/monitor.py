@@ -12,6 +12,7 @@ Supports multi-device monitoring with independent timers per device.
 import logging
 import math
 import os
+import threading
 import time
 import warnings
 
@@ -114,6 +115,103 @@ def get_gpu_usage():
         return None, "No GPUs found"
 
     return gpus[0].load * 100, None
+
+
+# Default link speed (Mbit/s) that maps to 100% in the network speed modes
+NET_MAX_MBPS_DEFAULT = 100.0
+
+# Interfaces that only repeat traffic already counted on a physical one
+# (loopback, bridges, VM/container links and VPN tunnels)
+_NET_SKIP_PREFIXES = (
+    "loopback",
+    "docker",
+    "veth",
+    "br-",
+    "virbr",
+    "vmnet",
+    "vmware",
+    "vboxnet",
+    "virtualbox",
+    "vethernet",
+    "tun",
+    "utun",
+    "tap",
+    "wg",
+)
+
+# Rates are refreshed at most this often, so that several consumers (both
+# channels and the threshold alarm) share one measurement window
+_NET_MIN_INTERVAL = 0.25  # seconds
+
+_net_lock = threading.Lock()
+_net_state = {"time": None, "recv": 0, "sent": 0, "down": 0.0, "up": 0.0}
+
+
+def _read_net_counters():
+    """Return total (bytes_recv, bytes_sent) over the physical interfaces."""
+    counters = psutil.net_io_counters(pernic=True)
+    try:
+        stats = psutil.net_if_stats()
+    except Exception:
+        # Without link state every non-virtual interface is counted
+        stats = {}
+    recv = 0
+    sent = 0
+    for name, c in counters.items():
+        lower = name.lower()
+        if lower in ("lo", "lo0") or lower.startswith(_NET_SKIP_PREFIXES):
+            continue
+        if name in stats and not stats[name].isup:
+            continue
+        recv += c.bytes_recv
+        sent += c.bytes_sent
+    return recv, sent
+
+
+def get_net_rates():
+    """Get the current network speed in bytes per second.
+
+    Returns:
+        ((download, upload), error). The first call only takes a baseline
+        and reports 0, the speed is the average since the previous
+        measurement afterwards.
+    """
+    try:
+        with _net_lock:
+            now = time.monotonic()
+            last = _net_state["time"]
+            if last is not None and now - last < _NET_MIN_INTERVAL:
+                return (_net_state["down"], _net_state["up"]), None
+
+            recv, sent = _read_net_counters()
+            if last is not None:
+                elapsed = now - last
+                # A counter that went backwards means an interface was reset
+                _net_state["down"] = max(0, recv - _net_state["recv"]) / elapsed
+                _net_state["up"] = max(0, sent - _net_state["sent"]) / elapsed
+            _net_state.update(time=now, recv=recv, sent=sent)
+            return (_net_state["down"], _net_state["up"]), None
+    except Exception as e:
+        return None, f"Error getting network speed: {e}"
+
+
+def get_net_usage(direction, max_mbps=NET_MAX_MBPS_DEFAULT):
+    """Get network speed as a percentage of max_mbps.
+
+    Args:
+        direction: "down" for download, "up" for upload.
+        max_mbps: Link speed in Mbit/s that corresponds to 100%.
+    """
+    if not max_mbps or max_mbps <= 0:
+        return None, "Network full scale must be greater than 0"
+
+    rates, error = get_net_rates()
+    if error:
+        return None, error
+
+    bytes_per_sec = rates[0] if direction == "down" else rates[1]
+    percent = bytes_per_sec * 8 / (max_mbps * 1_000_000) * 100
+    return min(100.0, percent), None
 
 
 def get_audio_level(device):
@@ -269,7 +367,7 @@ def check_threshold_alarm(device):
         return
 
     # Get value based on threshold_mode (independent of monitor mode)
-    value, error = get_monitor_value(threshold_mode)
+    value, error = get_monitor_value(threshold_mode, device)
     if error or value is None:
         return
 
@@ -285,14 +383,20 @@ def check_threshold_alarm(device):
         )
 
 
-def get_monitor_value(mode):
-    """Get monitoring value for a specific mode."""
+def get_monitor_value(mode, device=None):
+    """Get monitoring value for a specific mode.
+
+    device is only needed by the modes that depend on its settings.
+    """
     if mode == "cpu-usage":
         return get_cpu_usage()
     elif mode == "mem-usage":
         return get_mem_usage()
     elif mode == "gpu-usage":
         return get_gpu_usage()
+    elif mode in ("net-down", "net-up"):
+        max_mbps = getattr(device, "net_max_mbps", NET_MAX_MBPS_DEFAULT)
+        return get_net_usage(mode[4:], max_mbps)
     return None, f"Unknown mode: {mode}"
 
 
@@ -375,6 +479,9 @@ def _get_channel_value(device, mode):
         return percent, error, False
     elif mode == "gpu-usage":
         percent, error = get_gpu_usage()
+        return percent, error, False
+    elif mode in ("net-down", "net-up"):
+        percent, error = get_monitor_value(mode, device)
         return percent, error, False
     elif mode == "audio-left":
         percent, error = get_audio_level_channel(device, "left")

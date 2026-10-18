@@ -2142,6 +2142,70 @@ describe('onPeriodChange', () => {
   });
 });
 
+describe('network speed settings', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="netSettingsRow"></div>
+      <input id="netMaxMbps" value="250" />
+    `;
+    app.channelMonitorModes[0] = 'none';
+    app.channelMonitorModes[1] = 'none';
+    global.alert = jest.fn();
+  });
+
+  test('hasNetMode is false without a network mode', () => {
+    app.channelMonitorModes[0] = 'cpu-usage';
+    expect(app.hasNetMode()).toBe(false);
+  });
+
+  test.each(['net-down', 'net-up'])('hasNetMode detects %s', (mode) => {
+    app.channelMonitorModes[1] = mode;
+    expect(app.hasNetMode()).toBe(true);
+  });
+
+  test('settings row is hidden without a network mode', () => {
+    app.updateNetSettingsVisibility();
+    expect(document.getElementById('netSettingsRow').style.display).toBe(
+      'none',
+    );
+  });
+
+  test('settings row is shown for a network mode', () => {
+    app.channelMonitorModes[0] = 'net-down';
+    app.updateNetSettingsVisibility();
+    expect(document.getElementById('netSettingsRow').style.display).toBe('');
+  });
+
+  test('handles missing settings row', () => {
+    document.body.innerHTML = '';
+    expect(() => app.updateNetSettingsVisibility()).not.toThrow();
+  });
+
+  test('onNetMaxChange sends the full scale to backend', async () => {
+    global.fetch.mockResolvedValueOnce({
+      json: () => Promise.resolve({ success: true }),
+    });
+
+    await app.onNetMaxChange();
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/config',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ net_max_mbps: 250 }),
+      }),
+    );
+  });
+
+  test.each(['0', '-5', ''])('onNetMaxChange rejects "%s"', async (value) => {
+    document.getElementById('netMaxMbps').value = value;
+    global.fetch.mockClear();
+
+    await app.onNetMaxChange();
+    expect(global.alert).toHaveBeenCalledWith('网速满量程必须大于 0');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
 describe('onAudioDbRangeChange', () => {
   beforeEach(() => {
     document.body.innerHTML = `
