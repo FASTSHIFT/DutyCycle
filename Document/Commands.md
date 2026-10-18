@@ -254,18 +254,25 @@ ctrl -c <cmd> [-H <hour>] [-M <motor>] [--mode <mode>]
     - `LIST_CLOCK_MAP`：列出时钟映射。
     - `SET_MOTOR_VALUE`：设置电机值。
     - `SET_CLOCK_MAP`：设置时钟映射。
-    - `SET_MODE`：设置显示模式。
+    - `SET_MODE`：设置显示/驱动模式，掉电保存。
     - `SHOW_BATTERY_USAGE`：显示电池使用情况。
 - `-H <hour>`：要设置的小时数。
 - `-M <motor>`：要设置的电机值。
-- `--mode <mode>`：显示模式，可选值包括：
-    - `0`：功率因数表模式（cos-phi）。
-    - `1`：电压、电流（线性）表模式（linear）。
+- `--mode <mode>`：模式，可选值包括：
+    - `0`：功率因数表模式（cos-phi），PWM 表头（默认）。
+    - `1`：电压、电流（线性）表模式（linear），同样使用 PWM 表头。
+    - `2`：自整角机模式，两个表头各用三相 PWM，电机值 0~1000 对应电角度 0~360°。
+    切换时会关闭旧驱动的定时器和引脚，只有当前驱动用到的定时器在运行。
 
 **示例**：
 设置电机值为100。
 ```shell
 ctrl -c SET_MOTOR_VALUE -M 100
+```
+
+切换为自整角机驱动。
+```shell
+ctrl -c SET_MODE --mode 2
 ```
 
 **输出**：
