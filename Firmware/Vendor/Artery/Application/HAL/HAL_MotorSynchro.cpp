@@ -20,31 +20,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#include "HAL.h"
+#include "HAL_MotorSynchro.h"
 
-#if CONFIG_MOTOR_DRIVER_SYNCHRO
-
-#include "Utils/synchro/synchro.h"
-
-/**
- * Synchro backend of the "Motor" device.
- *
- * It keeps the Motor_Info_t contract of the PWM driver, so DP_Ctrl and
- * MotorCtrl are untouched: value[0] drives head A, value[1] drives head B,
- * a negative value means "leave this head alone".
- *
- * A motor value 0..1000 is one electrical turn, 0..360 degrees, and that angle
- * is turned into three duties by the synchro library. The scale of the dial
- * (where it starts and ends) is not known here: it is whatever motor values
- * the host calibrates through the clock map and the motor_min/motor_max of the
- * web tool, exactly as with the PWM driver.
- *
- * Nothing runs from an interrupt: the duties are recomputed only when a new
- * value arrives, and the compare registers are preloaded so a write never
- * lands in the middle of a carrier period.
- */
-
-#define MOTOR_HEAD_COUNT 2
 #define MOTOR_VALUE_FULL 1000
 
 /**
@@ -57,58 +34,37 @@
 
 namespace HAL {
 
-class Motor : private DeviceObject {
-public:
-    Motor(const char* name)
-        : DeviceObject(name)
-    {
-        for (auto& h : _head) {
-            h.value = 0;
-        }
-    }
-
-private:
-    typedef struct
-    {
-        synchro_t synchro;
-        int16_t value;
-    } Head_t;
-
-private:
-    Head_t _head[MOTOR_HEAD_COUNT];
-
-private:
-    virtual int onInit();
-    virtual int onWrite(const void* buffer, size_t size);
-    virtual int onRead(void* buffer, size_t size);
-
-    static const uint8_t* getPins(int id);
-    void update(int id);
-};
-
-const uint8_t* Motor::getPins(int id)
+MotorSynchro::MotorSynchro()
 {
-    static const uint8_t pins[MOTOR_HEAD_COUNT][SYNCHRO_PHASES] = {
+    for (auto& h : _head) {
+        h.value = 0;
+    }
+}
+
+const uint8_t* MotorSynchro::getPins(int id)
+{
+    static const uint8_t pins[MOTOR_SYNCHRO_HEAD_COUNT][SYNCHRO_PHASES] = {
         { CONFIG_SYNCHRO_A_U_PIN, CONFIG_SYNCHRO_A_V_PIN, CONFIG_SYNCHRO_A_W_PIN },
         { CONFIG_SYNCHRO_B_U_PIN, CONFIG_SYNCHRO_B_V_PIN, CONFIG_SYNCHRO_B_W_PIN },
     };
     return pins[id];
 }
 
-int Motor::onInit()
+bool MotorSynchro::start()
 {
-    for (int id = 0; id < MOTOR_HEAD_COUNT; id++) {
+    for (int id = 0; id < MOTOR_SYNCHRO_HEAD_COUNT; id++) {
         const uint8_t* pins = getPins(id);
 
         for (int i = 0; i < SYNCHRO_PHASES; i++) {
             /* Fails when the pin has no timer or SYNCHRO_RES * carrier exceeds the timer clock */
             if (!IS_PWM_PIN(pins[i]) || PWM_Init(pins[i], SYNCHRO_RES, CONFIG_SYNCHRO_CARRIER_HZ) == 0) {
-                return DeviceObject::RES_INIT_FAILED;
+                stop();
+                return false;
             }
         }
     }
 
-    for (int id = 0; id < MOTOR_HEAD_COUNT; id++) {
+    for (int id = 0; id < MOTOR_SYNCHRO_HEAD_COUNT; id++) {
         const uint8_t* pins = getPins(id);
 
         for (int i = 0; i < SYNCHRO_PHASES; i++) {
@@ -116,13 +72,25 @@ int Motor::onInit()
         }
 
         synchro_init(&_head[id].synchro, CONFIG_SYNCHRO_AMPLITUDE);
+        _head[id].value = 0;
         update(id);
     }
 
-    return DeviceObject::RES_OK;
+    return true;
 }
 
-void Motor::update(int id)
+void MotorSynchro::stop()
+{
+    for (int id = 0; id < MOTOR_SYNCHRO_HEAD_COUNT; id++) {
+        const uint8_t* pins = getPins(id);
+
+        for (int i = 0; i < SYNCHRO_PHASES; i++) {
+            PWM_Deinit(pins[i]);
+        }
+    }
+}
+
+void MotorSynchro::update(int id)
 {
     Head_t& h = _head[id];
 
@@ -138,15 +106,9 @@ void Motor::update(int id)
     }
 }
 
-int Motor::onWrite(const void* buffer, size_t size)
+void MotorSynchro::write(const Motor_Info_t* info)
 {
-    if (size != sizeof(Motor_Info_t)) {
-        return DeviceObject::RES_PARAM_ERROR;
-    }
-
-    auto info = (const Motor_Info_t*)buffer;
-
-    for (int id = 0; id < MOTOR_HEAD_COUNT; id++) {
+    for (int id = 0; id < MOTOR_SYNCHRO_HEAD_COUNT; id++) {
         int value = info->value[id];
 
         if (value < 0) {
@@ -160,26 +122,13 @@ int Motor::onWrite(const void* buffer, size_t size)
         _head[id].value = (int16_t)value;
         update(id);
     }
-
-    return sizeof(Motor_Info_t);
 }
 
-int Motor::onRead(void* buffer, size_t size)
+void MotorSynchro::read(Motor_Info_t* info) const
 {
-    if (size != sizeof(Motor_Info_t)) {
-        return DeviceObject::RES_PARAM_ERROR;
-    }
-
-    auto info = (Motor_Info_t*)buffer;
-    for (int id = 0; id < MOTOR_HEAD_COUNT; id++) {
+    for (int id = 0; id < MOTOR_SYNCHRO_HEAD_COUNT; id++) {
         info->value[id] = _head[id].value;
     }
-
-    return sizeof(Motor_Info_t);
 }
 
 } /* namespace HAL */
-
-DEVICE_OBJECT_MAKE(Motor);
-
-#endif /* CONFIG_MOTOR_DRIVER_SYNCHRO */

@@ -32,12 +32,10 @@
 #define CONFIG_MOTOR_OUT1_PIN      PA2
 #define CONFIG_MOTOR_OUT2_PIN      PA3
 
-/* Motor driver: 0: two PWM meters (HAL_Motor.cpp), 1: two synchro heads (HAL_MotorSynchro.cpp) */
-#define CONFIG_MOTOR_DRIVER_SYNCHRO 1
-
 /**
- * Synchro, 3 phase PWM per head. Both heads use the "Motor" device, head A is
- * value[0] and head B is value[1].
+ * Synchro, 3 phase PWM per head, used when the "Motor" device is switched to
+ * MOTOR_MODE_SYNCHRO (ctrl -c SET_MODE --mode 2). Head A is value[0] and head B
+ * is value[1].
  * The three phases of one head sit on different timers, which is fine as long
  * as all of them share the same carrier. Keep clear of PA6/PA7/PB0/PB1/PB2
  * (HAL_PinRemap), PA9/PA10 (debug serial) and PA13/PA14 (SWD).

@@ -32,6 +32,19 @@ typedef struct
     int16_t value[2];
 } Motor_Info_t;
 
+/**
+ * Which kind of meter the two outputs drive. Only the timers of the active
+ * mode are running, switching releases the ones of the previous mode.
+ */
+typedef enum : uint8_t {
+    MOTOR_MODE_PWM = 0, /* two PWM meters, one pin each */
+    MOTOR_MODE_SYNCHRO = 1, /* two synchro heads, three phase pins each */
+} Motor_Mode_t;
+
+/* DEVICEO_OBJECT_IOCMD_DEF(dir, size, type, number) */
+
+#define MOTOR_IOCMD_SET_MODE DEVICE_OBJECT_IOCMD_DEF(DeviceObject::DIR_IN, sizeof(HAL::Motor_Mode_t), 0, 0)
+
 } // namespace HAL
 
 #endif // __HAL_MOTOR_DEF_H
