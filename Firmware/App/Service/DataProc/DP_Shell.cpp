@@ -497,7 +497,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
         OPT_INTEGER('M', "motor", &motorValue, "the motor value to set", nullptr, 0, 0),
         OPT_INTEGER(0, "id", &motorID, "motor ID", nullptr, 0, 0),
         OPT_STRING(0, "unit", &unit, "motor unit", nullptr, 0, 0),
-        OPT_INTEGER(0, "mode", &mode, "display mode, 0: cos-phi, 1: linear", nullptr, 0, 0),
+        OPT_INTEGER(0, "mode", &mode, "motor mode, 0: cos-phi, 1: linear, 2: synchro", nullptr, 0, 0),
         OPT_BOOLEAN('I', "immediate", &immediate, "immediately set the value", nullptr, 0, 0),
         OPT_END(),
     };
@@ -532,6 +532,7 @@ int DP_Shell::cmdCtrl(int argc, const char** argv)
     info.hour = hour;
     info.motorValue = motorValue;
     info.motorID = motorID;
+    info.mode = mode;
     info.immediate = immediate;
     if (!cmdMap.get(cmd, &info.cmd)) {
         return SHELL_RET_FAILURE;

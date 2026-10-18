@@ -45,6 +45,7 @@ private:
     DeviceObject* _devBattery;
 
     MotorCtrl _mctrl[2];
+    uint8_t _motorMode;
 
 private:
     int onEvent(DataNode::EventParam_t* param);
@@ -57,11 +58,14 @@ private:
     void showBatteryUsage();
     int setUnit(uint8_t id, MotorCtrl::UNIT unit);
     int setClockMap(uint8_t id, int hour, int value);
+    int applyMotorMode();
+    int setMotorMode(int mode);
 };
 
 DP_Ctrl::DP_Ctrl(DataNode* node)
     : _node(node)
     , _kvdb(node)
+    , _motorMode((uint8_t)CTRL_MODE::COS_PHI)
 {
     _devMotor = HAL::Manager()->getDevice("Motor");
     if (!_devMotor) {
@@ -158,6 +162,9 @@ int DP_Ctrl::onNotify(const Ctrl_Info_t* info)
         showBatteryUsage();
         break;
 
+    case CTRL_CMD::SET_MODE:
+        return setMotorMode(info->mode);
+
     default:
         return DataNode::RES_UNSUPPORTED_REQUEST;
     }
@@ -180,6 +187,11 @@ void DP_Ctrl::onTimer()
 void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
 {
     if (info->event == GLOBAL_EVENT::APP_STARTED) {
+        /* A missing key keeps the default mode */
+        if (KVDB_GET(_motorMode) == DataNode::RES_OK) {
+            applyMotorMode();
+        }
+
         KVDB_GET(_mctrl[0]._valueMap);
         KVDB_GET(_mctrl[0]._unit);
         KVDB_GET(_mctrl[1]._valueMap);
@@ -187,6 +199,36 @@ void DP_Ctrl::onGlobalEvent(const Global_Info_t* info)
         _mctrl[0].listMap();
         _mctrl[1].listMap();
     }
+}
+
+int DP_Ctrl::applyMotorMode()
+{
+    auto mode = _motorMode == (uint8_t)CTRL_MODE::SYNCHRO ? HAL::MOTOR_MODE_SYNCHRO : HAL::MOTOR_MODE_PWM;
+    const int ret = _devMotor->ioctl(MOTOR_IOCMD_SET_MODE, &mode, sizeof(mode));
+    if (ret != DeviceObject::RES_OK) {
+        HAL_LOG_ERROR("Failed to set motor mode %d: %d", _motorMode, ret);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    HAL_LOG_INFO("Motor mode: %d", _motorMode);
+    return DataNode::RES_OK;
+}
+
+int DP_Ctrl::setMotorMode(int mode)
+{
+    if (mode < (int)CTRL_MODE::COS_PHI || mode > (int)CTRL_MODE::SYNCHRO) {
+        HAL_LOG_ERROR("Invalid motor mode: %d, 0: cos-phi, 1: linear, 2: synchro", mode);
+        return DataNode::RES_PARAM_ERROR;
+    }
+
+    _motorMode = mode;
+
+    auto ret = applyMotorMode();
+    if (ret != DataNode::RES_OK) {
+        return ret;
+    }
+
+    return KVDB_SET(_motorMode);
 }
 
 int DP_Ctrl::setUnit(uint8_t id, MotorCtrl::UNIT unit)

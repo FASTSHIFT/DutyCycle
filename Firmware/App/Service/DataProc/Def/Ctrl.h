@@ -40,11 +40,23 @@ enum class CTRL_CMD {
     SHOW_BATTERY_USAGE,
 };
 
+/**
+ * Values of Ctrl_Info.mode for SET_MODE.
+ * COS_PHI and LINEAR are the display modes of the PWM meters, SYNCHRO selects
+ * the synchro heads. The first two use the PWM meter driver.
+ */
+enum class CTRL_MODE {
+    COS_PHI = 0,
+    LINEAR = 1,
+    SYNCHRO = 2,
+};
+
 typedef struct Ctrl_Info {
     Ctrl_Info()
         : cmd(CTRL_CMD::NONE)
         , hour(0)
         , motorValue(0)
+        , mode(0)
         , motorID(0)
         , unit(MotorCtrl::UNIT::NONE)
         , immediate(false)
@@ -53,6 +65,7 @@ typedef struct Ctrl_Info {
     CTRL_CMD cmd;
     int hour;
     int motorValue;
+    int mode; /* SET_MODE: CTRL_MODE */
     uint8_t motorID;
     MotorCtrl::UNIT unit;
     bool immediate;
