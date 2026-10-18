@@ -511,7 +511,6 @@ gpio_mux_sel_type Timer_GetGPIO_MUX(uint8_t Pin)
     /* GPIO_MUX_0 */
     TIMER_GPIO_MUX_DEF(0, TIM15, 1);
     TIMER_GPIO_MUX_DEF(0, TIM15, 2);
-    TIMER_GPIO_MUX_DEF(0, TIM14, 1);
 
     /* GPIO_MUX_1 */
     TIMER_GPIO_MUX_DEF(1, TIM3, 1);

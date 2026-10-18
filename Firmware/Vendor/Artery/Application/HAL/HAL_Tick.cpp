@@ -27,7 +27,7 @@
 #define UINT32_MAX 0xFFFFFFFF
 #endif
 
-#define TICK_TIMER TIM3
+#define TICK_TIMER TIM6
 
 namespace HAL {
 

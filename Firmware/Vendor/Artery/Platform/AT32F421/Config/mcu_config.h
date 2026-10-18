@@ -91,7 +91,7 @@
 #define TIMER_SUBPRIORITY_DEFAULT           3
 
 /* Tone */
-#define TONE_TIMER_DEFAULT                  TIM1
+#define TONE_TIMER_DEFAULT                  TIM16
 #define TONE_PREEMPTIONPRIORITY_DEFAULT     0
 #define TONE_SUBPRIORITY_DEFAULT            1
 
