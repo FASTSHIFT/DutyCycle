@@ -35,6 +35,7 @@ extern "C" {
 uint8_t PWM_Init(uint8_t Pin, uint32_t Resolution, uint32_t Frequency);
 void PWM_Write(uint8_t Pin, uint32_t Value);
 void PWM_SetPreload(uint8_t Pin, bool Enable);
+void PWM_Deinit(uint8_t Pin);
 
 #ifdef __cplusplus
 }

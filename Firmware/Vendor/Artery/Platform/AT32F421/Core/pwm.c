@@ -158,3 +158,51 @@ void PWM_SetPreload(uint8_t Pin, bool Enable)
 
     tmr_output_channel_buffer_enable(PIN_MAP[Pin].TIMx, channel, Enable ? TRUE : FALSE);
 }
+
+/**
+  * @brief  关闭PWM输出并释放引脚
+  * @note   引脚恢复为浮空输入。定时器的所有通道都关闭后，
+  *         定时器被复位并关闭时钟，以降低功耗
+  * @param  Pin: 引脚编号
+  * @retval 无
+  */
+void PWM_Deinit(uint8_t Pin)
+{
+    tmr_type* TIMx;
+
+    if(!IS_PWM_PIN(Pin))
+    {
+        return;
+    }
+
+    TIMx = PIN_MAP[Pin].TIMx;
+
+    pinMode(Pin, INPUT);
+
+    switch(PIN_MAP[Pin].TimerChannel)
+    {
+    case 1:
+        tmr_channel_enable(TIMx, TMR_SELECT_CHANNEL_1, FALSE);
+        break;
+    case 2:
+        tmr_channel_enable(TIMx, TMR_SELECT_CHANNEL_2, FALSE);
+        break;
+    case 3:
+        tmr_channel_enable(TIMx, TMR_SELECT_CHANNEL_3, FALSE);
+        break;
+    case 4:
+        tmr_channel_enable(TIMx, TMR_SELECT_CHANNEL_4, FALSE);
+        break;
+    default:
+        return;
+    }
+
+    if(TIMx->cctrl_bit.c1en || TIMx->cctrl_bit.c2en || TIMx->cctrl_bit.c3en || TIMx->cctrl_bit.c4en)
+    {
+        return;
+    }
+
+    tmr_counter_enable(TIMx, FALSE);
+    tmr_reset(TIMx);
+    Timer_ClockCmd(TIMx, false);
+}
