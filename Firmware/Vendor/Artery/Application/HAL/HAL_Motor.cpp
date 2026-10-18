@@ -22,6 +22,8 @@
  */
 #include "HAL.h"
 
+#if !CONFIG_MOTOR_DRIVER_SYNCHRO
+
 namespace HAL {
 
 class Motor : private DeviceObject {
@@ -84,3 +86,5 @@ uint16_t Motor::readPWM(uint8_t pin)
 } /* namespace HAL */
 
 DEVICE_OBJECT_MAKE(Motor);
+
+#endif /* !CONFIG_MOTOR_DRIVER_SYNCHRO */

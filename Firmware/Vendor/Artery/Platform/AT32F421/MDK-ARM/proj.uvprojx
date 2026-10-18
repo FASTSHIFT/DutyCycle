@@ -336,7 +336,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>ARDUINO=111</Define>
+              <Define>ARDUINO=111,SYNCHRO_RES=800</Define>
               <Undefine></Undefine>
               <IncludePath>..\..\..\Application;..\..\..\ArduinoAPI;..\..\..\Libraries;..\Core;..\Config;..\..\..\..\..\App;..\..\..\..\..\..\Firmware;..\..\..\Application\flashdb_port;..\..\..\..\..\External\FlashDB\inc;..\..\..\..\..\External\FlashDB\port\fal\inc;..\..\..\Application\umm_malloc_port</IncludePath>
             </VariousControls>
@@ -727,6 +727,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\..\..\..\App\Utils\easing\easing.c</FilePath>
             </File>
+            <File>
+              <FileName>synchro.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\..\..\..\App\Utils\synchro\synchro.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1076,6 +1081,11 @@
               <FileName>HAL_Motor.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\..\..\Application\HAL\HAL_Motor.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>HAL_MotorSynchro.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>..\..\..\Application\HAL\HAL_MotorSynchro.cpp</FilePath>
             </File>
             <File>
               <FileName>HAL_SerialIO.cpp</FileName>

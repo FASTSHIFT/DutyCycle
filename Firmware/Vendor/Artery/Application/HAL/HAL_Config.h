@@ -32,6 +32,27 @@
 #define CONFIG_MOTOR_OUT1_PIN      PA2
 #define CONFIG_MOTOR_OUT2_PIN      PA3
 
+/* Motor driver: 0: two PWM meters (HAL_Motor.cpp), 1: two synchro heads (HAL_MotorSynchro.cpp) */
+#define CONFIG_MOTOR_DRIVER_SYNCHRO 1
+
+/**
+ * Synchro, 3 phase PWM per head. Both heads use the "Motor" device, head A is
+ * value[0] and head B is value[1].
+ * The three phases of one head sit on different timers, which is fine as long
+ * as all of them share the same carrier. Keep clear of PA6/PA7/PB0/PB1/PB2
+ * (HAL_PinRemap), PA9/PA10 (debug serial) and PA13/PA14 (SWD).
+ * Tick runs on TIM6 and Tone on TIM16, which leaves TIM1/TIM3/TIM14/TIM15 to PWM.
+ */
+#define CONFIG_SYNCHRO_A_U_PIN     PA2  /* TIM15 CH1 */
+#define CONFIG_SYNCHRO_A_V_PIN     PA3  /* TIM15 CH2 */
+#define CONFIG_SYNCHRO_A_W_PIN     PA4  /* TIM14 CH1 */
+#define CONFIG_SYNCHRO_B_U_PIN     PB4  /* TIM3  CH1 */
+#define CONFIG_SYNCHRO_B_V_PIN     PB5  /* TIM3  CH2 */
+#define CONFIG_SYNCHRO_B_W_PIN     PA8  /* TIM1  CH1 */
+
+#define CONFIG_SYNCHRO_CARRIER_HZ  20000 /* SYNCHRO_RES * carrier must not exceed the timer clock */
+#define CONFIG_SYNCHRO_AMPLITUDE   100   /* percent */
+
 /* Buzzer */
 #define CONFIG_BUZZ_V1_2_PIN       PB1
 #define CONFIG_BUZZ_V1_1_PIN       PB2

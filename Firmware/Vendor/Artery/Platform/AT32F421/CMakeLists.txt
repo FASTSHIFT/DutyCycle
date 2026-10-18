@@ -67,7 +67,9 @@ add_compile_definitions(
   USE_STDPERIPH_DRIVER
   ARDUINO=111
   ARGPARSE_DISABLE_FLOAT
-  PRINT_DISABLE_FLOAT)
+  PRINT_DISABLE_FLOAT
+  # Duty resolution of the synchro driver: 16 MHz timer / 20 kHz carrier = 800
+  SYNCHRO_RES=800)
 
 # ==============================================================================
 # Compile flags
@@ -204,7 +206,8 @@ set(APP_SOURCES
     ${APP_DIR}/Service/HAL/HAL_Template.cpp
     ${APP_DIR}/Utils/ButtonEvent/ButtonEvent.cpp
     ${APP_DIR}/Utils/Shell/Shell.c
-    ${APP_DIR}/Utils/easing/easing.c)
+    ${APP_DIR}/Utils/easing/easing.c
+    ${APP_DIR}/Utils/synchro/synchro.c)
 
 # ==============================================================================
 # Sources: Frameworks
